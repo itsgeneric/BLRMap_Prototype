@@ -1,0 +1,106 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="aiofiles" />
+          <option value="aiohappyeyeballs" />
+          <option value="aiohttp" />
+          <option value="aiosignal" />
+          <option value="annotated-doc" />
+          <option value="annotated-types" />
+          <option value="anyio" />
+          <option value="attrs" />
+          <option value="black" />
+          <option value="blinker" />
+          <option value="certifi" />
+          <option value="charset-normalizer" />
+          <option value="click" />
+          <option value="colorama" />
+          <option value="distro" />
+          <option value="dnspython" />
+          <option value="eval-type-backport" />
+          <option value="fastapi" />
+          <option value="filelock" />
+          <option value="flask" />
+          <option value="frozenlist" />
+          <option value="fsspec" />
+          <option value="h11" />
+          <option value="httpcore" />
+          <option value="httptools" />
+          <option value="httpx" />
+          <option value="huggingface-hub" />
+          <option value="idna" />
+          <option value="itsdangerous" />
+          <option value="jinja2" />
+          <option value="jiter" />
+          <option value="joblib" />
+          <option value="markdown-it-py" />
+          <option value="markupsafe" />
+          <option value="mdurl" />
+          <option value="mpmath" />
+          <option value="multidict" />
+          <option value="mypy-extensions" />
+          <option value="neo4j" />
+          <option value="networkx" />
+          <option value="nltk" />
+          <option value="numpy" />
+          <option value="openai" />
+          <option value="packaging" />
+          <option value="pathspec" />
+          <option value="pillow" />
+          <option value="platformdirs" />
+          <option value="propcache" />
+          <option value="pydantic" />
+          <option value="pydantic-core" />
+          <option value="pygments" />
+          <option value="pymongo" />
+          <option value="python-dotenv" />
+          <option value="python-multipart" />
+          <option value="pytokens" />
+          <option value="pytz" />
+          <option value="pyyaml" />
+          <option value="regex" />
+          <option value="requests" />
+          <option value="rich" />
+          <option value="safetensors" />
+          <option value="scikit-learn" />
+          <option value="scipy" />
+          <option value="sentence-transformers" />
+          <option value="setuptools" />
+          <option value="shellingham" />
+          <option value="sniffio" />
+          <option value="starlette" />
+          <option value="sympy" />
+          <option value="tabulate" />
+          <option value="threadpoolctl" />
+          <option value="together" />
+          <option value="tokenizers" />
+          <option value="torch" />
+          <option value="tqdm" />
+          <option value="transformers" />
+          <option value="typer" />
+          <option value="typing-extensions" />
+          <option value="typing-inspection" />
+          <option value="urllib3" />
+          <option value="uvicorn" />
+          <option value="watchfiles" />
+          <option value="websockets" />
+          <option value="werkzeug" />
+          <option value="yarl" />
+          <option value="qiskit" />
+          <option value="qiskit-ibm-runtime" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyStubPackagesAdvertiser" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="scipy" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

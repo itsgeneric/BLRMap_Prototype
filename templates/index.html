@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bengaluru Two-Wheeler Dynamic Router</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        #sidebar {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            overflow-y: auto;
+        }
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+        h2 { margin-top: 0; color: #333; font-size: 1.5rem;}
+        label { font-weight: bold; margin-top: 15px; display: block; font-size: 0.9rem;}
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .radio-group { margin-top: 10px; }
+        .radio-group label { font-weight: normal; display: inline-block; margin-right: 10px; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #1E88E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        button:hover { background: #1565C0; }
+        #metrics {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            display: none;
+        }
+        .metric-title { font-size: 0.8rem; color: #555; }
+        .metric-value { font-size: 1.2rem; font-weight: bold; color: #1E88E5; margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>Dynamic Routing Hub</h2>
+
+        <label>Source Location</label>
+        <input id="origin-input" type="text" placeholder="e.g., MG Road, Bengaluru">
+
+        <label>Destination Location</label>
+        <input id="dest-input" type="text" placeholder="e.g., Koramangala, Bengaluru">
+
+        <label>Traffic Environment</label>
+        <div class="radio-group">
+            <input type="radio" id="empty" name="traffic" value="empty" checked>
+            <label for="empty">Empty Traffic</label><br>
+
+            <input type="radio" id="realtime" name="traffic" value="realtime">
+            <label for="realtime">Real Time</label><br>
+
+            <input type="radio" id="congestion" name="traffic" value="congestion">
+            <label for="congestion">Simulate Congestion</label>
+        </div>
+
+        <button onclick="calculateRoute()">Calculate & Render Route</button>
+
+        <div id="metrics">
+            <div class="metric-title">Evaluated Path Distance</div>
+            <div id="dist-val" class="metric-value">-- KM</div>
+
+            <div class="metric-title">Estimated Two-Wheeler Time</div>
+            <div id="time-val" class="metric-value">-- Mins</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let trafficLayer;
+        let originPlaceId = null;
+        let destPlaceId = null;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 12.9716, lng: 77.5946 },
+                zoom: 12,
+                mapTypeControl: false,
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+            trafficLayer = new google.maps.TrafficLayer();
+
+            const originInput = document.getElementById("origin-input");
+            const destInput = document.getElementById("dest-input");
+
+            const originAutocomplete = new google.maps.places.Autocomplete(originInput, {
+                componentRestrictions: { country: "in" },
+                fields: ["place_id", "geometry", "name"]
+            });
+            const destAutocomplete = new google.maps.places.Autocomplete(destInput, {
+                componentRestrictions: { country: "in" },
+                fields: ["place_id", "geometry", "name"]
+            });
+
+            originAutocomplete.addListener("place_changed", () => {
+                const place = originAutocomplete.getPlace();
+                if (place.place_id) originPlaceId = place.place_id;
+            });
+
+            destAutocomplete.addListener("place_changed", () => {
+                const place = destAutocomplete.getPlace();
+                if (place.place_id) destPlaceId = place.place_id;
+            });
+        }
+
+        function calculateRoute() {
+            if (!originPlaceId || !destPlaceId) {
+                alert("Please select valid origin and destination from the dropdown suggestions.");
+                return;
+            }
+
+            const trafficSelection = document.querySelector('input[name="traffic"]:checked').value;
+
+            if (trafficSelection !== "empty") {
+                trafficLayer.setMap(map);
+            } else {
+                trafficLayer.setMap(null);
+            }
+
+            let request = {
+                origin: { placeId: originPlaceId },
+                destination: { placeId: destPlaceId },
+                travelMode: google.maps.TravelMode.TWO_WHEELER,
+            };
+
+            if (trafficSelection === "realtime") {
+                request.drivingOptions = {
+                    departureTime: new Date(Date.now() + 1000),
+                    trafficModel: "bestguess"
+                };
+            } else if (trafficSelection === "congestion") {
+                let d = new Date();
+                d.setDate(d.getDate() + (5 + 7 - d.getDay()) % 7);
+                d.setHours(18, 30, 0, 0);
+                if (d < new Date()) d.setDate(d.getDate() + 7);
+
+                request.drivingOptions = {
+                    departureTime: d,
+                    trafficModel: "pessimistic"
+                };
+            }
+
+            directionsService.route(request, (response, status) => {
+                if (status === "OK") {
+                    directionsRenderer.setDirections(response);
+
+                    const leg = response.routes[0].legs[0];
+                    document.getElementById("metrics").style.display = "block";
+                    document.getElementById("dist-val").innerText = leg.distance.text;
+
+                    const timeText = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
+                    document.getElementById("time-val").innerText = timeText;
+                } else {
+                    alert("Directions request failed due to " + status);
+                }
+            });
+        }
+    </script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap"></script>
+
+</body>
+</html>
