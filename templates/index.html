@@ -3,196 +3,876 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bengaluru Two-Wheeler Dynamic Router</title>
+    <title>BLR Smart Router</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             height: 100vh;
-            background-color: #f4f4f9;
+            background: #f4f4f9;
         }
+
+        /* ── Sidebar ─────────────────────────────────────────────────────── */
         #sidebar {
-            width: 350px;
+            width: 370px;
+            min-width: 370px;
             background: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.12);
             z-index: 10;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
-        #map {
-            flex-grow: 1;
-            height: 100%;
+
+        .sidebar-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            background: linear-gradient(135deg, #1565C0, #1E88E5);
+            color: white;
         }
-        h2 { margin-top: 0; color: #333; font-size: 1.5rem;}
-        label { font-weight: bold; margin-top: 15px; display: block; font-size: 0.9rem;}
-        input[type="text"] {
+
+        .sidebar-header h2 { font-size: 1.25rem; font-weight: 700; }
+        .sidebar-header p  { font-size: 0.72rem; margin-top: 3px; opacity: 0.85; }
+
+        .sidebar-body { padding: 16px 18px; flex: 1; }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        /* ── Vehicle selector ────────────────────────────────────────────── */
+        .vehicle-grid {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 18px;
+        }
+
+        .vehicle-btn {
+            flex: 1;
+            padding: 8px 4px 6px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .vehicle-btn:hover { border-color: #90CAF9; background: #F5F9FF; }
+        .vehicle-btn.active { border-color: #1E88E5; background: #E3F2FD; }
+
+        .v-icon  { font-size: 1.35rem; display: block; line-height: 1; }
+        .v-label { font-size: 0.62rem; font-weight: 700; color: #666; margin-top: 3px; }
+        .vehicle-btn.active .v-label { color: #1565C0; }
+
+        /* ── Route inputs ────────────────────────────────────────────────── */
+        .input-wrap { position: relative; margin-bottom: 6px; }
+
+        .input-dot {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+        }
+
+        .dot-origin { color: #43A047; background: #43A047; }
+        .dot-dest   { color: #E53935; background: #E53935; }
+
+        .input-wrap input {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 10px 10px 10px 30px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            outline: none;
+            transition: border-color 0.15s;
+            background: #FAFAFA;
         }
-        .radio-group { margin-top: 10px; }
-        .radio-group label { font-weight: normal; display: inline-block; margin-right: 10px; }
-        button {
+
+        .input-wrap input:focus { border-color: #1E88E5; background: white; }
+
+        .swap-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1.5px solid #ddd;
+            background: white;
+            cursor: pointer;
+            margin: 0 auto 6px;
+            font-size: 0.9rem;
+            color: #555;
+            transition: all 0.15s;
+        }
+
+        .swap-btn:hover { background: #f5f5f5; border-color: #aaa; }
+
+        /* ── Traffic selector ────────────────────────────────────────────── */
+        .traffic-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            margin-top: 10px;
+        }
+
+        .traffic-btn {
+            flex: 1;
+            padding: 7px 4px;
+            border: 1.5px solid #ddd;
+            border-radius: 7px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #666;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .traffic-btn:hover { border-color: #90CAF9; }
+        .traffic-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        /* ── Find button ─────────────────────────────────────────────────── */
+        .find-btn {
             width: 100%;
-            padding: 12px;
+            padding: 13px;
             background: #1E88E5;
             color: white;
             border: none;
-            border-radius: 4px;
-            margin-top: 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
+            transition: background 0.15s;
+            letter-spacing: 0.3px;
         }
-        button:hover { background: #1565C0; }
-        #metrics {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 4px;
+
+        .find-btn:hover { background: #1565C0; }
+
+        /* ── Route cards ─────────────────────────────────────────────────── */
+        #routes-section { display: none; margin-top: 18px; }
+
+        .algo-note {
+            font-size: 0.68rem;
+            color: #aaa;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .route-card {
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .route-card:hover  { border-color: #90CAF9; background: #FAFEFF; }
+        .route-card.active { border-color: #1E88E5; background: #E3F2FD; }
+
+        .rc-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .rc-dot {
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .rc-title { font-weight: 700; font-size: 0.88rem; color: #222; flex: 1; }
+
+        .badge {
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-fastest { background: #E8F5E9; color: #2E7D32; }
+        .badge-shorter { background: #FFF3E0; color: #BF360C; }
+        .badge-fewest  { background: #F3E5F5; color: #6A1B9A; }
+
+        .rc-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 6px;
+            align-items: start;
+        }
+
+        .rc-metric-val   { font-size: 1rem; font-weight: 700; color: #1565C0; }
+        .rc-metric-label { font-size: 0.68rem; color: #999; }
+
+        .cong-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+
+        .cong-low    { background: #E8F5E9; color: #2E7D32; }
+        .cong-medium { background: #FFF8E1; color: #F57F17; }
+        .cong-high   { background: #FFEBEE; color: #B71C1C; }
+
+        .fare-row {
+            margin-top: 9px;
+            padding-top: 9px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: #555;
+        }
+
+        /* ── Simulation ──────────────────────────────────────────────────── */
+        #simulation-section {
             display: none;
+            margin-top: 16px;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 14px;
         }
-        .metric-title { font-size: 0.8rem; color: #555; }
-        .metric-value { font-size: 1.2rem; font-weight: bold; color: #1E88E5; margin-bottom: 10px;}
+
+        .sim-title { font-size: 0.82rem; font-weight: 700; color: #444; margin-bottom: 10px; }
+
+        .speed-group { display: flex; gap: 6px; margin-bottom: 10px; }
+
+        .speed-btn {
+            flex: 1;
+            padding: 7px 4px;
+            border: 1.5px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #666;
+            transition: all 0.15s;
+        }
+
+        .speed-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        .sim-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+
+        .sim-btn {
+            flex: 1;
+            padding: 9px 4px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: white;
+            transition: background 0.15s;
+        }
+
+        #btn-start { background: #43A047; }
+        #btn-start:hover { background: #388E3C; }
+        #btn-pause { background: #FB8C00; display: none; }
+        #btn-pause:hover { background: #F57C00; }
+        #btn-reset { background: #E53935; display: none; }
+        #btn-reset:hover { background: #C62828; }
+
+        #sim-progress-wrap {
+            display: none;
+            height: 5px;
+            background: #e8e8e8;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        #sim-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #1E88E5;
+            transition: width 0.08s linear;
+        }
+
+        #sim-status {
+            font-size: 0.75rem;
+            color: #999;
+            text-align: center;
+            min-height: 16px;
+        }
+
+        /* ── Map ─────────────────────────────────────────────────────────── */
+        #map { flex: 1; height: 100%; }
+
+        /* ── Loading overlay ─────────────────────────────────────────────── */
+        #loading {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.65);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 38px; height: 38px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #1E88E5;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 12px; font-size: 0.88rem; color: #555; font-weight: 600; }
+
+        hr.divider { border: none; border-top: 1px solid #f0f0f0; margin: 14px 0; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>Dynamic Routing Hub</h2>
+<div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Finding optimal routes...</div>
+</div>
 
-        <label>Source Location</label>
-        <input id="origin-input" type="text" placeholder="e.g., MG Road, Bengaluru">
-
-        <label>Destination Location</label>
-        <input id="dest-input" type="text" placeholder="e.g., Koramangala, Bengaluru">
-
-        <label>Traffic Environment</label>
-        <div class="radio-group">
-            <input type="radio" id="empty" name="traffic" value="empty" checked>
-            <label for="empty">Empty Traffic</label><br>
-
-            <input type="radio" id="realtime" name="traffic" value="realtime">
-            <label for="realtime">Real Time</label><br>
-
-            <input type="radio" id="congestion" name="traffic" value="congestion">
-            <label for="congestion">Simulate Congestion</label>
-        </div>
-
-        <button onclick="calculateRoute()">Calculate & Render Route</button>
-
-        <div id="metrics">
-            <div class="metric-title">Evaluated Path Distance</div>
-            <div id="dist-val" class="metric-value">-- KM</div>
-
-            <div class="metric-title">Estimated Two-Wheeler Time</div>
-            <div id="time-val" class="metric-value">-- Mins</div>
-        </div>
+<div id="sidebar">
+    <div class="sidebar-header">
+        <h2>BLR Smart Router</h2>
+        <p>Uber-style time-weighted routing &bull; Multiple vehicle modes</p>
     </div>
 
-    <div id="map"></div>
+    <div class="sidebar-body">
 
-    <script>
-        let map;
-        let directionsService;
-        let directionsRenderer;
-        let trafficLayer;
-        let originPlaceId = null;
-        let destPlaceId = null;
+        <!-- Vehicle selector -->
+        <div class="section-label">Mode of Transport</div>
+        <div class="vehicle-grid">
+            <button class="vehicle-btn active" data-vehicle="car" onclick="selectVehicle('car')">
+                <span class="v-icon">🚗</span>
+                <span class="v-label">Car</span>
+            </button>
+            <button class="vehicle-btn" data-vehicle="bike" onclick="selectVehicle('bike')">
+                <span class="v-icon">🏍</span>
+                <span class="v-label">Bike</span>
+            </button>
+            <button class="vehicle-btn" data-vehicle="walk" onclick="selectVehicle('walk')">
+                <span class="v-icon">🚶</span>
+                <span class="v-label">Walk</span>
+            </button>
+            <button class="vehicle-btn" data-vehicle="transit" onclick="selectVehicle('transit')">
+                <span class="v-icon">🚌</span>
+                <span class="v-label">Transit</span>
+            </button>
+            <button class="vehicle-btn" data-vehicle="bicycle" onclick="selectVehicle('bicycle')">
+                <span class="v-icon">🚲</span>
+                <span class="v-label">Cycle</span>
+            </button>
+        </div>
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 12.9716, lng: 77.5946 },
-                zoom: 12,
-                mapTypeControl: false,
-            });
+        <!-- Origin / Destination -->
+        <div class="section-label">Route</div>
+        <div class="input-wrap">
+            <span class="input-dot dot-origin"></span>
+            <input id="origin-input" type="text" placeholder="From: e.g., MG Road, Bengaluru">
+        </div>
+        <button class="swap-btn" onclick="swapLocations()" title="Swap origin and destination">⇅</button>
+        <div class="input-wrap">
+            <span class="input-dot dot-dest"></span>
+            <input id="dest-input" type="text" placeholder="To: e.g., Koramangala, Bengaluru">
+        </div>
 
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
-            trafficLayer = new google.maps.TrafficLayer();
+        <!-- Traffic condition -->
+        <div class="section-label" style="margin-top:12px;">Traffic Condition</div>
+        <div class="traffic-group">
+            <button class="traffic-btn active" data-traffic="empty"     onclick="selectTraffic('empty')">Clear</button>
+            <button class="traffic-btn"        data-traffic="realtime"  onclick="selectTraffic('realtime')">Live</button>
+            <button class="traffic-btn"        data-traffic="congestion" onclick="selectTraffic('congestion')">Peak Hour</button>
+        </div>
 
-            const originInput = document.getElementById("origin-input");
-            const destInput = document.getElementById("dest-input");
+        <button class="find-btn" onclick="calculateRoute()">Find Best Route</button>
 
-            const originAutocomplete = new google.maps.places.Autocomplete(originInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
-            });
-            const destAutocomplete = new google.maps.places.Autocomplete(destInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
-            });
+        <!-- Route alternatives -->
+        <div id="routes-section">
+            <hr class="divider">
+            <div class="section-label" style="margin-bottom:4px;">Route Options</div>
+            <div class="algo-note">⚡ Ranked by Uber-style traffic-weighted score</div>
+            <div id="route-cards"></div>
+        </div>
 
-            originAutocomplete.addListener("place_changed", () => {
-                const place = originAutocomplete.getPlace();
-                if (place.place_id) originPlaceId = place.place_id;
-            });
+        <!-- Simulation -->
+        <div id="simulation-section">
+            <hr class="divider">
+            <div class="sim-title">Route Simulation</div>
+            <div class="speed-group">
+                <button class="speed-btn" data-speed="slow"   onclick="setSpeed('slow')">Slow</button>
+                <button class="speed-btn active" data-speed="normal" onclick="setSpeed('normal')">Normal</button>
+                <button class="speed-btn" data-speed="fast"   onclick="setSpeed('fast')">Fast</button>
+            </div>
+            <div class="sim-controls">
+                <button class="sim-btn" id="btn-start" onclick="startSimulation()">&#9654; Start</button>
+                <button class="sim-btn" id="btn-pause" onclick="togglePause()">&#9646;&#9646; Pause</button>
+                <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">&#8635; Reset</button>
+            </div>
+            <div id="sim-progress-wrap">
+                <div id="sim-progress-bar"></div>
+            </div>
+            <div id="sim-status">Ready to simulate</div>
+        </div>
 
-            destAutocomplete.addListener("place_changed", () => {
-                const place = destAutocomplete.getPlace();
-                if (place.place_id) destPlaceId = place.place_id;
-            });
-        }
+    </div>
+</div>
 
-        function calculateRoute() {
-            if (!originPlaceId || !destPlaceId) {
-                alert("Please select valid origin and destination from the dropdown suggestions.");
-                return;
-            }
+<div id="map"></div>
 
-            const trafficSelection = document.querySelector('input[name="traffic"]:checked').value;
+<script>
+// ── Vehicle configuration ──────────────────────────────────────────────────
+const VEHICLE_CONFIG = {
+    car:     { label: 'Car',     icon: '🚗', modeKey: 'DRIVING',     fareBase: 50,  farePerKm: 12, driving: true  },
+    bike:    { label: 'Bike',    icon: '🏍', modeKey: 'TWO_WHEELER', fareBase: 30,  farePerKm: 7,  driving: true  },
+    walk:    { label: 'Walk',    icon: '🚶', modeKey: 'WALKING',     fareBase: 0,   farePerKm: 0,  driving: false },
+    transit: { label: 'Transit', icon: '🚌', modeKey: 'TRANSIT',     fareBase: 10,  farePerKm: 2,  driving: false },
+    bicycle: { label: 'Cycle',   icon: '🚲', modeKey: 'BICYCLING',   fareBase: 0,   farePerKm: 0,  driving: false },
+};
 
-            if (trafficSelection !== "empty") {
-                trafficLayer.setMap(map);
-            } else {
-                trafficLayer.setMap(null);
-            }
+// Route colors: best → orange → green
+const ROUTE_COLORS = ['#1E88E5', '#FB8C00', '#43A047'];
+const SPEEDS = { slow: 80, normal: 25, fast: 8 };
 
-            let request = {
-                origin: { placeId: originPlaceId },
-                destination: { placeId: destPlaceId },
-                travelMode: google.maps.TravelMode.TWO_WHEELER,
+// ── App state ──────────────────────────────────────────────────────────────
+let map, directionsService, trafficLayer;
+let originAC, destAC;
+let originPlaceId = null, destPlaceId = null;
+let currentVehicle = 'car';
+let currentTraffic = 'empty';
+let directionsResponse = null;
+let routeDataList = [];
+let selectedRank = 0;
+let renderers = [];
+let originMarker = null, destMarker = null;
+
+// Simulation
+let simPath = [], simMarker = null, simIndex = 0;
+let simTimer = null, simPaused = false, currentSpeed = 'normal';
+
+const ARROW_ICON = {
+    path: null, scale: 6,
+    fillColor: '#FF5722', fillOpacity: 1,
+    strokeWeight: 2, strokeColor: '#fff', rotation: 0
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+function initMap() {
+    ARROW_ICON.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 12.9716, lng: 77.5946 },
+        zoom: 12,
+        mapTypeControl: true,
+        mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR },
+        fullscreenControl: true,
+        streetViewControl: true,
+        zoomControl: true,
+    });
+
+    directionsService = new google.maps.DirectionsService();
+    trafficLayer      = new google.maps.TrafficLayer();
+
+    const acOpts = {
+        componentRestrictions: { country: 'in' },
+        fields: ['place_id', 'geometry', 'name']
+    };
+    originAC = new google.maps.places.Autocomplete(document.getElementById('origin-input'), acOpts);
+    destAC   = new google.maps.places.Autocomplete(document.getElementById('dest-input'),   acOpts);
+
+    originAC.addListener('place_changed', () => {
+        const p = originAC.getPlace();
+        if (p && p.place_id) originPlaceId = p.place_id;
+    });
+    destAC.addListener('place_changed', () => {
+        const p = destAC.getPlace();
+        if (p && p.place_id) destPlaceId = p.place_id;
+    });
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function selectVehicle(v) {
+    currentVehicle = v;
+    document.querySelectorAll('.vehicle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.vehicle === v);
+    });
+}
+
+function selectTraffic(t) {
+    currentTraffic = t;
+    document.querySelectorAll('.traffic-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.traffic === t);
+    });
+}
+
+function swapLocations() {
+    const oi = document.getElementById('origin-input');
+    const di = document.getElementById('dest-input');
+    [oi.value, di.value] = [di.value, oi.value];
+    [originPlaceId, destPlaceId] = [destPlaceId, originPlaceId];
+}
+
+function showLoading(on) {
+    document.getElementById('loading').style.display = on ? 'flex' : 'none';
+}
+
+// ── Uber-style scoring ─────────────────────────────────────────────────────
+//
+// How it works (mirrors Uber's ETA-based routing):
+//   1. Get real traffic time vs. free-flow time → congestion ratio
+//   2. Apply a 1.5× amplification on the extra congestion delay so the
+//      algorithm actively steers away from congested corridors
+//   3. Add a small distance penalty to break ties in favour of compact routes
+//   The route with the lowest total score is labelled "Fastest"
+//
+function scoreRoute(leg) {
+    const trafficSec = (leg.duration_in_traffic || leg.duration).value;
+    const baseSec    = leg.duration.value;
+    const distKm     = leg.distance.value / 1000;
+
+    const congestionRatio   = trafficSec / baseSec;
+    const congestionPenalty = Math.max(0, trafficSec - baseSec) * 1.5;
+    const distancePenalty   = distKm * 0.3 * 60;
+    const score             = trafficSec + congestionPenalty + distancePenalty;
+
+    let congestionLevel, congClass;
+    if (congestionRatio < 1.15)     { congestionLevel = 'Light Traffic';  congClass = 'cong-low';    }
+    else if (congestionRatio < 1.4) { congestionLevel = 'Moderate';       congClass = 'cong-medium'; }
+    else                            { congestionLevel = 'Heavy Traffic';   congClass = 'cong-high';   }
+
+    return { score, congestionLevel, congClass, congestionRatio };
+}
+
+// ── Calculate route ────────────────────────────────────────────────────────
+function calculateRoute() {
+    if (!originPlaceId || !destPlaceId) {
+        alert('Please select both origin and destination from the dropdown suggestions.');
+        return;
+    }
+
+    showLoading(true);
+    resetSimulation();
+    document.getElementById('routes-section').style.display    = 'none';
+    document.getElementById('simulation-section').style.display = 'none';
+
+    const vcfg = VEHICLE_CONFIG[currentVehicle];
+    trafficLayer.setMap(currentTraffic !== 'empty' && vcfg.driving ? map : null);
+
+    const travelMode = google.maps.TravelMode[vcfg.modeKey];
+
+    const request = {
+        origin:                   { placeId: originPlaceId },
+        destination:              { placeId: destPlaceId },
+        travelMode:               travelMode,
+        provideRouteAlternatives: true,
+    };
+
+    // Traffic-aware departure time (driving modes only)
+    if (vcfg.driving) {
+        if (currentTraffic === 'realtime') {
+            request.drivingOptions = {
+                departureTime: new Date(Date.now() + 1000),
+                trafficModel:  'bestguess'
             };
-
-            if (trafficSelection === "realtime") {
-                request.drivingOptions = {
-                    departureTime: new Date(Date.now() + 1000),
-                    trafficModel: "bestguess"
-                };
-            } else if (trafficSelection === "congestion") {
-                let d = new Date();
-                d.setDate(d.getDate() + (5 + 7 - d.getDay()) % 7);
-                d.setHours(18, 30, 0, 0);
-                if (d < new Date()) d.setDate(d.getDate() + 7);
-
-                request.drivingOptions = {
-                    departureTime: d,
-                    trafficModel: "pessimistic"
-                };
-            }
-
-            directionsService.route(request, (response, status) => {
-                if (status === "OK") {
-                    directionsRenderer.setDirections(response);
-
-                    const leg = response.routes[0].legs[0];
-                    document.getElementById("metrics").style.display = "block";
-                    document.getElementById("dist-val").innerText = leg.distance.text;
-
-                    const timeText = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
-                    document.getElementById("time-val").innerText = timeText;
-                } else {
-                    alert("Directions request failed due to " + status);
-                }
-            });
+        } else if (currentTraffic === 'congestion') {
+            // Next Friday 6:30 PM — peak Bengaluru traffic
+            const d = new Date();
+            d.setDate(d.getDate() + ((5 + 7 - d.getDay()) % 7));
+            d.setHours(18, 30, 0, 0);
+            if (d <= new Date()) d.setDate(d.getDate() + 7);
+            request.drivingOptions = {
+                departureTime: d,
+                trafficModel:  'pessimistic'
+            };
         }
-    </script>
+    }
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap"></script>
+    // Transit mode — prefer fewer transfers
+    if (currentVehicle === 'transit') {
+        request.transitOptions = {
+            departureTime:     new Date(),
+            routingPreference: google.maps.TransitRoutePreference.FEWER_TRANSFERS,
+        };
+    }
+
+    directionsService.route(request, (response, status) => {
+        showLoading(false);
+        if (status !== 'OK') {
+            alert('Route not found: ' + status +
+                  '\n\nTips:\n- Try different locations\n- Some modes may not support this route\n- Walk/Cycle only works for shorter distances');
+            return;
+        }
+        directionsResponse = response;
+        processRoutes(response, vcfg);
+    });
+}
+
+// ── Process & render routes ────────────────────────────────────────────────
+function processRoutes(response, vcfg) {
+    // Score all alternatives and sort best-first
+    const scored = response.routes.map((route, i) => {
+        const leg     = route.legs[0];
+        const scoring = scoreRoute(leg);
+        return { route, leg, originalIndex: i, ...scoring };
+    });
+    scored.sort((a, b) => a.score - b.score);
+    routeDataList = scored;
+    selectedRank  = 0;
+
+    renderAllRoutes(0);
+    renderRouteCards(vcfg);
+    buildSimPath(scored[0].leg);
+
+    document.getElementById('routes-section').style.display    = 'block';
+    document.getElementById('simulation-section').style.display = 'block';
+    setStatus('Ready to simulate (' + simPath.length + ' waypoints)');
+}
+
+function renderAllRoutes(activeRank) {
+    // Clear old renderers and markers
+    renderers.forEach(r => r.setMap(null));
+    renderers = [];
+    if (originMarker) { originMarker.setMap(null); originMarker = null; }
+    if (destMarker)   { destMarker.setMap(null);   destMarker   = null; }
+
+    routeDataList.forEach((rd, rank) => {
+        const isActive = rank === activeRank;
+        const renderer = new google.maps.DirectionsRenderer({
+            map,
+            directions:   directionsResponse,
+            routeIndex:   rd.originalIndex,
+            suppressMarkers: true,
+            polylineOptions: {
+                strokeColor:   ROUTE_COLORS[rank],
+                strokeWeight:  isActive ? 7 : 4,
+                strokeOpacity: isActive ? 1.0 : 0.5,
+                zIndex:        isActive ? 10 : rank,
+            },
+        });
+        renderers.push(renderer);
+    });
+
+    // Custom origin / destination markers
+    const bestLeg = routeDataList[activeRank].leg;
+    originMarker = new google.maps.Marker({
+        position: bestLeg.start_location,
+        map,
+        title:    'Origin: ' + bestLeg.start_address,
+        icon: {
+            path:         google.maps.SymbolPath.CIRCLE,
+            scale:        11,
+            fillColor:    '#43A047',
+            fillOpacity:  1,
+            strokeColor:  '#fff',
+            strokeWeight: 2,
+        },
+        label: { text: 'A', color: '#fff', fontWeight: 'bold', fontSize: '11px' },
+        zIndex: 20,
+    });
+
+    destMarker = new google.maps.Marker({
+        position: bestLeg.end_location,
+        map,
+        title:    'Destination: ' + bestLeg.end_address,
+        icon: {
+            path:         google.maps.SymbolPath.CIRCLE,
+            scale:        11,
+            fillColor:    '#E53935',
+            fillOpacity:  1,
+            strokeColor:  '#fff',
+            strokeWeight: 2,
+        },
+        label: { text: 'B', color: '#fff', fontWeight: 'bold', fontSize: '11px' },
+        zIndex: 20,
+    });
+}
+
+// ── Route cards ────────────────────────────────────────────────────────────
+function renderRouteCards(vcfg) {
+    const container = document.getElementById('route-cards');
+    container.innerHTML = '';
+
+    const bestDist = routeDataList[0].leg.distance.value;
+
+    routeDataList.forEach((rd, rank) => {
+        const isFirst    = rank === 0;
+        const isShorter  = !isFirst && rd.leg.distance.value < bestDist;
+        const timeText   = (rd.leg.duration_in_traffic || rd.leg.duration).text;
+        const distKm     = (rd.leg.distance.value / 1000).toFixed(1);
+        const fareText   = calcFare(vcfg, rd.leg.distance.value);
+
+        let badgeHtml = '';
+        if (isFirst)      badgeHtml = '<span class="badge badge-fastest">⚡ Fastest</span>';
+        else if (isShorter) badgeHtml = '<span class="badge badge-shorter">📏 Shorter</span>';
+
+        const card = document.createElement('div');
+        card.className = 'route-card' + (isFirst ? ' active' : '');
+        card.dataset.rank = rank;
+        card.onclick = () => selectRoute(rank);
+
+        card.innerHTML = `
+            <div class="rc-header">
+                <div class="rc-dot" style="background:${ROUTE_COLORS[rank]}"></div>
+                <div class="rc-title">Route ${rank + 1}</div>
+                ${badgeHtml}
+            </div>
+            <div class="rc-meta">
+                <div>
+                    <div class="rc-metric-val">${timeText}</div>
+                    <div class="rc-metric-label">Est. time</div>
+                </div>
+                <div>
+                    <div class="rc-metric-val">${distKm} km</div>
+                    <div class="rc-metric-label">Distance</div>
+                </div>
+                <div>
+                    <span class="cong-tag ${rd.congClass}">${rd.congestionLevel}</span>
+                </div>
+            </div>
+            ${fareText ? `<div class="fare-row"><span>Estimated fare</span><span><b>${fareText}</b></span></div>` : ''}
+        `;
+        container.appendChild(card);
+    });
+}
+
+function selectRoute(rank) {
+    if (rank === selectedRank) return;
+    selectedRank = rank;
+
+    // Highlight selected card
+    document.querySelectorAll('.route-card').forEach((c, i) => {
+        c.classList.toggle('active', i === rank);
+    });
+
+    // Re-render polylines with new active route
+    renderAllRoutes(rank);
+
+    // Update simulation path
+    buildSimPath(routeDataList[rank].leg);
+    resetSimulation();
+    setStatus('Ready to simulate (' + simPath.length + ' waypoints)');
+}
+
+function calcFare(vcfg, distanceMeters) {
+    if (!vcfg.farePerKm && !vcfg.fareBase) return '';
+    const km   = distanceMeters / 1000;
+    const fare = vcfg.fareBase + km * vcfg.farePerKm;
+    return '₹' + Math.round(fare);
+}
+
+// ── Simulation ─────────────────────────────────────────────────────────────
+function buildSimPath(leg) {
+    simPath = [];
+    leg.steps.forEach(step => step.path.forEach(pt => simPath.push(pt)));
+}
+
+function setSpeed(speed) {
+    currentSpeed = speed;
+    document.querySelectorAll('.speed-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.speed === speed);
+    });
+    if (simTimer) { clearInterval(simTimer); runLoop(); }
+}
+
+function startSimulation() {
+    if (!simPath.length) return;
+    if (simMarker) { simMarker.setMap(null); simMarker = null; }
+    simIndex = 0; simPaused = false;
+
+    simMarker = new google.maps.Marker({
+        position: simPath[0],
+        map,
+        zIndex:   999,
+        title:    VEHICLE_CONFIG[currentVehicle].label,
+        icon:     Object.assign({}, ARROW_ICON, { rotation: 0 }),
+    });
+
+    document.getElementById('btn-start').style.display         = 'none';
+    document.getElementById('btn-pause').style.display         = 'block';
+    document.getElementById('btn-reset').style.display         = 'block';
+    document.getElementById('sim-progress-wrap').style.display = 'block';
+    setProgress(0);
+    setStatus('Simulating...');
+    runLoop();
+}
+
+function runLoop() {
+    simTimer = setInterval(() => {
+        if (simPaused) return;
+
+        if (simIndex >= simPath.length - 1) {
+            clearInterval(simTimer); simTimer = null;
+            document.getElementById('btn-pause').style.display = 'none';
+            document.getElementById('btn-start').style.display = 'block';
+            document.getElementById('btn-start').textContent   = '▶ Replay';
+            setProgress(1);
+            setStatus('Arrived! Simulation complete.');
+            return;
+        }
+
+        const prev    = simPath[simIndex++];
+        const curr    = simPath[simIndex];
+        const heading = google.maps.geometry.spherical.computeHeading(prev, curr);
+        simMarker.setIcon(Object.assign({}, ARROW_ICON, { rotation: heading }));
+        simMarker.setPosition(curr);
+        map.panTo(curr);
+        setProgress(simIndex / (simPath.length - 1));
+    }, SPEEDS[currentSpeed]);
+}
+
+function togglePause() {
+    simPaused = !simPaused;
+    document.getElementById('btn-pause').textContent = simPaused ? '▶ Resume' : '⏸ Pause';
+    setStatus(simPaused ? 'Paused' : 'Simulating...');
+}
+
+function resetSimulation() {
+    if (simTimer)  { clearInterval(simTimer); simTimer = null; }
+    if (simMarker) { simMarker.setMap(null);  simMarker = null; }
+    simIndex = 0; simPaused = false;
+
+    const btnStart = document.getElementById('btn-start');
+    btnStart.style.display = 'block';
+    btnStart.textContent   = '▶ Start';
+    document.getElementById('btn-pause').style.display         = 'none';
+    document.getElementById('btn-pause').textContent           = '⏸ Pause';
+    document.getElementById('btn-reset').style.display         = 'none';
+    document.getElementById('sim-progress-wrap').style.display = 'none';
+    setProgress(0);
+    setStatus(simPath.length
+        ? 'Ready to simulate (' + simPath.length + ' waypoints)'
+        : 'Ready to simulate');
+}
+
+function setStatus(msg)     { document.getElementById('sim-status').innerText = msg; }
+function setProgress(ratio) {
+    document.getElementById('sim-progress-bar').style.width = (ratio * 100).toFixed(1) + '%';
+}
+</script>
+
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap">
+</script>
 
 </body>
 </html>
