@@ -1,203 +1,417 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bengaluru Two-Wheeler Dynamic Router</title>
     <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            height: 100vh;
-            background-color: #f4f4f9;
-        }
-        #sidebar {
-            width: 350px;
-            background: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            z-index: 10;
-            overflow-y: auto;
-        }
-        #map {
-            flex-grow: 1;
-            height: 100%;
-        }
-        h2 { margin-top: 0; color: #333; font-size: 1.5rem;}
-        label { font-weight: bold; margin-top: 15px; display: block; font-size: 0.9rem;}
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .radio-group { margin-top: 10px; }
-        .radio-group label { font-weight: normal; display: inline-block; margin-right: 10px; }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #1E88E5;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
-        }
-        button:hover { background: #1565C0; }
-        #metrics {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 4px;
-            display: none;
-        }
-        .metric-title { font-size: 0.8rem; color: #555; }
-        .metric-value { font-size: 1.2rem; font-weight: bold; color: #1E88E5; margin-bottom: 10px;}
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        height: 100vh;
+        background-color: #f4f4f9;
+      }
+      #sidebar {
+        width: 350px;
+        background: white;
+        padding: 20px;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+        overflow-y: auto;
+      }
+      #map {
+        flex-grow: 1;
+        height: 100%;
+      }
+      h2 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.5rem;
+      }
+      label {
+        font-weight: bold;
+        margin-top: 15px;
+        display: block;
+        font-size: 0.9rem;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .radio-group {
+        margin-top: 10px;
+      }
+      .radio-group label {
+        font-weight: normal;
+        display: inline-block;
+        margin-right: 10px;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        margin-top: 20px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #1565c0;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div id="sidebar">
-        <h2>Dynamic Routing Hub</h2>
+      <h2>Dynamic Routing Hub</h2>
 
-    
+      <label>Source Location</label>
+      <input
+        id="origin-input"
+        type="text"
+        placeholder="e.g., MG Road, Bengaluru"
+      />
 
-        <label>Source Location</label>
-        <input id="origin-input" type="text" placeholder="e.g., MG Road, Bengaluru">
+      <label>Destination Location</label>
+      <input
+        id="dest-input"
+        type="text"
+        placeholder="e.g., Koramangala, Bengaluru"
+      />
 
-        <label>Destination Location</label>
-        <input id="dest-input" type="text" placeholder="e.g., Koramangala, Bengaluru">
+      <label>Traffic Environment</label>
+      <div class="radio-group">
+        <input type="radio" id="empty" name="traffic" value="empty" checked />
+        <label for="empty">Empty Traffic</label><br />
+        <input type="radio" id="realtime" name="traffic" value="realtime" />
+        <label for="realtime">Real Time</label><br />
+        <input type="radio" id="congestion" name="traffic" value="congestion" />
+        <label for="congestion">Simulate Congestion</label>
+      </div>
 
-        <label>Traffic Environment</label>
-        <div class="radio-group">
-            <input type="radio" id="empty" name="traffic" value="empty" checked>
-            <label for="empty">Empty Traffic</label><br>
+      <button onclick="calculateRoute()">Calculate & Render Route</button>
 
-            <input type="radio" id="realtime" name="traffic" value="realtime">
-            <label for="realtime">Real Time</label><br>
-
-            <input type="radio" id="congestion" name="traffic" value="congestion">
-            <label for="congestion">Simulate Congestion</label>
+      <div
+        style="
+          margin-top: 15px;
+          padding: 12px;
+          background: #f9f9f9;
+          border-radius: 4px;
+          border: 1px solid #eee;
+        "
+      >
+        <div
+          style="
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+          "
+        >
+          ROUTE LEGEND
         </div>
-
-        <button onclick="calculateRoute()">Calculate & Render Route</button>
-
-        <div id="metrics">
-            <div class="metric-title">Evaluated Path Distance</div>
-            <div id="dist-val" class="metric-value">-- KM</div>
-
-            <div class="metric-title">Estimated Two-Wheeler Time</div>
-            <div id="time-val" class="metric-value">-- Mins</div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px">
+          <div
+            style="
+              width: 30px;
+              height: 4px;
+              background: #1a73e8;
+              margin-right: 8px;
+              border-radius: 2px;
+            "
+          ></div>
+          <span style="font-size: 0.85rem">Google's Route</span>
         </div>
+        <div style="display: flex; align-items: center">
+          <div
+            style="
+              width: 30px;
+              height: 4px;
+              background: #ff6600;
+              margin-right: 8px;
+              border-radius: 2px;
+            "
+          ></div>
+          <span style="font-size: 0.85rem">Our Efficient Route</span>
+        </div>
+      </div>
+
+      <div id="metrics" style="margin-top: 20px; display: none">
+        <div style="display: flex; gap: 10px">
+          <div
+            style="
+              flex: 1;
+              padding: 12px;
+              background: #e3f2fd;
+              border-radius: 4px;
+            "
+          >
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: bold;
+                color: #1e88e5;
+                margin-bottom: 6px;
+              "
+            >
+              🔵 GOOGLE
+            </div>
+            <div style="font-size: 0.75rem; color: #555">Distance</div>
+            <div
+              id="dist-val"
+              style="
+                font-size: 1.1rem;
+                font-weight: bold;
+                color: #1e88e5;
+                margin-bottom: 6px;
+              "
+            >
+              --
+            </div>
+            <div style="font-size: 0.75rem; color: #555">Est. Time</div>
+            <div
+              id="time-val"
+              style="font-size: 1.1rem; font-weight: bold; color: #1e88e5"
+            >
+              --
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1;
+              padding: 12px;
+              background: #fff3e0;
+              border-radius: 4px;
+            "
+          >
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: bold;
+                color: #ff6600;
+                margin-bottom: 6px;
+              "
+            >
+              🟠 OURS
+            </div>
+            <div style="font-size: 0.75rem; color: #555">Distance</div>
+            <div
+              id="our-dist-val"
+              style="
+                font-size: 1.1rem;
+                font-weight: bold;
+                color: #ff6600;
+                margin-bottom: 6px;
+              "
+            >
+              --
+            </div>
+            <div style="font-size: 0.75rem; color: #555">Est. Time</div>
+            <div
+              id="our-time-val"
+              style="font-size: 1.1rem; font-weight: bold; color: #ff6600"
+            >
+              --
+            </div>
+          </div>
+        </div>
+        <div
+          id="verdict"
+          style="
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background: #f5f5f5;
+          "
+        ></div>
+        <div
+          id="mode-note"
+          style="font-size: 0.75rem; color: #888; margin-top: 8px"
+        ></div>
+      </div>
     </div>
-
-    <div> PUll request check</div>
 
     <div id="map"></div>
 
     <script>
-        let map;
-        let directionsService;
-        let directionsRenderer;
-        let trafficLayer;
-        let originPlaceId = null;
-        let destPlaceId = null;
+      let map, directionsService, directionsRenderer, trafficLayer;
+      let originPlaceId = null,
+        destPlaceId = null;
+      let ourRoutePolyline = null;
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 12.9716, lng: 77.5946 },
-                zoom: 12,
-                mapTypeControl: false,
-            });
+      function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 12.9716, lng: 77.5946 },
+          zoom: 12,
+          mapTypeControl: false,
+        });
 
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
-            trafficLayer = new google.maps.TrafficLayer();
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+        trafficLayer = new google.maps.TrafficLayer();
 
-            const originInput = document.getElementById("origin-input");
-            const destInput = document.getElementById("dest-input");
+        const originAutocomplete = new google.maps.places.Autocomplete(
+          document.getElementById("origin-input"),
+          {
+            componentRestrictions: { country: "in" },
+            fields: ["place_id", "geometry", "name"],
+          },
+        );
+        const destAutocomplete = new google.maps.places.Autocomplete(
+          document.getElementById("dest-input"),
+          {
+            componentRestrictions: { country: "in" },
+            fields: ["place_id", "geometry", "name"],
+          },
+        );
 
-            const originAutocomplete = new google.maps.places.Autocomplete(originInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
-            });
-            const destAutocomplete = new google.maps.places.Autocomplete(destInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
-            });
+        originAutocomplete.addListener("place_changed", () => {
+          const place = originAutocomplete.getPlace();
+          if (place.place_id) originPlaceId = place.place_id;
+        });
+        destAutocomplete.addListener("place_changed", () => {
+          const place = destAutocomplete.getPlace();
+          if (place.place_id) destPlaceId = place.place_id;
+        });
+      }
 
-            originAutocomplete.addListener("place_changed", () => {
-                const place = originAutocomplete.getPlace();
-                if (place.place_id) originPlaceId = place.place_id;
-            });
-
-            destAutocomplete.addListener("place_changed", () => {
-                const place = destAutocomplete.getPlace();
-                if (place.place_id) destPlaceId = place.place_id;
-            });
+      function calculateRoute() {
+        if (!originPlaceId || !destPlaceId) {
+          alert(
+            "Please select valid origin and destination from the dropdown suggestions.",
+          );
+          return;
         }
 
-        function calculateRoute() {
-            if (!originPlaceId || !destPlaceId) {
-                alert("Please select valid origin and destination from the dropdown suggestions.");
-                return;
-            }
+        const trafficSelection = document.querySelector(
+          'input[name="traffic"]:checked',
+        ).value;
 
-            const trafficSelection = document.querySelector('input[name="traffic"]:checked').value;
+        if (trafficSelection !== "empty") {
+          trafficLayer.setMap(map);
+        } else {
+          trafficLayer.setMap(null);
+        }
 
-            if (trafficSelection !== "empty") {
-                trafficLayer.setMap(map);
-            } else {
-                trafficLayer.setMap(null);
-            }
+        let request = {
+          origin: { placeId: originPlaceId },
+          destination: { placeId: destPlaceId },
+          travelMode: google.maps.TravelMode.TWO_WHEELER,
+        };
 
-            let request = {
-                origin: { placeId: originPlaceId },
-                destination: { placeId: destPlaceId },
-                travelMode: google.maps.TravelMode.TWO_WHEELER,
-            };
+        if (trafficSelection === "realtime") {
+          request.drivingOptions = {
+            departureTime: new Date(Date.now() + 1000),
+            trafficModel: "bestguess",
+          };
+        } else if (trafficSelection === "congestion") {
+          request.travelMode = google.maps.TravelMode.DRIVING;
+          let d = new Date();
+          d.setDate(d.getDate() + ((5 + 7 - d.getDay()) % 7));
+          d.setHours(18, 30, 0, 0);
+          if (d < new Date()) d.setDate(d.getDate() + 7);
+          request.drivingOptions = {
+            departureTime: d,
+            trafficModel: "pessimistic",
+          };
+        }
 
-            if (trafficSelection === "realtime") {
-                request.drivingOptions = {
-                    departureTime: new Date(Date.now() + 1000),
-                    trafficModel: "bestguess"
-                };
-            } else if (trafficSelection === "congestion") {
-                let d = new Date();
-                d.setDate(d.getDate() + (5 + 7 - d.getDay()) % 7);
-                d.setHours(18, 30, 0, 0);
-                if (d < new Date()) d.setDate(d.getDate() + 7);
+        directionsService.route(request, (response, status) => {
+          if (status === "OK") {
+            directionsRenderer.setDirections(response);
 
-                request.drivingOptions = {
-                    departureTime: d,
-                    trafficModel: "pessimistic"
-                };
-            }
+            const leg = response.routes[0].legs[0];
+            document.getElementById("metrics").style.display = "block";
+            document.getElementById("dist-val").innerText = leg.distance.text;
 
-            directionsService.route(request, (response, status) => {
-                if (status === "OK") {
-                    directionsRenderer.setDirections(response);
+            const timeText = leg.duration_in_traffic
+              ? leg.duration_in_traffic.text
+              : leg.duration.text;
+            document.getElementById("time-val").innerText = timeText;
 
-                    const leg = response.routes[0].legs[0];
-                    document.getElementById("metrics").style.display = "block";
-                    document.getElementById("dist-val").innerText = leg.distance.text;
+            document.getElementById("mode-note").innerText =
+              trafficSelection === "congestion"
+                ? "⚠️ Congestion sim uses driving mode (API limitation)"
+                : "";
 
-                    const timeText = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
-                    document.getElementById("time-val").innerText = timeText;
-                } else {
-                    alert("Directions request failed due to " + status);
+            const oLat = leg.start_location.lat();
+            const oLng = leg.start_location.lng();
+            const dLat = leg.end_location.lat();
+            const dLng = leg.end_location.lng();
+
+            fetch(
+              `/route?olat=${oLat}&olng=${oLng}&dlat=${dLat}&dlng=${dLng}&congestion=${trafficSelection === "congestion"}`,
+            )
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "OK") {
+                  if (ourRoutePolyline) ourRoutePolyline.setMap(null);
+
+                  // Parse times for comparison
+                  const ourTime = data.time_mins;
+                  const googleTimeText =
+                    document.getElementById("time-val").innerText;
+                  function parseGoogleTime(text) {
+                    let mins = 0;
+                    const hourMatch = text.match(/(\d+)\s*hour/);
+                    const minMatch = text.match(/(\d+)\s*min/);
+                    if (hourMatch) mins += parseInt(hourMatch[1]) * 60;
+                    if (minMatch) mins += parseInt(minMatch[1]);
+                    return mins;
+                  }
+
+                  const googleTime = parseGoogleTime(googleTimeText);
+
+                  document.getElementById("our-dist-val").innerText =
+                    data.distance_km + " km";
+
+                  if (ourTime < googleTime) {
+                    // Our route wins — show it
+                    ourRoutePolyline = new google.maps.Polyline({
+                      path: data.path,
+                      geodesic: true,
+                      strokeColor: "#FF6600",
+                      strokeOpacity: 0.9,
+                      strokeWeight: 5,
+                      map: map,
+                    });
+                    document.getElementById("our-time-val").innerText =
+                      data.time_mins + " mins ✅";
+                    document.getElementById("verdict").innerText =
+                      "✅ Our route saves " +
+                      (googleTime - ourTime).toFixed(1) +
+                      " mins vs Google";
+                    document.getElementById("verdict").style.color = "green";
+                  } else {
+                    // Google wins — hide our route
+                    document.getElementById("our-time-val").innerText =
+                      data.time_mins + " mins ❌";
+                    document.getElementById("verdict").innerText =
+                      "🔵 Google's route is faster — showing Google's suggestion";
+                    document.getElementById("verdict").style.color = "#1e88e5";
+                  }
                 }
-            });
-        }
+              });
+          } else {
+            alert("Directions request failed due to " + status);
+          }
+        });
+      }
     </script>
 
-
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap"></script>
-
-</body>
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap"
+    ></script>
+  </body>
 </html>
