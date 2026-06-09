@@ -5,194 +5,553 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bengaluru Two-Wheeler Dynamic Router</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            height: 100vh;
-            background-color: #f4f4f9;
+            display: flex; height: 100vh; background: #f4f4f9;
         }
+
         #sidebar {
-            width: 350px;
-            background: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            z-index: 10;
-            overflow-y: auto;
+            width: 370px; background: white; padding: 18px;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+            z-index: 10; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px;
         }
-        #map {
-            flex-grow: 1;
-            height: 100%;
+
+        #map { flex-grow: 1; height: 100%; }
+
+        h2  { color: #1a1a2e; font-size: 1.3rem; }
+        h3  { font-size: 0.95rem; color: #333; margin-bottom: 4px; }
+        hr  { border: none; border-top: 1px solid #eee; }
+
+        label {
+            font-weight: 600; font-size: 0.82rem;
+            color: #555; display: block; margin-bottom: 3px;
         }
-        h2 { margin-top: 0; color: #333; font-size: 1.5rem;}
-        label { font-weight: bold; margin-top: 15px; display: block; font-size: 0.9rem;}
+
         input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+            width: 100%; padding: 9px 11px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            font-size: 0.88rem; transition: border 0.2s;
         }
-        .radio-group { margin-top: 10px; }
-        .radio-group label { font-weight: normal; display: inline-block; margin-right: 10px; }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #1E88E5;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: bold;
+        input[type="text"]:focus { border-color: #1E88E5; outline: none; }
+
+        /* Traffic radio */
+        .radio-group { display: flex; flex-direction: column; gap: 5px; }
+        .radio-option {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 10px; border: 1.5px solid #eee;
+            border-radius: 7px; cursor: pointer; transition: all 0.2s;
         }
-        button:hover { background: #1565C0; }
-        #metrics {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 4px;
-            display: none;
+        .radio-option:has(input:checked) { border-color: #1E88E5; background: #e3f2fd; }
+        .radio-option label { font-weight: 500; font-size: 0.85rem; color: #333; cursor: pointer; margin: 0; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 7px; cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: all 0.2s; }
+        .btn-primary  { background: #1E88E5; color: white; }
+        .btn-primary:hover  { background: #1565C0; }
+        .btn-primary:disabled { background: #90CAF9; cursor: not-allowed; }
+        .btn-danger   { background: #ffebee; color: #c62828; border: 1.5px solid #ef9a9a; }
+        .btn-danger:hover   { background: #ffcdd2; }
+        .btn-warning  { background: #fff8e1; color: #e65100; border: 1.5px solid #ffcc02; }
+        .btn-warning:hover  { background: #fff3cd; }
+        .btn-active   { background: #e8f5e9 !important; border: 1.5px solid #66bb6a !important; color: #2e7d32 !important; }
+
+        /* Tool section */
+        .tool-section {
+            background: #fafafa; border: 1.5px solid #eee;
+            border-radius: 9px; padding: 12px;
         }
-        .metric-title { font-size: 0.8rem; color: #555; }
-        .metric-value { font-size: 1.2rem; font-weight: bold; color: #1E88E5; margin-bottom: 10px;}
+        .tool-row { display: flex; gap: 8px; }
+        .tool-row .btn { flex: 1; }
+
+        /* Zone list */
+        #zone-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .zone-item {
+            background: #fff3e0; border: 1px solid #ffcc80;
+            border-radius: 7px; padding: 8px 10px;
+        }
+        .zone-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .zone-item-header span { font-size: 0.82rem; font-weight: 600; color: #e65100; }
+        .zone-delete { background: none; border: none; cursor: pointer; color: #c62828; font-size: 1rem; padding: 0 4px; }
+        .slider-row { display: flex; align-items: center; gap: 8px; }
+        .slider-row input[type=range] { flex: 1; accent-color: #e53935; }
+        .slider-label { font-size: 0.75rem; color: #777; white-space: nowrap; }
+
+        /* Blocked roads list */
+        #blocked-list { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+        .blocked-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+        }
+        .blocked-item.block { background: #212121; color: white; }
+        .blocked-item.slow  { background: #fff8e1; color: #e65100; border: 1px solid #ffcc02; }
+        .blocked-item button { background: none; border: none; cursor: pointer; font-size: 0.85rem; }
+        .blocked-item.block button { color: #ef9a9a; }
+        .blocked-item.slow  button { color: #c62828; }
+
+        /* Loading */
+        #loading { display: none; text-align: center; font-size: 0.82rem; color: #888; padding: 6px; }
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid #ddd; border-top-color: #1E88E5;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin-right: 5px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Comparison */
+        #comparison { display: none; flex-direction: column; gap: 9px; }
+        .comp-title { font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .route-card { border-radius: 9px; padding: 11px 13px; border-left: 4px solid; }
+        .route-card.standard { background: #e8eaf6; border-color: #3949AB; }
+        .route-card.shortcut { background: #fce4ec; border-color: #E53935; }
+        .route-card h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; }
+        .route-card.standard h4 { color: #3949AB; }
+        .route-card.shortcut h4 { color: #E53935; }
+        .route-stats { display: flex; gap: 14px; }
+        .stat { display: flex; flex-direction: column; }
+        .stat-label { font-size: 0.7rem; color: #777; }
+        .stat-value { font-size: 1.05rem; font-weight: 700; color: #222; }
+        .saving-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 5px; }
+        .legend { display: flex; gap: 12px; font-size: 0.78rem; color: #555; }
+        .legend-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+
+        /* Error */
+        #error-msg { display: none; background: #ffebee; color: #c62828; padding: 9px 11px; border-radius: 7px; font-size: 0.82rem; }
+
+        /* Road action popup */
+        #road-popup {
+            position: fixed; background: white; border-radius: 9px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); padding: 12px;
+            z-index: 9999; display: none; min-width: 180px;
+        }
+        #road-popup p { font-size: 0.82rem; color: #555; margin-bottom: 8px; font-weight: 600; }
+        #road-popup .popup-btns { display: flex; gap: 7px; }
+        #road-popup .popup-btns button { flex: 1; padding: 7px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .popup-block { background: #212121; color: white; }
+        .popup-slow  { background: #fff8e1; color: #e65100; border: 1px solid #ffcc02 !important; }
+        .popup-cancel { background: #f5f5f5; color: #666; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>Dynamic Routing Hub</h2>
+<div id="sidebar">
+    <h2>🛵 Dynamic Routing Hub</h2>
+    <hr>
 
+    <!-- Source / Dest -->
+    <div>
         <label>Source Location</label>
-        <input id="origin-input" type="text" placeholder="e.g., MG Road, Bengaluru">
-
+        <input id="origin-input" type="text" placeholder="e.g., L K Legacy, J.C.Nagar">
+    </div>
+    <div>
         <label>Destination Location</label>
-        <input id="dest-input" type="text" placeholder="e.g., Koramangala, Bengaluru">
+        <input id="dest-input" type="text" placeholder="e.g., Fun World, Jayamahal">
+    </div>
 
-        <label>Traffic Environment</label>
+    <!-- Traffic overlay -->
+    <div>
+        <label>Traffic Overlay (Google Maps)</label>
         <div class="radio-group">
-            <input type="radio" id="empty" name="traffic" value="empty" checked>
-            <label for="empty">Empty Traffic</label><br>
-
-            <input type="radio" id="realtime" name="traffic" value="realtime">
-            <label for="realtime">Real Time</label><br>
-
-            <input type="radio" id="congestion" name="traffic" value="congestion">
-            <label for="congestion">Simulate Congestion</label>
-        </div>
-
-        <button onclick="calculateRoute()">Calculate & Render Route</button>
-
-        <div id="metrics">
-            <div class="metric-title">Evaluated Path Distance</div>
-            <div id="dist-val" class="metric-value">-- KM</div>
-
-            <div class="metric-title">Estimated Two-Wheeler Time</div>
-            <div id="time-val" class="metric-value">-- Mins</div>
+            <div class="radio-option">
+                <input type="radio" id="empty" name="traffic" value="empty" checked>
+                <label for="empty">Empty Traffic</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="realtime" name="traffic" value="realtime">
+                <label for="realtime">Real Time</label>
+            </div>
         </div>
     </div>
 
-    <div id="map"></div>
+    <!-- Calculate button -->
+    <button class="btn btn-primary" id="calc-btn" onclick="calculateRoute()">
+        Calculate &amp; Render Route
+    </button>
 
-    <script>
-        let map;
-        let directionsService;
-        let directionsRenderer;
-        let trafficLayer;
-        let originPlaceId = null;
-        let destPlaceId = null;
+    <div id="loading"><span class="spinner"></span> Calculating routes...</div>
+    <div id="error-msg"></div>
 
-        function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 12.9716, lng: 77.5946 },
-                zoom: 12,
-                mapTypeControl: false,
+    <hr>
+
+    <!-- Simulation Tools -->
+    <div class="tool-section">
+        <h3>🔴 Congestion Zones</h3>
+        <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Draw a circle on the map to mark a traffic jam area.</p>
+        <div class="tool-row">
+            <button class="btn btn-warning" id="draw-zone-btn" onclick="toggleDrawZone()">+ Draw Zone</button>
+            <button class="btn btn-danger" onclick="clearAllZones()">Clear All</button>
+        </div>
+        <div id="zone-list"></div>
+    </div>
+
+    <div class="tool-section">
+        <h3>🚧 Block / Slow Roads</h3>
+        <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Click on any road to block it or slow it down.</p>
+        <div class="tool-row">
+            <button class="btn btn-warning" id="mark-road-btn" onclick="toggleMarkRoad()">+ Mark Road</button>
+            <button class="btn btn-danger" onclick="clearAllBlocked()">Clear All</button>
+        </div>
+        <div id="blocked-list"></div>
+    </div>
+
+    <hr>
+
+    <!-- Comparison panel -->
+    <div id="comparison">
+        <div class="comp-title">Route Comparison</div>
+        <div class="legend">
+            <span><span class="legend-dot" style="background:#3949AB"></span>Standard</span>
+            <span><span class="legend-dot" style="background:#E53935"></span>Shortcut</span>
+        </div>
+        <div class="route-card standard">
+            <h4>Standard Route (Main Roads)</h4>
+            <div class="route-stats">
+                <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="std-dist">--</span></div>
+                <div class="stat"><span class="stat-label">Est. Time</span><span class="stat-value" id="std-time">--</span></div>
+            </div>
+        </div>
+        <div class="route-card shortcut">
+            <h4>Two-Wheeler Shortcut</h4>
+            <div class="route-stats">
+                <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="tw-dist">--</span></div>
+                <div class="stat"><span class="stat-label">Est. Time</span><span class="stat-value" id="tw-time">--</span></div>
+            </div>
+            <div id="saving-badge" class="saving-badge" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+    // ── State ─────────────────────────────────────────────────────────────────
+    let map, trafficLayer;
+    let originPlaceId = null, destPlaceId = null;
+    let stdPolyline = null, twPolyline = null;
+    let markers = [];
+
+    // Zones
+    let zones = [];           // { id, lat, lng, radius, level, circle, label }
+    let drawingZone = false;
+    let zoneIdCounter = 0;
+
+    // Blocked roads
+    let blockedEdges = [];    // { id, lat, lng, action, marker }
+    let markingRoad  = false;
+    let blockIdCounter = 0;
+    let pendingClickLatLng = null;
+
+    // ── Map init ──────────────────────────────────────────────────────────────
+    function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: { lat: 12.9716, lng: 77.5946 },
+            zoom: 13, mapTypeControl: false,
+        });
+
+        trafficLayer = new google.maps.TrafficLayer();
+
+        // Autocomplete
+        const originAC = new google.maps.places.Autocomplete(
+            document.getElementById("origin-input"),
+            { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
+        );
+        const destAC = new google.maps.places.Autocomplete(
+            document.getElementById("dest-input"),
+            { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
+        );
+        originAC.addListener("place_changed", () => { const p = originAC.getPlace(); if (p.place_id) originPlaceId = p.place_id; });
+        destAC.addListener("place_changed",   () => { const p = destAC.getPlace();   if (p.place_id) destPlaceId   = p.place_id; });
+
+        // Map click handler
+        map.addListener("click", onMapClick);
+    }
+
+    // ── Map click dispatcher ──────────────────────────────────────────────────
+    function onMapClick(e) {
+        if (drawingZone) { placeZone(e.latLng); return; }
+        if (markingRoad) { showRoadPopup(e.latLng); return; }
+    }
+
+    // ── Draw Zone ─────────────────────────────────────────────────────────────
+    function toggleDrawZone() {
+        drawingZone = !drawingZone;
+        markingRoad = false;
+        document.getElementById("draw-zone-btn").classList.toggle("btn-active", drawingZone);
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: drawingZone ? "crosshair" : "" });
+    }
+
+    function placeZone(latLng) {
+        const id     = ++zoneIdCounter;
+        const radius = 400; // metres default
+        const level  = 3;
+
+        const circle = new google.maps.Circle({
+            map,
+            center:      latLng,
+            radius,
+            strokeColor: "#E53935",
+            strokeOpacity: 0.9,
+            strokeWeight: 2,
+            fillColor:   "#E53935",
+            fillOpacity: 0.25,
+        });
+
+        const zone = { id, lat: latLng.lat(), lng: latLng.lng(), radius, level, circle };
+        zones.push(zone);
+        renderZoneList();
+        drawingZone = false;
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: "" });
+        autoRecalculate();
+    }
+
+    function updateZoneLevel(id, level) {
+        const zone = zones.find(z => z.id === id);
+        if (zone) { zone.level = parseInt(level); autoRecalculate(); }
+    }
+
+    function deleteZone(id) {
+        const idx = zones.findIndex(z => z.id === id);
+        if (idx !== -1) { zones[idx].circle.setMap(null); zones.splice(idx, 1); }
+        renderZoneList();
+        autoRecalculate();
+    }
+
+    function clearAllZones() {
+        zones.forEach(z => z.circle.setMap(null));
+        zones = [];
+        renderZoneList();
+        autoRecalculate();
+    }
+
+    const CONGESTION_LABELS = { 1:"Light", 2:"Moderate", 3:"Heavy", 4:"Severe", 5:"Gridlock" };
+
+    function renderZoneList() {
+        const el = document.getElementById("zone-list");
+        if (zones.length === 0) { el.innerHTML = ""; return; }
+        el.innerHTML = zones.map(z => `
+            <div class="zone-item">
+                <div class="zone-item-header">
+                    <span>Zone ${z.id}</span>
+                    <button class="zone-delete" onclick="deleteZone(${z.id})">✕</button>
+                </div>
+                <div class="slider-row">
+                    <span class="slider-label">Light</span>
+                    <input type="range" min="1" max="5" value="${z.level}"
+                        oninput="updateZoneLevel(${z.id}, this.value); document.getElementById('zlabel-${z.id}').textContent=CONGESTION_LABELS[this.value]">
+                    <span class="slider-label">Gridlock</span>
+                </div>
+                <div style="text-align:center;font-size:0.75rem;color:#e65100;margin-top:3px;" id="zlabel-${z.id}">
+                    ${CONGESTION_LABELS[z.level]}
+                </div>
+            </div>
+        `).join("");
+    }
+
+    // ── Mark Road ─────────────────────────────────────────────────────────────
+    function toggleMarkRoad() {
+        markingRoad = !markingRoad;
+        drawingZone = false;
+        document.getElementById("mark-road-btn").classList.toggle("btn-active", markingRoad);
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: markingRoad ? "crosshair" : "" });
+    }
+
+    function showRoadPopup(latLng) {
+        // Temporarily disable map clicks so the InfoWindow buttons work cleanly
+        markingRoad = false;
+        map.setOptions({ draggableCursor: "" });
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+
+        const infoContent = `
+            <div style="font-family:Segoe UI,sans-serif;padding:4px;min-width:160px">
+                <p style="font-size:0.82rem;font-weight:700;color:#333;margin-bottom:8px">What to do with this road?</p>
+                <div style="display:flex;gap:6px">
+                    <button onclick="confirmRoadAction(${lat},${lng},'block')"
+                        style="flex:1;padding:7px;background:#212121;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🚫 Block
+                    </button>
+                    <button onclick="confirmRoadAction(${lat},${lng},'slow')"
+                        style="flex:1;padding:7px;background:#fff8e1;color:#e65100;border:1px solid #ffcc02;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🐢 Slow
+                    </button>
+                </div>
+            </div>`;
+
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent, position: latLng });
+        infoWindow.open(map);
+
+        // Store reference so we can close it after action
+        window._activeInfoWindow = infoWindow;
+    }
+
+    function confirmRoadAction(lat, lng, action) {
+        if (window._activeInfoWindow) { window._activeInfoWindow.close(); window._activeInfoWindow = null; }
+
+        const id = ++blockIdCounter;
+        console.log(`[DEBUG] Adding blocked edge: lat=${lat}, lng=${lng}, action=${action}`);
+
+        const marker = new google.maps.Marker({
+            position: { lat, lng }, map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor:   action === "block" ? "#212121" : "#FFA000",
+                fillOpacity: 1,
+                strokeColor: "white",
+                strokeWeight: 2,
+            },
+            title: action === "block" ? "Blocked Road" : "Slow Road",
+            zIndex: 999,
+        });
+
+        blockedEdges.push({ id, lat, lng, action, marker });
+        renderBlockedList();
+
+        markingRoad = false;
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: "" });
+        autoRecalculate();
+    }
+
+    function deleteBlocked(id) {
+        const idx = blockedEdges.findIndex(b => b.id === id);
+        if (idx !== -1) { blockedEdges[idx].marker.setMap(null); blockedEdges.splice(idx, 1); }
+        renderBlockedList();
+        autoRecalculate();
+    }
+
+    function clearAllBlocked() {
+        blockedEdges.forEach(b => b.marker.setMap(null));
+        blockedEdges = [];
+        renderBlockedList();
+        autoRecalculate();
+    }
+
+    function renderBlockedList() {
+        const el = document.getElementById("blocked-list");
+        if (blockedEdges.length === 0) { el.innerHTML = ""; return; }
+        el.innerHTML = blockedEdges.map(b => `
+            <div class="blocked-item ${b.action}">
+                <span>${b.action === "block" ? "🚫" : "🐢"} Road ${b.id} — ${b.action === "block" ? "Blocked" : "Slowed"}</span>
+                <button onclick="deleteBlocked(${b.id})">✕</button>
+            </div>
+        `).join("");
+    }
+
+    // ── Routing ───────────────────────────────────────────────────────────────
+    function clearRoutes() {
+        if (stdPolyline) { stdPolyline.setMap(null); stdPolyline = null; }
+        if (twPolyline)  { twPolyline.setMap(null);  twPolyline  = null; }
+        markers.forEach(m => m.setMap(null)); markers = [];
+    }
+
+    function showError(msg) {
+        const el = document.getElementById("error-msg");
+        el.textContent = msg; el.style.display = "block";
+    }
+    function hideError() { document.getElementById("error-msg").style.display = "none"; }
+
+    let recalcTimer = null;
+    function autoRecalculate() {
+        const origin = document.getElementById("origin-input").value.trim();
+        const dest   = document.getElementById("dest-input").value.trim();
+        if (!origin || !dest) return;
+        clearTimeout(recalcTimer);
+        recalcTimer = setTimeout(calculateRoute, 400); // debounce 400ms
+    }
+
+    async function calculateRoute() {
+        hideError();
+        const origin = document.getElementById("origin-input").value.trim();
+        const dest   = document.getElementById("dest-input").value.trim();
+        if (!origin || !dest) { showError("Please enter both source and destination."); return; }
+
+        // Traffic overlay
+        const trafficMode = document.querySelector('input[name="traffic"]:checked').value;
+        trafficLayer.setMap(trafficMode !== "empty" ? map : null);
+
+        const btn = document.getElementById("calc-btn");
+        btn.disabled = true;
+        document.getElementById("loading").style.display = "block";
+        clearRoutes();
+
+        try {
+            console.log("[DEBUG] Sending blockedEdges:", JSON.stringify(blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))));
+            console.log("[DEBUG] Sending zones:", JSON.stringify(zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level }))));
+            const res = await fetch("/route", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    origin,
+                    destination: dest,
+                    zones: zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
+                    blocked_edges: blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))
+                })
             });
 
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
-            trafficLayer = new google.maps.TrafficLayer();
+            const data = await res.json();
+            if (!res.ok) { showError(data.error || "Routing failed."); return; }
 
-            const originInput = document.getElementById("origin-input");
-            const destInput = document.getElementById("dest-input");
-
-            const originAutocomplete = new google.maps.places.Autocomplete(originInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
-            });
-            const destAutocomplete = new google.maps.places.Autocomplete(destInput, {
-                componentRestrictions: { country: "in" },
-                fields: ["place_id", "geometry", "name"]
+            // Draw standard route (blue)
+            stdPolyline = new google.maps.Polyline({
+                path: data.standard.coords.map(c => ({ lat: c[0], lng: c[1] })),
+                strokeColor: "#3949AB", strokeOpacity: 0.85, strokeWeight: 5, map
             });
 
-            originAutocomplete.addListener("place_changed", () => {
-                const place = originAutocomplete.getPlace();
-                if (place.place_id) originPlaceId = place.place_id;
+            // Draw shortcut route (red)
+            twPolyline = new google.maps.Polyline({
+                path: data.shortcut.coords.map(c => ({ lat: c[0], lng: c[1] })),
+                strokeColor: "#E53935", strokeOpacity: 0.9, strokeWeight: 4, map
             });
 
-            destAutocomplete.addListener("place_changed", () => {
-                const place = destAutocomplete.getPlace();
-                if (place.place_id) destPlaceId = place.place_id;
-            });
+            // Markers
+            markers.push(new google.maps.Marker({
+                position: { lat: data.origin.lat, lng: data.origin.lng }, map,
+                label: { text: "A", color: "white", fontWeight: "bold" }
+            }));
+            markers.push(new google.maps.Marker({
+                position: { lat: data.destination.lat, lng: data.destination.lng }, map,
+                label: { text: "B", color: "white", fontWeight: "bold" }
+            }));
+
+            // Fit bounds
+            const bounds = new google.maps.LatLngBounds();
+            [...data.standard.coords, ...data.shortcut.coords].forEach(c => bounds.extend({ lat: c[0], lng: c[1] }));
+            map.fitBounds(bounds, { padding: 50 });
+
+            // Comparison panel
+            document.getElementById("std-dist").textContent = data.standard.distance + " km";
+            document.getElementById("std-time").textContent = data.standard.time + " mins";
+            document.getElementById("tw-dist").textContent  = data.shortcut.distance + " km";
+            document.getElementById("tw-time").textContent  = data.shortcut.time + " mins";
+
+            const saved = Math.round(data.standard.time - data.shortcut.time);
+            const badge = document.getElementById("saving-badge");
+            if (saved > 0) { badge.textContent = `⚡ ${saved} mins faster`; badge.style.display = "inline-block"; }
+            else           { badge.style.display = "none"; }
+
+            document.getElementById("comparison").style.display = "flex";
+
+        } catch (err) {
+            showError("Could not connect to routing server.");
+        } finally {
+            btn.disabled = false;
+            document.getElementById("loading").style.display = "none";
         }
+    }
+</script>
 
-        function calculateRoute() {
-            if (!originPlaceId || !destPlaceId) {
-                alert("Please select valid origin and destination from the dropdown suggestions.");
-                return;
-            }
-
-            const trafficSelection = document.querySelector('input[name="traffic"]:checked').value;
-
-            if (trafficSelection !== "empty") {
-                trafficLayer.setMap(map);
-            } else {
-                trafficLayer.setMap(null);
-            }
-
-            let request = {
-                origin: { placeId: originPlaceId },
-                destination: { placeId: destPlaceId },
-                travelMode: google.maps.TravelMode.TWO_WHEELER,
-            };
-
-            if (trafficSelection === "realtime") {
-                request.drivingOptions = {
-                    departureTime: new Date(Date.now() + 1000),
-                    trafficModel: "bestguess"
-                };
-            } else if (trafficSelection === "congestion") {
-                let d = new Date();
-                d.setDate(d.getDate() + (5 + 7 - d.getDay()) % 7);
-                d.setHours(18, 30, 0, 0);
-                if (d < new Date()) d.setDate(d.getDate() + 7);
-
-                request.drivingOptions = {
-                    departureTime: d,
-                    trafficModel: "pessimistic"
-                };
-            }
-
-            directionsService.route(request, (response, status) => {
-                if (status === "OK") {
-                    directionsRenderer.setDirections(response);
-
-                    const leg = response.routes[0].legs[0];
-                    document.getElementById("metrics").style.display = "block";
-                    document.getElementById("dist-val").innerText = leg.distance.text;
-
-                    const timeText = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
-                    document.getElementById("time-val").innerText = timeText;
-                } else {
-                    alert("Directions request failed due to " + status);
-                }
-            });
-        }
-    </script>
-
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap"></script>
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap">
+</script>
 
 </body>
 </html>
