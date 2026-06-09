@@ -97,19 +97,19 @@ CONGESTION_MULTIPLIER = {
     5: 8.0,
 }
 
-def apply_congestion(G_temp, zones, blocked_edges):
+def apply_congestion(G_temp, zones, resolved_blocked):
     """
     Mutates G_temp edges in-place based on:
-      zones        — list of {lat, lng, radius (m), level 1-5}
-      blocked_edges — list of {lat, lng, action: 'block'|'slow'}
-    Returns set of edges that were modified (for reset).
+      zones            — list of {lat, lng, radius (m), level 1-5}
+      resolved_blocked — list of (u, v, key, action) tuples already resolved
+    Returns list of (u, v, key, old_tt, old_tw) for reset.
     """
     modified = []
 
     # ── Zone-based congestion ─────────────────────────────────────────────
     for zone in zones:
-        center     = Point(zone["lng"], zone["lat"])   # shapely Point (lng, lat)
-        radius_deg = zone["radius"] / 111320           # metres → degrees (approx)
+        center      = Point(zone["lng"], zone["lat"])
+        radius_deg  = zone["radius"] / 111320
         zone_circle = center.buffer(radius_deg)
         multiplier  = CONGESTION_MULTIPLIER.get(int(zone["level"]), 2.5)
 
@@ -127,44 +127,22 @@ def apply_congestion(G_temp, zones, blocked_edges):
                 data["tw_weight"]   = old_tw * multiplier
                 modified.append((u, v, key, old_tt, old_tw))
 
-    # ── Click-to-block/slow edges ─────────────────────────────────────────
-    for be in blocked_edges:
-        click_point = Point(be["lng"], be["lat"])
-        action      = be.get("action", "slow")
+    # ── Click-to-block/slow edges (pre-resolved) ──────────────────────────
+    for (u, v, key, action) in resolved_blocked:
+        if not G_temp.has_edge(u, v, key):
+            continue
+        data   = G_temp[u][v][key]
+        old_tt = data["travel_time"]
+        old_tw = data["tw_weight"]
 
-        # Find nearest edge to click point
-        nearest_u, nearest_v, nearest_key = None, None, None
-        min_dist = float("inf")
+        if action == "block":
+            data["travel_time"] = old_tt * 99999
+            data["tw_weight"]   = old_tw * 99999
+        else:
+            data["travel_time"] = old_tt * 5
+            data["tw_weight"]   = old_tw * 5
 
-        for u, v, key, data in G_temp.edges(data=True, keys=True):
-            u_data = G_temp.nodes[u]
-            v_data = G_temp.nodes[v]
-            edge_line = LineString([
-                (u_data["x"], u_data["y"]),
-                (v_data["x"], v_data["y"])
-            ])
-            dist = click_point.distance(edge_line)
-            if dist < min_dist:
-                min_dist     = dist
-                nearest_u    = u
-                nearest_v    = v
-                nearest_key  = key
-
-        if nearest_u is not None:
-            data = G_temp[nearest_u][nearest_v][nearest_key]
-            old_tt = data["travel_time"]
-            old_tw = data["tw_weight"]
-
-            if action == "block":
-                # Effectively infinite cost
-                data["travel_time"] = old_tt * 99999
-                data["tw_weight"]   = old_tw * 99999
-            else:
-                # Slow — 5x penalty
-                data["travel_time"] = old_tt * 5
-                data["tw_weight"]   = old_tw * 5
-
-            modified.append((nearest_u, nearest_v, nearest_key, old_tt, old_tw))
+        modified.append((u, v, key, old_tt, old_tw))
 
     return modified
 
@@ -205,8 +183,10 @@ def get_routes():
     data          = request.get_json()
     origin_name   = data.get("origin", "").strip()
     dest_name     = data.get("destination", "").strip()
-    zones         = data.get("zones", [])          # list of zone objects
-    blocked_edges = data.get("blocked_edges", [])  # list of blocked road objects
+    zones         = data.get("zones", [])
+    blocked_edges = data.get("blocked_edges", [])
+    print(f"[DEBUG] Received zones={zones}")
+    print(f"[DEBUG] Received blocked_edges={blocked_edges}")
 
     if not origin_name or not dest_name:
         return jsonify({"error": "Origin and destination are required."}), 400
@@ -220,8 +200,19 @@ def get_routes():
     orig_node = ox.distance.nearest_nodes(G, orig_lng, orig_lat)
     dest_node = ox.distance.nearest_nodes(G, dest_lng, dest_lat)
 
-    # Apply congestion to shared graph, route, then reset immediately
-    modified = apply_congestion(G, zones, blocked_edges)
+    # Resolve blocked edges to actual graph tuples using OSMnx nearest_edges
+    resolved_blocked = []
+    for be in blocked_edges:
+        try:
+            u, v, key = ox.distance.nearest_edges(G, be["lng"], be["lat"])
+            resolved_blocked.append((u, v, key, be.get("action", "slow")))
+            print(f"[DEBUG] Resolved edge ({u},{v},{key}) action={be['action']}")
+        except Exception as e:
+            print(f"[DEBUG] Could not resolve edge: {e}")
+
+    # Apply congestion — modifies graph weights in place
+    modified = apply_congestion(G, zones, resolved_blocked)
+    print(f"[DEBUG] Modified {len(modified)} edges")
 
     try:
         standard_route     = nx.shortest_path(G, orig_node, dest_node, weight="travel_time")
@@ -232,18 +223,23 @@ def get_routes():
         tw_coords          = route_to_coords(G, tw_route)
         tw_dist, tw_time   = calc_route_stats(G, tw_route, "travel_time")
 
+        # Reset weights AFTER routing, not in finally
+        reset_congestion(G, modified)
+
+        return jsonify({
+            "standard": { "coords": std_coords, "distance": std_dist, "time": std_time },
+            "shortcut":  { "coords": tw_coords,  "distance": tw_dist,  "time": tw_time  },
+            "origin":      { "lat": orig_lat, "lng": orig_lng },
+            "destination": { "lat": dest_lat, "lng": dest_lng }
+        })
+
     except nx.NetworkXNoPath:
         reset_congestion(G, modified)
         return jsonify({"error": "No path found between these locations."}), 400
-    finally:
+    except Exception as e:
         reset_congestion(G, modified)
-
-    return jsonify({
-        "standard": { "coords": std_coords, "distance": std_dist, "time": std_time },
-        "shortcut":  { "coords": tw_coords,  "distance": tw_dist,  "time": tw_time  },
-        "origin":      { "lat": orig_lat, "lng": orig_lng },
-        "destination": { "lat": dest_lat, "lng": dest_lng }
-    })
+        print(f"[ERROR] Routing failed: {e}")
+        return jsonify({"error": "Routing failed. Try again."}), 500
 
 
 if __name__ == "__main__":

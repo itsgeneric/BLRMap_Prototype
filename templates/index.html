@@ -226,16 +226,6 @@
 
 <div id="map"></div>
 
-<!-- Road action popup -->
-<div id="road-popup">
-    <p>What to do with this road?</p>
-    <div class="popup-btns">
-        <button class="popup-block" onclick="confirmRoadAction('block')">🚫 Block</button>
-        <button class="popup-slow"  onclick="confirmRoadAction('slow')">🐢 Slow</button>
-        <button class="popup-cancel" onclick="closePopup()">Cancel</button>
-    </div>
-</div>
-
 <script>
     // ── State ─────────────────────────────────────────────────────────────────
     let map, trafficLayer;
@@ -282,7 +272,7 @@
     // ── Map click dispatcher ──────────────────────────────────────────────────
     function onMapClick(e) {
         if (drawingZone) { placeZone(e.latLng); return; }
-        if (markingRoad) { showRoadPopup(e.latLng, e.domEvent); return; }
+        if (markingRoad) { showRoadPopup(e.latLng); return; }
     }
 
     // ── Draw Zone ─────────────────────────────────────────────────────────────
@@ -371,26 +361,42 @@
         map.setOptions({ draggableCursor: markingRoad ? "crosshair" : "" });
     }
 
-    function showRoadPopup(latLng, domEvent) {
-        pendingClickLatLng = latLng;
-        const popup = document.getElementById("road-popup");
-        popup.style.display = "block";
-        popup.style.left = (domEvent.clientX + 10) + "px";
-        popup.style.top  = (domEvent.clientY - 20) + "px";
+    function showRoadPopup(latLng) {
+        // Temporarily disable map clicks so the InfoWindow buttons work cleanly
+        markingRoad = false;
+        map.setOptions({ draggableCursor: "" });
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+
+        const infoContent = `
+            <div style="font-family:Segoe UI,sans-serif;padding:4px;min-width:160px">
+                <p style="font-size:0.82rem;font-weight:700;color:#333;margin-bottom:8px">What to do with this road?</p>
+                <div style="display:flex;gap:6px">
+                    <button onclick="confirmRoadAction(${lat},${lng},'block')"
+                        style="flex:1;padding:7px;background:#212121;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🚫 Block
+                    </button>
+                    <button onclick="confirmRoadAction(${lat},${lng},'slow')"
+                        style="flex:1;padding:7px;background:#fff8e1;color:#e65100;border:1px solid #ffcc02;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🐢 Slow
+                    </button>
+                </div>
+            </div>`;
+
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent, position: latLng });
+        infoWindow.open(map);
+
+        // Store reference so we can close it after action
+        window._activeInfoWindow = infoWindow;
     }
 
-    function closePopup() {
-        document.getElementById("road-popup").style.display = "none";
-        pendingClickLatLng = null;
-    }
+    function confirmRoadAction(lat, lng, action) {
+        if (window._activeInfoWindow) { window._activeInfoWindow.close(); window._activeInfoWindow = null; }
 
-    function confirmRoadAction(action) {
-        if (!pendingClickLatLng) return;
-        closePopup();
-
-        const id  = ++blockIdCounter;
-        const lat = pendingClickLatLng.lat();
-        const lng = pendingClickLatLng.lng();
+        const id = ++blockIdCounter;
+        console.log(`[DEBUG] Adding blocked edge: lat=${lat}, lng=${lng}, action=${action}`);
 
         const marker = new google.maps.Marker({
             position: { lat, lng }, map,
@@ -475,10 +481,11 @@
         const btn = document.getElementById("calc-btn");
         btn.disabled = true;
         document.getElementById("loading").style.display = "block";
-        document.getElementById("comparison").style.display = "none";
         clearRoutes();
 
         try {
+            console.log("[DEBUG] Sending blockedEdges:", JSON.stringify(blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))));
+            console.log("[DEBUG] Sending zones:", JSON.stringify(zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level }))));
             const res = await fetch("/route", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
