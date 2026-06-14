@@ -91,6 +91,57 @@
         .blocked-item.block button { color: #ef9a9a; }
         .blocked-item.slow  button { color: #c62828; }
 
+        /* ── Option A: Time-Based Traffic ────────────────────────────────────── */
+        .option-section {
+            background: #f0f7ff; border: 1.5px solid #bbdefb;
+            border-radius: 9px; padding: 12px;
+        }
+        .option-section h3 { color: #1565C0; }
+
+        .time-mode-tabs {
+            display: flex; gap: 6px; margin-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1; padding: 8px 4px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666;
+            transition: all 0.15s;
+        }
+        .tab-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        .time-picker-wrap {
+            display: none; /* shown only when time_based tab active */
+        }
+        .time-picker-wrap.visible { display: block; }
+
+        .time-slider-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+        }
+        .time-slider-row input[type=range] { flex: 1; accent-color: #1E88E5; }
+
+        #time-display {
+            text-align: center; font-size: 1.1rem; font-weight: 700; color: #1565C0;
+            margin-bottom: 4px;
+        }
+        #slot-display {
+            text-align: center; font-size: 0.78rem; color: #555; margin-bottom: 8px;
+        }
+
+        /* Active zones preview (shown after route calc) */
+        #auto-zone-list {
+            display: flex; flex-direction: column; gap: 5px; margin-top: 8px;
+        }
+        .auto-zone-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 9px; border-radius: 6px; font-size: 0.77rem; font-weight: 600;
+        }
+        .az-l1 { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .az-l2 { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+        .az-l3 { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+        .az-l4 { background: #fce4ec; color: #c62828; border: 1px solid #f48fb1; }
+        .az-l5 { background: #212121; color: white; }
+
         /* Loading */
         #loading { display: none; text-align: center; font-size: 0.82rem; color: #888; padding: 6px; }
         .spinner {
@@ -123,20 +174,15 @@
         /* Error */
         #error-msg { display: none; background: #ffebee; color: #c62828; padding: 9px 11px; border-radius: 7px; font-size: 0.82rem; }
 
-        /* ── Simulation section ───────────────────────────────────────────── */
-        #simulation-section {
-            display: none;
-        }
+        /* ── Simulation ───────────────────────────────────────────────────────── */
+        #simulation-section { display: none; }
 
-        .sim-route-select {
-            display: flex; gap: 6px; margin-bottom: 10px;
-        }
+        .sim-route-select { display: flex; gap: 6px; margin-bottom: 10px; }
         .sim-route-btn {
             flex: 1; padding: 7px 4px;
             border: 1.5px solid #ddd; border-radius: 7px;
             background: white; cursor: pointer;
-            font-size: 0.78rem; font-weight: 700; color: #666;
-            transition: all 0.15s;
+            font-size: 0.78rem; font-weight: 700; color: #666; transition: all 0.15s;
         }
         .sim-route-btn.active-std { background: #3949AB; border-color: #3949AB; color: white; }
         .sim-route-btn.active-tw  { background: #E53935; border-color: #E53935; color: white; }
@@ -146,8 +192,7 @@
             flex: 1; padding: 7px 4px;
             border: 1.5px solid #ddd; border-radius: 6px;
             background: white; cursor: pointer;
-            font-size: 0.78rem; font-weight: 700; color: #666;
-            transition: all 0.15s;
+            font-size: 0.78rem; font-weight: 700; color: #666; transition: all 0.15s;
         }
         .speed-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
 
@@ -155,8 +200,7 @@
         .sim-btn {
             flex: 1; padding: 9px 4px; border: none;
             border-radius: 6px; cursor: pointer;
-            font-size: 0.82rem; font-weight: 700; color: white;
-            transition: background 0.15s;
+            font-size: 0.82rem; font-weight: 700; color: white; transition: background 0.15s;
         }
         #btn-start { background: #43A047; }
         #btn-start:hover { background: #388E3C; }
@@ -170,14 +214,8 @@
             background: #e8e8e8; border-radius: 3px;
             overflow: hidden; margin-bottom: 6px;
         }
-        #sim-progress-bar {
-            height: 100%; width: 0%;
-            background: #1E88E5; transition: width 0.08s linear;
-        }
-        #sim-status {
-            font-size: 0.75rem; color: #999;
-            text-align: center; min-height: 16px;
-        }
+        #sim-progress-bar { height: 100%; width: 0%; background: #1E88E5; transition: width 0.08s linear; }
+        #sim-status { font-size: 0.75rem; color: #999; text-align: center; min-height: 16px; }
     </style>
 </head>
 <body>
@@ -211,6 +249,44 @@
         </div>
     </div>
 
+    <hr>
+
+    <!-- ── OPTION A: Time-Based Traffic ─────────────────────────────────── -->
+    <div class="option-section">
+        <h3>🕐 Option A — Time-Based Traffic</h3>
+        <p style="font-size:0.78rem;color:#555;margin:6px 0 10px;">
+            Automatically applies real Bengaluru congestion patterns based on time of day. No manual input needed.
+        </p>
+
+        <!-- Manual vs Time-Based tab -->
+        <div class="time-mode-tabs">
+            <button class="tab-btn active" id="tab-manual" onclick="setTrafficMode('manual')">
+                ✋ Manual Zones
+            </button>
+            <button class="tab-btn" id="tab-timebased" onclick="setTrafficMode('time_based')">
+                🕐 Time-Based
+            </button>
+        </div>
+
+        <!-- Time picker (visible only in time_based mode) -->
+        <div class="time-picker-wrap" id="time-picker-wrap">
+            <div id="time-display">8:00 AM</div>
+            <div id="slot-display">🔴 Morning Peak — High congestion on ORR, Hebbal, ITPL, Electronic City</div>
+            <div class="time-slider-row">
+                <span style="font-size:0.72rem;color:#888">12 AM</span>
+                <input type="range" id="time-slider" min="0" max="23" value="8"
+                    oninput="onTimeSliderChange(this.value)">
+                <span style="font-size:0.72rem;color:#888">11 PM</span>
+            </div>
+            <p style="font-size:0.75rem;color:#888;margin-top:4px;">
+                Drag to pick the time → route recalculates automatically.
+            </p>
+
+            <!-- Active zones after routing -->
+            <div id="auto-zone-list"></div>
+        </div>
+    </div>
+
     <!-- Calculate button -->
     <button class="btn btn-primary" id="calc-btn" onclick="calculateRoute()">
         Calculate &amp; Render Route
@@ -221,8 +297,8 @@
 
     <hr>
 
-    <!-- Congestion Zones -->
-    <div class="tool-section">
+    <!-- Manual Congestion Zones (shown only in manual mode) -->
+    <div class="tool-section" id="manual-tools">
         <h3>🔴 Congestion Zones</h3>
         <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Draw a circle on the map to mark a traffic jam area.</p>
         <div class="tool-row">
@@ -271,22 +347,16 @@
         </div>
     </div>
 
-    <!-- ── Simulation ────────────────────────────────────────────────────── -->
+    <!-- Simulation -->
     <div id="simulation-section">
         <hr>
         <h3>🎬 Route Simulation</h3>
 
-        <!-- Route selector -->
         <div class="sim-route-select" style="margin-top:8px;">
-            <button class="sim-route-btn active-std" id="sim-btn-standard" onclick="selectSimRoute('standard')">
-                🔵 Standard
-            </button>
-            <button class="sim-route-btn" id="sim-btn-shortcut" onclick="selectSimRoute('shortcut')">
-                🔴 Shortcut
-            </button>
+            <button class="sim-route-btn active-std" id="sim-btn-standard" onclick="selectSimRoute('standard')">🔵 Standard</button>
+            <button class="sim-route-btn" id="sim-btn-shortcut" onclick="selectSimRoute('shortcut')">🔴 Shortcut</button>
         </div>
 
-        <!-- Speed -->
         <label style="margin-bottom:5px;">Playback Speed</label>
         <div class="speed-group">
             <button class="speed-btn"        data-speed="slow"   onclick="setSpeed('slow')">Slow</button>
@@ -294,20 +364,15 @@
             <button class="speed-btn"        data-speed="fast"   onclick="setSpeed('fast')">Fast</button>
         </div>
 
-        <!-- Controls -->
         <div class="sim-controls">
             <button class="sim-btn" id="btn-start" onclick="startSimulation()">▶ Start</button>
             <button class="sim-btn" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
             <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">↺ Reset</button>
         </div>
 
-        <!-- Progress bar -->
-        <div id="sim-progress-wrap">
-            <div id="sim-progress-bar"></div>
-        </div>
+        <div id="sim-progress-wrap"><div id="sim-progress-bar"></div></div>
         <div id="sim-status">Select a route above and press Start</div>
     </div>
-
 </div>
 
 <div id="map"></div>
@@ -317,8 +382,9 @@
     let map, trafficLayer;
     let stdPolyline = null, twPolyline = null;
     let markers = [];
+    let autoZoneCircles = [];   // circles drawn for Option A zones
 
-    // Zones
+    // Manual zones
     let zones = [];
     let drawingZone = false;
     let zoneIdCounter = 0;
@@ -328,25 +394,114 @@
     let markingRoad  = false;
     let blockIdCounter = 0;
 
-    // Route data (set after successful /route call)
-    let routeData = null;   // { standard: { coords, dist, time }, shortcut: { coords, dist, time } }
+    // Route data
+    let routeData = null;
+
+    // ── Option A state ────────────────────────────────────────────────────────
+    let trafficMode = "manual";   // "manual" | "time_based"
+    let selectedHour = 8;
+
+    const SLOT_INFO = {
+        morning_peak: { label: "🔴 Morning Peak", desc: "High congestion on ORR, Hebbal, ITPL, Electronic City" },
+        day:          { label: "🟡 Daytime",      desc: "Moderate congestion — CBD and commercial areas" },
+        evening_peak: { label: "🔴 Evening Peak", desc: "Heavy congestion on Silk Board, KR Puram, Marathahalli" },
+        night:        { label: "🟢 Night / Off-Peak", desc: "Roads mostly clear" },
+    };
+
+    function getSlot(hour) {
+        if (hour >= 7 && hour < 10)  return "morning_peak";
+        if (hour >= 10 && hour < 17) return "day";
+        if (hour >= 17 && hour < 21) return "evening_peak";
+        return "night";
+    }
+
+    function formatHour(h) {
+        const suffix = h < 12 ? "AM" : "PM";
+        const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${display}:00 ${suffix}`;
+    }
+
+    function setTrafficMode(mode) {
+        trafficMode = mode;
+        document.getElementById("tab-manual").classList.toggle("active", mode === "manual");
+        document.getElementById("tab-timebased").classList.toggle("active", mode === "time_based");
+        document.getElementById("time-picker-wrap").classList.toggle("visible", mode === "time_based");
+        document.getElementById("manual-tools").style.display = mode === "manual" ? "" : "none";
+
+        // Clear auto zone circles when switching back to manual
+        if (mode === "manual") clearAutoZoneCircles();
+
+        autoRecalculate();
+    }
+
+    function onTimeSliderChange(val) {
+        selectedHour = parseInt(val);
+        const slot = getSlot(selectedHour);
+        document.getElementById("time-display").textContent = formatHour(selectedHour);
+        document.getElementById("slot-display").textContent =
+            `${SLOT_INFO[slot].label} — ${SLOT_INFO[slot].desc}`;
+        autoRecalculate();
+    }
+
+    function clearAutoZoneCircles() {
+        autoZoneCircles.forEach(c => c.setMap(null));
+        autoZoneCircles = [];
+        document.getElementById("auto-zone-list").innerHTML = "";
+    }
+
+    function drawAutoZones(zones) {
+        clearAutoZoneCircles();
+        if (!zones || !zones.length) return;
+
+        const LEVEL_COLORS = {
+            1: "#4CAF50", 2: "#FFC107", 3: "#FF9800", 4: "#F44336", 5: "#212121"
+        };
+        const LEVEL_LABELS = {
+            1: "Light", 2: "Moderate", 3: "Heavy", 4: "Severe", 5: "Gridlock"
+        };
+
+        zones.forEach(z => {
+            const color = LEVEL_COLORS[z.level] || "#E53935";
+            const circle = new google.maps.Circle({
+                map,
+                center: { lat: z.lat, lng: z.lng },
+                radius: z.radius,
+                strokeColor: color, strokeOpacity: 0.8, strokeWeight: 1.5,
+                fillColor: color, fillOpacity: 0.18,
+            });
+            autoZoneCircles.push(circle);
+        });
+
+        // Render list
+        const LEVEL_CLASS = { 1: "az-l1", 2: "az-l2", 3: "az-l3", 4: "az-l4", 5: "az-l5" };
+        document.getElementById("auto-zone-list").innerHTML =
+            `<div style="font-size:0.72rem;font-weight:700;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">
+                Active Congestion Zones (${zones.length})
+             </div>` +
+            zones.map(z => `
+                <div class="auto-zone-item ${LEVEL_CLASS[z.level] || 'az-l3'}">
+                    <span>${z.name}</span>
+                    <span>${["","Light","Moderate","Heavy","Severe","Gridlock"][z.level]}</span>
+                </div>
+            `).join("");
+    }
 
     // ── Simulation state ──────────────────────────────────────────────────────
     const SPEEDS = { slow: 80, normal: 25, fast: 8 };
     const ARROW_ICON = {
-        path: null,         // set in initMap after Maps loads
+        path: null,
         scale: 6,
         fillColor: '#FF5722', fillOpacity: 1,
         strokeWeight: 2, strokeColor: '#fff', rotation: 0
     };
 
-    let simPath      = [];      // google.maps.LatLng[]
+    let simPath      = [];
     let simMarker    = null;
     let simIndex     = 0;
     let simTimer     = null;
     let simPaused    = false;
     let currentSpeed = 'normal';
-    let activeSimRoute = 'standard';   // 'standard' | 'shortcut'
+    let activeSimRoute = 'standard';
 
     // ── Map init ──────────────────────────────────────────────────────────────
     function initMap() {
@@ -359,7 +514,6 @@
 
         trafficLayer = new google.maps.TrafficLayer();
 
-        // Autocomplete
         const originAC = new google.maps.places.Autocomplete(
             document.getElementById("origin-input"),
             { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
@@ -545,7 +699,7 @@
         const dest   = document.getElementById("dest-input").value.trim();
         if (!origin || !dest) return;
         clearTimeout(recalcTimer);
-        recalcTimer = setTimeout(calculateRoute, 400);
+        recalcTimer = setTimeout(calculateRoute, 500);
     }
 
     async function calculateRoute() {
@@ -554,31 +708,39 @@
         const dest   = document.getElementById("dest-input").value.trim();
         if (!origin || !dest) { showError("Please enter both source and destination."); return; }
 
-        const trafficMode = document.querySelector('input[name="traffic"]:checked').value;
-        trafficLayer.setMap(trafficMode !== "empty" ? map : null);
+        const googleTraffic = document.querySelector('input[name="traffic"]:checked').value;
+        trafficLayer.setMap(googleTraffic !== "empty" ? map : null);
 
         const btn = document.getElementById("calc-btn");
         btn.disabled = true;
         document.getElementById("loading").style.display = "block";
         clearRoutes();
+        clearAutoZoneCircles();
         resetSimulation();
+
+        // Build request body
+        const body = {
+            origin,
+            destination:   dest,
+            zones:         zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
+            blocked_edges: blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action })),
+            traffic_mode:  trafficMode,
+        };
+
+        if (trafficMode === "time_based") {
+            body.time_hour = selectedHour;
+        }
 
         try {
             const res = await fetch("/route", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    origin,
-                    destination:   dest,
-                    zones:         zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
-                    blocked_edges: blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))
-                })
+                body: JSON.stringify(body)
             });
 
             const data = await res.json();
             if (!res.ok) { showError(data.error || "Routing failed."); return; }
 
-            // Store for simulation
             routeData = data;
 
             // Draw standard route (blue)
@@ -620,9 +782,13 @@
             else           { badge.style.display = "none"; }
 
             document.getElementById("comparison").style.display = "flex";
-
-            // Show simulation section and load standard route by default
             document.getElementById("simulation-section").style.display = "block";
+
+            // Draw auto-zone circles on map (Option A)
+            if (trafficMode === "time_based" && data.active_zones) {
+                drawAutoZones(data.active_zones);
+            }
+
             selectSimRoute('standard');
 
         } catch (err) {
@@ -633,37 +799,29 @@
         }
     }
 
-    // ── Simulation: route selector ────────────────────────────────────────────
+    // ── Simulation ────────────────────────────────────────────────────────────
     function selectSimRoute(which) {
         if (!routeData) return;
         activeSimRoute = which;
 
-        // Highlight route cards
         document.getElementById("card-standard").classList.toggle("selected", which === "standard");
         document.getElementById("card-shortcut").classList.toggle("selected", which === "shortcut");
 
-        // Highlight sim selector buttons
         const btnStd = document.getElementById("sim-btn-standard");
         const btnTw  = document.getElementById("sim-btn-shortcut");
         btnStd.className = "sim-route-btn" + (which === "standard" ? " active-std" : "");
         btnTw.className  = "sim-route-btn" + (which === "shortcut" ? " active-tw"  : "");
 
-        // Build sim path from selected route coords
-        const coords = which === "standard"
-            ? routeData.standard.coords
-            : routeData.shortcut.coords;
+        const coords = which === "standard" ? routeData.standard.coords : routeData.shortcut.coords;
         buildSimPath(coords);
-
         resetSimulation();
         setStatus("Ready — " + simPath.length + " waypoints");
     }
 
-    // ── Bridge: [[lat,lng]] → google.maps.LatLng[] ────────────────────────────
     function buildSimPath(coords) {
         simPath = coords.map(([lat, lng]) => new google.maps.LatLng(lat, lng));
     }
 
-    // ── Simulation controls ───────────────────────────────────────────────────
     function setSpeed(speed) {
         currentSpeed = speed;
         document.querySelectorAll('.speed-btn').forEach(b => {
@@ -679,12 +837,9 @@
         simIndex  = 0;
         simPaused = false;
 
-        // Arrow marker — colour matches the active route
         const arrowColor = activeSimRoute === 'standard' ? '#3949AB' : '#E53935';
         simMarker = new google.maps.Marker({
-            position: simPath[0],
-            map,
-            zIndex: 999,
+            position: simPath[0], map, zIndex: 999,
             icon: Object.assign({}, ARROW_ICON, { fillColor: arrowColor, rotation: 0 }),
         });
 
@@ -720,7 +875,6 @@
             simMarker.setPosition(curr);
             map.panTo(curr);
             setProgress(simIndex / (simPath.length - 1));
-
         }, SPEEDS[currentSpeed]);
     }
 
@@ -743,9 +897,7 @@
         document.getElementById('btn-reset').style.display         = 'none';
         document.getElementById('sim-progress-wrap').style.display = 'none';
         setProgress(0);
-        setStatus(simPath.length
-            ? 'Ready — ' + simPath.length + ' waypoints'
-            : 'Select a route above and press Start');
+        setStatus(simPath.length ? 'Ready — ' + simPath.length + ' waypoints' : 'Select a route above and press Start');
     }
 
     function setStatus(msg)     { document.getElementById('sim-status').innerText = msg; }
@@ -754,7 +906,6 @@
     }
 </script>
 
-<!-- geometry library added for computeHeading (arrow rotation) -->
 <script async defer
     src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap">
 </script>

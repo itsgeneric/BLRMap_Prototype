@@ -66,6 +66,109 @@ for u, v, data in G.edges(data=True):
 print("Road network loaded!")
 
 
+# ── Option A: Time-Based Traffic Zones ───────────────────────────────────────
+#
+# Bengaluru's known congestion corridors with their peak patterns.
+# Each entry: { name, lat, lng, radius (m), level by slot }
+# Slots: morning_peak (7-10AM), day (10AM-5PM), evening_peak (5-9PM), night (9PM-7AM)
+#
+BENGALURU_CORRIDORS = [
+    # Silk Board junction — worst in the city during peaks
+    {
+        "name": "Silk Board Junction",
+        "lat": 12.9172, "lng": 77.6234, "radius": 700,
+        "levels": { "morning_peak": 5, "day": 3, "evening_peak": 5, "night": 1 }
+    },
+    # Hebbal flyover / ORR north
+    {
+        "name": "Hebbal Flyover",
+        "lat": 13.0358, "lng": 77.5972, "radius": 600,
+        "levels": { "morning_peak": 5, "day": 2, "evening_peak": 4, "night": 1 }
+    },
+    # KR Puram bridge
+    {
+        "name": "KR Puram Bridge",
+        "lat": 12.9969, "lng": 77.6956, "radius": 500,
+        "levels": { "morning_peak": 4, "day": 2, "evening_peak": 5, "night": 1 }
+    },
+    # Marathahalli bridge
+    {
+        "name": "Marathahalli",
+        "lat": 12.9565, "lng": 77.7010, "radius": 600,
+        "levels": { "morning_peak": 4, "day": 3, "evening_peak": 5, "night": 1 }
+    },
+    # Tin Factory / Old Madras Rd
+    {
+        "name": "Tin Factory",
+        "lat": 12.9980, "lng": 77.6570, "radius": 400,
+        "levels": { "morning_peak": 4, "day": 2, "evening_peak": 4, "night": 1 }
+    },
+    # MG Road / Brigade Rd CBD
+    {
+        "name": "MG Road CBD",
+        "lat": 12.9757, "lng": 77.6099, "radius": 500,
+        "levels": { "morning_peak": 3, "day": 4, "evening_peak": 5, "night": 1 }
+    },
+    # Jayadeva flyover / Bannerghatta Rd
+    {
+        "name": "Jayadeva Flyover",
+        "lat": 12.9248, "lng": 77.5975, "radius": 500,
+        "levels": { "morning_peak": 3, "day": 2, "evening_peak": 4, "night": 1 }
+    },
+    # Electronic City toll
+    {
+        "name": "Electronic City Toll",
+        "lat": 12.8456, "lng": 77.6603, "radius": 400,
+        "levels": { "morning_peak": 5, "day": 2, "evening_peak": 4, "night": 1 }
+    },
+    # Whitefield / ITPL junction
+    {
+        "name": "ITPL Junction",
+        "lat": 12.9860, "lng": 77.7356, "radius": 500,
+        "levels": { "morning_peak": 5, "day": 3, "evening_peak": 4, "night": 1 }
+    },
+    # Outer Ring Road — Marathahalli to Silk Board stretch
+    {
+        "name": "ORR Mid Stretch",
+        "lat": 12.9370, "lng": 77.6901, "radius": 700,
+        "levels": { "morning_peak": 3, "day": 2, "evening_peak": 4, "night": 1 }
+    },
+    # Yeshwantpur / Tumkur Rd
+    {
+        "name": "Yeshwantpur Junction",
+        "lat": 13.0211, "lng": 77.5541, "radius": 500,
+        "levels": { "morning_peak": 4, "day": 2, "evening_peak": 3, "night": 1 }
+    },
+]
+
+def get_time_slot(hour: int) -> str:
+    """Map 0–23 hour to one of 4 traffic slots."""
+    if 7 <= hour < 10:
+        return "morning_peak"
+    elif 10 <= hour < 17:
+        return "day"
+    elif 17 <= hour < 21:
+        return "evening_peak"
+    else:
+        return "night"
+
+def build_time_zones(hour: int) -> list:
+    """Return a list of zone dicts (same format as manual zones) for a given hour."""
+    slot = get_time_slot(hour)
+    zones = []
+    for corridor in BENGALURU_CORRIDORS:
+        level = corridor["levels"][slot]
+        if level > 1:   # skip level-1 zones — no meaningful penalty
+            zones.append({
+                "lat":    corridor["lat"],
+                "lng":    corridor["lng"],
+                "radius": corridor["radius"],
+                "level":  level,
+                "name":   corridor["name"],
+            })
+    return zones
+
+
 # ── Google Geocoder ───────────────────────────────────────────────────────────
 def geocode(place_name):
     query = place_name
@@ -87,8 +190,6 @@ def geocode(place_name):
 
 
 # ── Congestion helpers ────────────────────────────────────────────────────────
-
-# Congestion level → travel time multiplier
 CONGESTION_MULTIPLIER = {
     1: 1.5,
     2: 2.5,
@@ -98,15 +199,9 @@ CONGESTION_MULTIPLIER = {
 }
 
 def apply_congestion(G_temp, zones, resolved_blocked):
-    """
-    Mutates G_temp edges in-place based on:
-      zones            — list of {lat, lng, radius (m), level 1-5}
-      resolved_blocked — list of (u, v, key, action) tuples already resolved
-    Returns list of (u, v, key, old_tt, old_tw) for reset.
-    """
     modified = []
 
-    # ── Zone-based congestion ─────────────────────────────────────────────
+    # Zone-based congestion
     for zone in zones:
         center      = Point(zone["lng"], zone["lat"])
         radius_deg  = zone["radius"] / 111320
@@ -127,7 +222,7 @@ def apply_congestion(G_temp, zones, resolved_blocked):
                 data["tw_weight"]   = old_tw * multiplier
                 modified.append((u, v, key, old_tt, old_tw))
 
-    # ── Click-to-block/slow edges (pre-resolved) ──────────────────────────
+    # Click-to-block/slow edges
     for (u, v, key, action) in resolved_blocked:
         if not G_temp.has_edge(u, v, key):
             continue
@@ -148,7 +243,6 @@ def apply_congestion(G_temp, zones, resolved_blocked):
 
 
 def reset_congestion(G_temp, modified):
-    """Restore original weights after routing."""
     for u, v, key, old_tt, old_tw in modified:
         if G_temp.has_edge(u, v, key):
             G_temp[u][v][key]["travel_time"] = old_tt
@@ -178,15 +272,56 @@ def home():
     return render_template("index.html", api_key=API_KEY)
 
 
+@app.route("/time-zones", methods=["GET"])
+def time_zones():
+    """
+    Returns the auto-generated congestion zones for a given hour.
+    Frontend calls this to show zone circles on the map for Option A.
+    Query param: hour (0–23)
+    """
+    try:
+        hour = int(request.args.get("hour", 8))
+        hour = max(0, min(23, hour))
+    except (TypeError, ValueError):
+        hour = 8
+
+    slot  = get_time_slot(hour)
+    zones = build_time_zones(hour)
+
+    return jsonify({
+        "hour":  hour,
+        "slot":  slot,
+        "zones": zones
+    })
+
+
 @app.route("/route", methods=["POST"])
 def get_routes():
     data          = request.get_json()
     origin_name   = data.get("origin", "").strip()
     dest_name     = data.get("destination", "").strip()
-    zones         = data.get("zones", [])
+    manual_zones  = data.get("zones", [])
     blocked_edges = data.get("blocked_edges", [])
-    print(f"[DEBUG] Received zones={zones}")
-    print(f"[DEBUG] Received blocked_edges={blocked_edges}")
+
+    # ── Option A: time-based zones ────────────────────────────────────────
+    traffic_mode = data.get("traffic_mode", "manual")   # "manual" | "time_based"
+    time_hour    = data.get("time_hour", None)           # 0–23 int, sent when mode=time_based
+
+    if traffic_mode == "time_based" and time_hour is not None:
+        try:
+            hour = int(time_hour)
+        except (TypeError, ValueError):
+            hour = 8
+        auto_zones = build_time_zones(hour)
+        print(f"[Option A] Time slot: {get_time_slot(hour)} — {len(auto_zones)} auto zones applied")
+    else:
+        auto_zones = []
+
+    # Merge manual + auto zones
+    all_zones = manual_zones + auto_zones
+
+    print(f"[DEBUG] total zones={len(all_zones)} (manual={len(manual_zones)}, auto={len(auto_zones)})")
+    print(f"[DEBUG] blocked_edges={blocked_edges}")
 
     if not origin_name or not dest_name:
         return jsonify({"error": "Origin and destination are required."}), 400
@@ -200,18 +335,17 @@ def get_routes():
     orig_node = ox.distance.nearest_nodes(G, orig_lng, orig_lat)
     dest_node = ox.distance.nearest_nodes(G, dest_lng, dest_lat)
 
-    # Resolve blocked edges to actual graph tuples using OSMnx nearest_edges
+    # Resolve blocked edges
     resolved_blocked = []
     for be in blocked_edges:
         try:
             u, v, key = ox.distance.nearest_edges(G, be["lng"], be["lat"])
             resolved_blocked.append((u, v, key, be.get("action", "slow")))
-            print(f"[DEBUG] Resolved edge ({u},{v},{key}) action={be['action']}")
         except Exception as e:
             print(f"[DEBUG] Could not resolve edge: {e}")
 
-    # Apply congestion — modifies graph weights in place
-    modified = apply_congestion(G, zones, resolved_blocked)
+    # Apply congestion
+    modified = apply_congestion(G, all_zones, resolved_blocked)
     print(f"[DEBUG] Modified {len(modified)} edges")
 
     try:
@@ -223,14 +357,18 @@ def get_routes():
         tw_coords          = route_to_coords(G, tw_route)
         tw_dist, tw_time   = calc_route_stats(G, tw_route, "travel_time")
 
-        # Reset weights AFTER routing, not in finally
         reset_congestion(G, modified)
 
         return jsonify({
             "standard": { "coords": std_coords, "distance": std_dist, "time": std_time },
             "shortcut":  { "coords": tw_coords,  "distance": tw_dist,  "time": tw_time  },
             "origin":      { "lat": orig_lat, "lng": orig_lng },
-            "destination": { "lat": dest_lat, "lng": dest_lng }
+            "destination": { "lat": dest_lat, "lng": dest_lng },
+            "active_zones": [
+                { "lat": z["lat"], "lng": z["lng"], "radius": z["radius"],
+                  "level": z["level"], "name": z.get("name", "") }
+                for z in all_zones
+            ]
         })
 
     except nx.NetworkXNoPath:
