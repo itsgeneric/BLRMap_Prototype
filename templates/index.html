@@ -1,878 +1,1569 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLR Smart Router</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bengaluru Two-Wheeler Dynamic Router</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            height: 100vh;
-            background: #f4f4f9;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        height: 100vh;
+        background: #f4f4f9;
+      }
+      #sidebar {
+        width: 380px;
+        background: white;
+        padding: 18px;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.12);
+        z-index: 10;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #map {
+        flex-grow: 1;
+        height: 100%;
+      }
+      h2 {
+        color: #1a1a2e;
+        font-size: 1.3rem;
+      }
+      h3 {
+        font-size: 0.95rem;
+        color: #333;
+        margin-bottom: 4px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #eee;
+      }
+      label {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: #555;
+        display: block;
+        margin-bottom: 3px;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 9px 11px;
+        border: 1.5px solid #ddd;
+        border-radius: 7px;
+        font-size: 0.88rem;
+        transition: border 0.2s;
+      }
+      input[type="text"]:focus {
+        border-color: #1e88e5;
+        outline: none;
+      }
+      .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1.5px solid #eee;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .radio-option:has(input:checked) {
+        border-color: #1e88e5;
+        background: #e3f2fd;
+      }
+      .radio-option label {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: #333;
+        cursor: pointer;
+        margin: 0;
+      }
+      .btn {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: #1e88e5;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #1565c0;
+      }
+      .btn-primary:disabled {
+        background: #90caf9;
+        cursor: not-allowed;
+      }
+      .btn-danger {
+        background: #ffebee;
+        color: #c62828;
+        border: 1.5px solid #ef9a9a;
+      }
+      .btn-danger:hover {
+        background: #ffcdd2;
+      }
+      .btn-warning {
+        background: #fff8e1;
+        color: #e65100;
+        border: 1.5px solid #ffcc02;
+      }
+      .btn-warning:hover {
+        background: #fff3cd;
+      }
+      .btn-active {
+        background: #e8f5e9 !important;
+        border: 1.5px solid #66bb6a !important;
+        color: #2e7d32 !important;
+      }
+      .tool-section {
+        background: #fafafa;
+        border: 1.5px solid #eee;
+        border-radius: 9px;
+        padding: 12px;
+      }
+      .tool-row {
+        display: flex;
+        gap: 8px;
+      }
+      .tool-row .btn {
+        flex: 1;
+      }
+      #zone-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .zone-item {
+        background: #fff3e0;
+        border: 1px solid #ffcc80;
+        border-radius: 7px;
+        padding: 8px 10px;
+      }
+      .zone-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      .zone-item-header span {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #e65100;
+      }
+      .zone-delete {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #c62828;
+        font-size: 1rem;
+        padding: 0 4px;
+      }
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .slider-row input[type="range"] {
+        flex: 1;
+        accent-color: #e53935;
+      }
+      .slider-label {
+        font-size: 0.75rem;
+        color: #777;
+        white-space: nowrap;
+      }
+      #blocked-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-top: 6px;
+      }
+      .blocked-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 7px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+      .blocked-item.block {
+        background: #212121;
+        color: white;
+      }
+      .blocked-item.slow {
+        background: #fff8e1;
+        color: #e65100;
+        border: 1px solid #ffcc02;
+      }
+      .blocked-item button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .blocked-item.block button {
+        color: #ef9a9a;
+      }
+      .blocked-item.slow button {
+        color: #c62828;
+      }
+      #loading {
+        display: none;
+        text-align: center;
+        font-size: 0.82rem;
+        color: #888;
+        padding: 6px;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #ddd;
+        border-top-color: #1e88e5;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
 
-        /* ── Sidebar ─────────────────────────────────────────────────────── */
-        #sidebar {
-            width: 370px;
-            min-width: 370px;
-            background: white;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.12);
-            z-index: 10;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
+      /* ── Route cards ── */
+      #comparison {
+        display: none;
+        flex-direction: column;
+        gap: 9px;
+      }
+      .comp-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        font-size: 0.78rem;
+        color: #555;
+        flex-wrap: wrap;
+      }
+      .legend-dot {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        margin-right: 3px;
+        vertical-align: middle;
+      }
+      .route-card {
+        border-radius: 9px;
+        padding: 11px 13px;
+        border-left: 4px solid;
+        cursor: pointer;
+        transition: box-shadow 0.15s;
+        position: relative;
+      }
+      .route-card:hover {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      }
+      .route-card.selected {
+        box-shadow: 0 0 0 2.5px #1e88e5;
+      }
+      .route-card.standard {
+        background: #e8eaf6;
+        border-color: #3949ab;
+      }
+      .route-card.shortcut {
+        background: #fce4ec;
+        border-color: #e53935;
+      }
+      .route-card.ml {
+        background: #e8f5e9;
+        border-color: #43a047;
+      }
+      .route-card h4 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+      .route-card.standard h4 {
+        color: #3949ab;
+      }
+      .route-card.shortcut h4 {
+        color: #e53935;
+      }
+      .route-card.ml h4 {
+        color: #2e7d32;
+      }
+      .route-stats {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+      }
+      .stat-label {
+        font-size: 0.7rem;
+        color: #777;
+      }
+      .stat-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #222;
+      }
+      .saving-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        margin-top: 5px;
+      }
+      .badge-green {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .badge-blue {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .recommended-tag {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: #ff6f00;
+        color: white;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+      }
+      .road-mix {
+        font-size: 0.72rem;
+        color: #888;
+        margin-top: 5px;
+      }
 
-        .sidebar-header {
-            padding: 18px 20px 14px;
-            border-bottom: 1px solid #f0f0f0;
-            background: linear-gradient(135deg, #1565C0, #1E88E5);
-            color: white;
-        }
+      /* ── Auto-congestion info ── */
+      #ml-info {
+        background: #e8f5e9;
+        border: 1px solid #a5d6a7;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        color: #2e7d32;
+        display: none;
+      }
+      #ml-info strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 0.83rem;
+      }
 
-        .sidebar-header h2 { font-size: 1.25rem; font-weight: 700; }
-        .sidebar-header p  { font-size: 0.72rem; margin-top: 3px; opacity: 0.85; }
+      #error-msg {
+        display: none;
+        background: #ffebee;
+        color: #c62828;
+        padding: 9px 11px;
+        border-radius: 7px;
+        font-size: 0.82rem;
+      }
 
-        .sidebar-body { padding: 16px 18px; flex: 1; }
-
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin-bottom: 8px;
-        }
-
-        /* ── Vehicle selector ────────────────────────────────────────────── */
-        .vehicle-grid {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 18px;
-        }
-
-        .vehicle-btn {
-            flex: 1;
-            padding: 8px 4px 6px;
-            border: 2px solid #e8e8e8;
-            border-radius: 10px;
-            background: white;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.15s;
-        }
-
-        .vehicle-btn:hover { border-color: #90CAF9; background: #F5F9FF; }
-        .vehicle-btn.active { border-color: #1E88E5; background: #E3F2FD; }
-
-        .v-icon  { font-size: 1.35rem; display: block; line-height: 1; }
-        .v-label { font-size: 0.62rem; font-weight: 700; color: #666; margin-top: 3px; }
-        .vehicle-btn.active .v-label { color: #1565C0; }
-
-        /* ── Route inputs ────────────────────────────────────────────────── */
-        .input-wrap { position: relative; margin-bottom: 6px; }
-
-        .input-dot {
-            position: absolute;
-            left: 11px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-        }
-
-        .dot-origin { color: #43A047; background: #43A047; }
-        .dot-dest   { color: #E53935; background: #E53935; }
-
-        .input-wrap input {
-            width: 100%;
-            padding: 10px 10px 10px 30px;
-            border: 1.5px solid #ddd;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            outline: none;
-            transition: border-color 0.15s;
-            background: #FAFAFA;
-        }
-
-        .input-wrap input:focus { border-color: #1E88E5; background: white; }
-
-        .swap-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 1.5px solid #ddd;
-            background: white;
-            cursor: pointer;
-            margin: 0 auto 6px;
-            font-size: 0.9rem;
-            color: #555;
-            transition: all 0.15s;
-        }
-
-        .swap-btn:hover { background: #f5f5f5; border-color: #aaa; }
-
-        /* ── Traffic selector ────────────────────────────────────────────── */
-        .traffic-group {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 14px;
-            margin-top: 10px;
-        }
-
-        .traffic-btn {
-            flex: 1;
-            padding: 7px 4px;
-            border: 1.5px solid #ddd;
-            border-radius: 7px;
-            background: white;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #666;
-            text-align: center;
-            transition: all 0.15s;
-        }
-
-        .traffic-btn:hover { border-color: #90CAF9; }
-        .traffic-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
-
-        /* ── Find button ─────────────────────────────────────────────────── */
-        .find-btn {
-            width: 100%;
-            padding: 13px;
-            background: #1E88E5;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.15s;
-            letter-spacing: 0.3px;
-        }
-
-        .find-btn:hover { background: #1565C0; }
-
-        /* ── Route cards ─────────────────────────────────────────────────── */
-        #routes-section { display: none; margin-top: 18px; }
-
-        .algo-note {
-            font-size: 0.68rem;
-            color: #aaa;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .route-card {
-            border: 2px solid #e8e8e8;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .route-card:hover  { border-color: #90CAF9; background: #FAFEFF; }
-        .route-card.active { border-color: #1E88E5; background: #E3F2FD; }
-
-        .rc-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .rc-dot {
-            width: 13px; height: 13px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .rc-title { font-weight: 700; font-size: 0.88rem; color: #222; flex: 1; }
-
-        .badge {
-            font-size: 0.62rem;
-            font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 10px;
-            letter-spacing: 0.3px;
-        }
-
-        .badge-fastest { background: #E8F5E9; color: #2E7D32; }
-        .badge-shorter { background: #FFF3E0; color: #BF360C; }
-        .badge-fewest  { background: #F3E5F5; color: #6A1B9A; }
-
-        .rc-meta {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 6px;
-            align-items: start;
-        }
-
-        .rc-metric-val   { font-size: 1rem; font-weight: 700; color: #1565C0; }
-        .rc-metric-label { font-size: 0.68rem; color: #999; }
-
-        .cong-tag {
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 3px 7px;
-            border-radius: 5px;
-            white-space: nowrap;
-        }
-
-        .cong-low    { background: #E8F5E9; color: #2E7D32; }
-        .cong-medium { background: #FFF8E1; color: #F57F17; }
-        .cong-high   { background: #FFEBEE; color: #B71C1C; }
-
-        .fare-row {
-            margin-top: 9px;
-            padding-top: 9px;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.78rem;
-            color: #555;
-        }
-
-        /* ── Simulation ──────────────────────────────────────────────────── */
-        #simulation-section {
-            display: none;
-            margin-top: 16px;
-            border-top: 1px solid #f0f0f0;
-            padding-top: 14px;
-        }
-
-        .sim-title { font-size: 0.82rem; font-weight: 700; color: #444; margin-bottom: 10px; }
-
-        .speed-group { display: flex; gap: 6px; margin-bottom: 10px; }
-
-        .speed-btn {
-            flex: 1;
-            padding: 7px 4px;
-            border: 1.5px solid #ddd;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: #666;
-            transition: all 0.15s;
-        }
-
-        .speed-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
-
-        .sim-controls { display: flex; gap: 6px; margin-bottom: 8px; }
-
-        .sim-btn {
-            flex: 1;
-            padding: 9px 4px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: white;
-            transition: background 0.15s;
-        }
-
-        #btn-start { background: #43A047; }
-        #btn-start:hover { background: #388E3C; }
-        #btn-pause { background: #FB8C00; display: none; }
-        #btn-pause:hover { background: #F57C00; }
-        #btn-reset { background: #E53935; display: none; }
-        #btn-reset:hover { background: #C62828; }
-
-        #sim-progress-wrap {
-            display: none;
-            height: 5px;
-            background: #e8e8e8;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 6px;
-        }
-
-        #sim-progress-bar {
-            height: 100%;
-            width: 0%;
-            background: #1E88E5;
-            transition: width 0.08s linear;
-        }
-
-        #sim-status {
-            font-size: 0.75rem;
-            color: #999;
-            text-align: center;
-            min-height: 16px;
-        }
-
-        /* ── Map ─────────────────────────────────────────────────────────── */
-        #map { flex: 1; height: 100%; }
-
-        /* ── Loading overlay ─────────────────────────────────────────────── */
-        #loading {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(255,255,255,0.65);
-            z-index: 100;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        .spinner {
-            width: 38px; height: 38px;
-            border: 4px solid #e0e0e0;
-            border-top-color: #1E88E5;
-            border-radius: 50%;
-            animation: spin 0.75s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { margin-top: 12px; font-size: 0.88rem; color: #555; font-weight: 600; }
-
-        hr.divider { border: none; border-top: 1px solid #f0f0f0; margin: 14px 0; }
+      /* ── Simulation ── */
+      #simulation-section {
+        display: none;
+      }
+      .sim-route-select {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .sim-route-btn {
+        flex: 1;
+        padding: 7px 4px;
+        border: 1.5px solid #ddd;
+        border-radius: 7px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #666;
+        transition: all 0.15s;
+      }
+      .sim-route-btn.active-std {
+        background: #3949ab;
+        border-color: #3949ab;
+        color: white;
+      }
+      .sim-route-btn.active-tw {
+        background: #e53935;
+        border-color: #e53935;
+        color: white;
+      }
+      .sim-route-btn.active-ml {
+        background: #43a047;
+        border-color: #43a047;
+        color: white;
+      }
+      .speed-group {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .speed-btn {
+        flex: 1;
+        padding: 7px 4px;
+        border: 1.5px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #666;
+        transition: all 0.15s;
+      }
+      .speed-btn.active {
+        background: #1e88e5;
+        border-color: #1e88e5;
+        color: white;
+      }
+      .vehicle-group {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .vehicle-btn {
+        flex: 1;
+        padding: 8px 2px;
+        border: 1.5px solid #ddd;
+        border-radius: 7px;
+        background: white;
+        cursor: pointer;
+        font-size: 1.25rem;
+        line-height: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        transition: all 0.15s;
+      }
+      .vehicle-btn .v-label {
+        font-size: 0.58rem;
+        font-weight: 700;
+        color: #999;
+      }
+      .vehicle-btn.active {
+        border-color: #1e88e5;
+        background: #e3f2fd;
+        transform: scale(1.06);
+      }
+      .vehicle-btn.active .v-label {
+        color: #1565c0;
+      }
+      .sim-controls {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .sim-btn {
+        flex: 1;
+        padding: 9px 4px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: white;
+        transition: background 0.15s;
+      }
+      #btn-start {
+        background: #43a047;
+      }
+      #btn-start:hover {
+        background: #388e3c;
+      }
+      #btn-pause {
+        background: #fb8c00;
+        display: none;
+      }
+      #btn-pause:hover {
+        background: #f57c00;
+      }
+      #btn-reset {
+        background: #757575;
+        display: none;
+      }
+      #btn-reset:hover {
+        background: #616161;
+      }
+      #sim-progress-wrap {
+        display: none;
+        height: 5px;
+        background: #e8e8e8;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 6px;
+      }
+      #sim-progress-bar {
+        height: 100%;
+        width: 0%;
+        background: #1e88e5;
+        transition: width 0.08s linear;
+      }
+      #sim-status {
+        font-size: 0.75rem;
+        color: #999;
+        text-align: center;
+        min-height: 16px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2>🛵 Dynamic Routing Hub</h2>
+      <hr />
 
-<div id="loading">
-    <div class="spinner"></div>
-    <div class="loading-text">Finding optimal routes...</div>
-</div>
+      <div>
+        <label>Source Location</label>
+        <input
+          id="origin-input"
+          type="text"
+          placeholder="e.g., L K Legacy, J.C.Nagar"
+        />
+      </div>
+      <div>
+        <label>Destination Location</label>
+        <input
+          id="dest-input"
+          type="text"
+          placeholder="e.g., Fun World, Jayamahal"
+        />
+      </div>
 
-<div id="sidebar">
-    <div class="sidebar-header">
-        <h2>BLR Smart Router</h2>
-        <p>Uber-style time-weighted routing &bull; Multiple vehicle modes</p>
+      <div>
+        <label>Traffic Overlay (Google Maps)</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input
+              type="radio"
+              id="empty"
+              name="traffic"
+              value="empty"
+              checked
+            />
+            <label for="empty">Empty Traffic</label>
+          </div>
+          <div class="radio-option" id="realtime-option">
+            <input type="radio" id="realtime" name="traffic" value="realtime" />
+            <label for="realtime">Real Time
+              <span id="live-badge" style="display:none;background:#e53935;color:white;font-size:0.62rem;padding:1px 7px;border-radius:10px;font-weight:700;margin-left:5px;animation:pulse 1.4s infinite">LIVE</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label>Vehicle Type</label>
+        <div class="vehicle-group" style="margin-top: 6px">
+          <button class="vehicle-btn active" data-vehicle="scooter" onclick="setVehicle('scooter')">
+            🛵<span class="v-label">2-Wheeler</span>
+          </button>
+          <button class="vehicle-btn" data-vehicle="car" onclick="setVehicle('car')">
+            🚗<span class="v-label">Car</span>
+          </button>
+          <button class="vehicle-btn" data-vehicle="auto" onclick="setVehicle('auto')">
+            🛺<span class="v-label">Auto</span>
+          </button>
+          <button class="vehicle-btn" data-vehicle="cycle" onclick="setVehicle('cycle')">
+            🚲<span class="v-label">Cycle</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="calc-btn" onclick="calculateRoute()">
+        Calculate &amp; Render Routes
+      </button>
+      <div id="loading">
+        <span class="spinner"></span> Calculating routes...
+      </div>
+      <div id="error-msg"></div>
+
+      <!-- ML auto-congestion notice -->
+      <div id="ml-info">
+        <strong>🤖 Auto-Congestion Active</strong>
+        Main roads (NH, primary, trunk) are automatically penalised based on
+        known Bengaluru hotspots and time-of-day. The ML Smart Route avoids
+        these automatically.
+      </div>
+
+      <hr />
+
+      <div class="tool-section">
+        <h3>🔴 Congestion Zones</h3>
+        <p style="font-size: 0.78rem; color: #888; margin-bottom: 8px">
+          Draw a circle on the map to add extra congestion on top of
+          auto-detection.
+        </p>
+        <div class="tool-row">
+          <button
+            class="btn btn-warning"
+            id="draw-zone-btn"
+            onclick="toggleDrawZone()"
+          >
+            + Draw Zone
+          </button>
+          <button class="btn btn-danger" onclick="clearAllZones()">
+            Clear All
+          </button>
+        </div>
+        <div id="zone-list"></div>
+      </div>
+
+      <div class="tool-section">
+        <h3>🚧 Block / Slow Roads</h3>
+        <p style="font-size: 0.78rem; color: #888; margin-bottom: 8px">
+          Click on any road to block it or slow it down.
+        </p>
+        <div class="tool-row">
+          <button
+            class="btn btn-warning"
+            id="mark-road-btn"
+            onclick="toggleMarkRoad()"
+          >
+            + Mark Road
+          </button>
+          <button class="btn btn-danger" onclick="clearAllBlocked()">
+            Clear All
+          </button>
+        </div>
+        <div id="blocked-list"></div>
+      </div>
+
+      <hr />
+
+      <!-- Route Comparison — 3 cards -->
+      <div id="comparison">
+        <div class="comp-title">
+          Route Comparison — click a card to simulate
+        </div>
+        <div class="legend">
+          <span
+            ><span class="legend-dot" style="background: #3949ab"></span
+            >Standard</span
+          >
+          <span
+            ><span class="legend-dot" style="background: #e53935"></span
+            >Two-Wheeler</span
+          >
+          <span
+            ><span class="legend-dot" style="background: #43a047"></span>ML
+            Smart</span
+          >
+        </div>
+
+        <div
+          class="route-card standard"
+          id="card-standard"
+          onclick="selectSimRoute('standard')"
+        >
+          <h4>Standard Route</h4>
+          <div class="route-stats">
+            <div class="stat">
+              <span class="stat-label">Distance</span
+              ><span class="stat-value" id="std-dist">--</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Est. Time</span
+              ><span class="stat-value" id="std-time">--</span>
+            </div>
+          </div>
+          <div class="road-mix" id="std-mix"></div>
+        </div>
+
+        <div
+          class="route-card shortcut"
+          id="card-shortcut"
+          onclick="selectSimRoute('shortcut')"
+        >
+          <h4>Two-Wheeler Shortcut</h4>
+          <div class="route-stats">
+            <div class="stat">
+              <span class="stat-label">Distance</span
+              ><span class="stat-value" id="tw-dist">--</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Est. Time</span
+              ><span class="stat-value" id="tw-time">--</span>
+            </div>
+          </div>
+          <div class="road-mix" id="tw-mix"></div>
+          <span id="tw-badge" class="saving-badge" style="display: none"></span>
+        </div>
+
+        <div class="route-card ml" id="card-ml" onclick="selectSimRoute('ml')">
+          <h4>🤖 ML Smart Route</h4>
+          <div class="route-stats">
+            <div class="stat">
+              <span class="stat-label">Distance</span
+              ><span class="stat-value" id="ml-dist">--</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Est. Time</span
+              ><span class="stat-value" id="ml-time">--</span>
+            </div>
+          </div>
+          <div class="road-mix" id="ml-mix"></div>
+          <span id="ml-badge" class="saving-badge" style="display: none"></span>
+        </div>
+      </div>
+
+      <!-- Simulation -->
+      <div id="simulation-section">
+        <hr />
+        <h3>🎬 Route Simulation</h3>
+        <div class="sim-route-select" style="margin-top: 8px">
+          <button
+            class="sim-route-btn"
+            id="sim-btn-standard"
+            onclick="selectSimRoute('standard')"
+          >
+            🔵 Std
+          </button>
+          <button
+            class="sim-route-btn"
+            id="sim-btn-shortcut"
+            onclick="selectSimRoute('shortcut')"
+          >
+            🔴 2W
+          </button>
+          <button
+            class="sim-route-btn"
+            id="sim-btn-ml"
+            onclick="selectSimRoute('ml')"
+          >
+            🟢 ML
+          </button>
+        </div>
+
+        <label style="margin-bottom: 5px">Playback Speed</label>
+        <div class="speed-group">
+          <button
+            class="speed-btn"
+            data-speed="slow"
+            onclick="setSpeed('slow')"
+          >
+            Slow
+          </button>
+          <button
+            class="speed-btn active"
+            data-speed="normal"
+            onclick="setSpeed('normal')"
+          >
+            Normal
+          </button>
+          <button
+            class="speed-btn"
+            data-speed="fast"
+            onclick="setSpeed('fast')"
+          >
+            Fast
+          </button>
+        </div>
+
+        <div class="sim-controls">
+          <button class="sim-btn" id="btn-start" onclick="startSimulation()">
+            ▶ Start
+          </button>
+          <button class="sim-btn" id="btn-pause" onclick="togglePause()">
+            ⏸ Pause
+          </button>
+          <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">
+            ↺ Reset
+          </button>
+        </div>
+        <div id="sim-progress-wrap"><div id="sim-progress-bar"></div></div>
+        <div id="sim-status">Select a route above and press Start</div>
+      </div>
     </div>
 
-    <div class="sidebar-body">
+    <div id="map"></div>
 
-        <!-- Vehicle selector -->
-        <div class="section-label">Mode of Transport</div>
-        <div class="vehicle-grid">
-            <button class="vehicle-btn active" data-vehicle="car" onclick="selectVehicle('car')">
-                <span class="v-icon">🚗</span>
-                <span class="v-label">Car</span>
-            </button>
-            <button class="vehicle-btn" data-vehicle="bike" onclick="selectVehicle('bike')">
-                <span class="v-icon">🏍</span>
-                <span class="v-label">Bike</span>
-            </button>
-            <button class="vehicle-btn" data-vehicle="walk" onclick="selectVehicle('walk')">
-                <span class="v-icon">🚶</span>
-                <span class="v-label">Walk</span>
-            </button>
-            <button class="vehicle-btn" data-vehicle="transit" onclick="selectVehicle('transit')">
-                <span class="v-icon">🚌</span>
-                <span class="v-label">Transit</span>
-            </button>
-            <button class="vehicle-btn" data-vehicle="bicycle" onclick="selectVehicle('bicycle')">
-                <span class="v-icon">🚲</span>
-                <span class="v-label">Cycle</span>
-            </button>
-        </div>
+    <script>
+      // ── State ─────────────────────────────────────────────────────────────────
+      let map, trafficLayer;
+      let stdPolyline = null,
+        twPolyline = null,
+        mlPolyline = null;
+      let markers = [];
+      let zones = [],
+        drawingZone = false,
+        zoneIdCounter = 0;
+      let blockedEdges = [],
+        markingRoad = false,
+        blockIdCounter = 0;
+      let routeData = null;
 
-        <!-- Origin / Destination -->
-        <div class="section-label">Route</div>
-        <div class="input-wrap">
-            <span class="input-dot dot-origin"></span>
-            <input id="origin-input" type="text" placeholder="From: e.g., MG Road, Bengaluru">
-        </div>
-        <button class="swap-btn" onclick="swapLocations()" title="Swap origin and destination">⇅</button>
-        <div class="input-wrap">
-            <span class="input-dot dot-dest"></span>
-            <input id="dest-input" type="text" placeholder="To: e.g., Koramangala, Bengaluru">
-        </div>
+      // ── Simulation state ──────────────────────────────────────────────────────
+      const SPEEDS = { slow: 200, normal: 900, fast: 3600 }; // playback km/h
+      const VEHICLES = {
+        scooter: { emoji: "🛵", color: "#E53935", route: "shortcut", speed: "normal" },
+        car:     { emoji: "🚗", color: "#1E88E5", route: "standard", speed: "normal" },
+        auto:    { emoji: "🛺", color: "#FB8C00", route: "standard", speed: "slow"   },
+        cycle:   { emoji: "🚲", color: "#43A047", route: "ml",       speed: "slow"   },
+      };
+      let selectedVehicle = "scooter";
+      const ROUTE_COLORS = {
+        standard: "#3949AB",
+        shortcut: "#E53935",
+        ml: "#43A047",
+      };
+      const ARROW_ICON = {
+        path: null,
+        scale: 6,
+        fillColor: "#FF5722",
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: "#fff",
+        rotation: 0,
+      };
 
-        <!-- Traffic condition -->
-        <div class="section-label" style="margin-top:12px;">Traffic Condition</div>
-        <div class="traffic-group">
-            <button class="traffic-btn active" data-traffic="empty"     onclick="selectTraffic('empty')">Clear</button>
-            <button class="traffic-btn"        data-traffic="realtime"  onclick="selectTraffic('realtime')">Live</button>
-            <button class="traffic-btn"        data-traffic="congestion" onclick="selectTraffic('congestion')">Peak Hour</button>
-        </div>
+      let simPath = [],
+        simMarker = null,
+        simIndex = 0;
+      let simTimer = null,
+        simPaused = false;
+      let currentSpeed = "normal",
+        activeSimRoute = "standard";
 
-        <button class="find-btn" onclick="calculateRoute()">Find Best Route</button>
-
-        <!-- Route alternatives -->
-        <div id="routes-section">
-            <hr class="divider">
-            <div class="section-label" style="margin-bottom:4px;">Route Options</div>
-            <div class="algo-note">⚡ Ranked by Uber-style traffic-weighted score</div>
-            <div id="route-cards"></div>
-        </div>
-
-        <!-- Simulation -->
-        <div id="simulation-section">
-            <hr class="divider">
-            <div class="sim-title">Route Simulation</div>
-            <div class="speed-group">
-                <button class="speed-btn" data-speed="slow"   onclick="setSpeed('slow')">Slow</button>
-                <button class="speed-btn active" data-speed="normal" onclick="setSpeed('normal')">Normal</button>
-                <button class="speed-btn" data-speed="fast"   onclick="setSpeed('fast')">Fast</button>
-            </div>
-            <div class="sim-controls">
-                <button class="sim-btn" id="btn-start" onclick="startSimulation()">&#9654; Start</button>
-                <button class="sim-btn" id="btn-pause" onclick="togglePause()">&#9646;&#9646; Pause</button>
-                <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">&#8635; Reset</button>
-            </div>
-            <div id="sim-progress-wrap">
-                <div id="sim-progress-bar"></div>
-            </div>
-            <div id="sim-status">Ready to simulate</div>
-        </div>
-
-    </div>
-</div>
-
-<div id="map"></div>
-
-<script>
-// ── Vehicle configuration ──────────────────────────────────────────────────
-const VEHICLE_CONFIG = {
-    car:     { label: 'Car',     icon: '🚗', modeKey: 'DRIVING',     fareBase: 50,  farePerKm: 12, driving: true  },
-    bike:    { label: 'Bike',    icon: '🏍', modeKey: 'TWO_WHEELER', fareBase: 30,  farePerKm: 7,  driving: true  },
-    walk:    { label: 'Walk',    icon: '🚶', modeKey: 'WALKING',     fareBase: 0,   farePerKm: 0,  driving: false },
-    transit: { label: 'Transit', icon: '🚌', modeKey: 'TRANSIT',     fareBase: 10,  farePerKm: 2,  driving: false },
-    bicycle: { label: 'Cycle',   icon: '🚲', modeKey: 'BICYCLING',   fareBase: 0,   farePerKm: 0,  driving: false },
-};
-
-// Route colors: best → orange → green
-const ROUTE_COLORS = ['#1E88E5', '#FB8C00', '#43A047'];
-const SPEEDS = { slow: 80, normal: 25, fast: 8 };
-
-// ── App state ──────────────────────────────────────────────────────────────
-let map, directionsService, trafficLayer;
-let originAC, destAC;
-let originPlaceId = null, destPlaceId = null;
-let currentVehicle = 'car';
-let currentTraffic = 'empty';
-let directionsResponse = null;
-let routeDataList = [];
-let selectedRank = 0;
-let renderers = [];
-let originMarker = null, destMarker = null;
-
-// Simulation
-let simPath = [], simMarker = null, simIndex = 0;
-let simTimer = null, simPaused = false, currentSpeed = 'normal';
-
-const ARROW_ICON = {
-    path: null, scale: 6,
-    fillColor: '#FF5722', fillOpacity: 1,
-    strokeWeight: 2, strokeColor: '#fff', rotation: 0
-};
-
-// ── Init ───────────────────────────────────────────────────────────────────
-function initMap() {
-    ARROW_ICON.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
-
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 12.9716, lng: 77.5946 },
-        zoom: 12,
-        mapTypeControl: true,
-        mapTypeControlOptions: { style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR },
-        fullscreenControl: true,
-        streetViewControl: true,
-        zoomControl: true,
-    });
-
-    directionsService = new google.maps.DirectionsService();
-    trafficLayer      = new google.maps.TrafficLayer();
-
-    const acOpts = {
-        componentRestrictions: { country: 'in' },
-        fields: ['place_id', 'geometry', 'name']
-    };
-    originAC = new google.maps.places.Autocomplete(document.getElementById('origin-input'), acOpts);
-    destAC   = new google.maps.places.Autocomplete(document.getElementById('dest-input'),   acOpts);
-
-    originAC.addListener('place_changed', () => {
-        const p = originAC.getPlace();
-        if (p && p.place_id) originPlaceId = p.place_id;
-    });
-    destAC.addListener('place_changed', () => {
-        const p = destAC.getPlace();
-        if (p && p.place_id) destPlaceId = p.place_id;
-    });
-}
-
-// ── UI helpers ─────────────────────────────────────────────────────────────
-function selectVehicle(v) {
-    currentVehicle = v;
-    document.querySelectorAll('.vehicle-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.vehicle === v);
-    });
-}
-
-function selectTraffic(t) {
-    currentTraffic = t;
-    document.querySelectorAll('.traffic-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.traffic === t);
-    });
-}
-
-function swapLocations() {
-    const oi = document.getElementById('origin-input');
-    const di = document.getElementById('dest-input');
-    [oi.value, di.value] = [di.value, oi.value];
-    [originPlaceId, destPlaceId] = [destPlaceId, originPlaceId];
-}
-
-function showLoading(on) {
-    document.getElementById('loading').style.display = on ? 'flex' : 'none';
-}
-
-// ── Uber-style scoring ─────────────────────────────────────────────────────
-//
-// How it works (mirrors Uber's ETA-based routing):
-//   1. Get real traffic time vs. free-flow time → congestion ratio
-//   2. Apply a 1.5× amplification on the extra congestion delay so the
-//      algorithm actively steers away from congested corridors
-//   3. Add a small distance penalty to break ties in favour of compact routes
-//   The route with the lowest total score is labelled "Fastest"
-//
-function scoreRoute(leg) {
-    const trafficSec = (leg.duration_in_traffic || leg.duration).value;
-    const baseSec    = leg.duration.value;
-    const distKm     = leg.distance.value / 1000;
-
-    const congestionRatio   = trafficSec / baseSec;
-    const congestionPenalty = Math.max(0, trafficSec - baseSec) * 1.5;
-    const distancePenalty   = distKm * 0.3 * 60;
-    const score             = trafficSec + congestionPenalty + distancePenalty;
-
-    let congestionLevel, congClass;
-    if (congestionRatio < 1.15)     { congestionLevel = 'Light Traffic';  congClass = 'cong-low';    }
-    else if (congestionRatio < 1.4) { congestionLevel = 'Moderate';       congClass = 'cong-medium'; }
-    else                            { congestionLevel = 'Heavy Traffic';   congClass = 'cong-high';   }
-
-    return { score, congestionLevel, congClass, congestionRatio };
-}
-
-// ── Calculate route ────────────────────────────────────────────────────────
-function calculateRoute() {
-    if (!originPlaceId || !destPlaceId) {
-        alert('Please select both origin and destination from the dropdown suggestions.');
-        return;
-    }
-
-    showLoading(true);
-    resetSimulation();
-    document.getElementById('routes-section').style.display    = 'none';
-    document.getElementById('simulation-section').style.display = 'none';
-
-    const vcfg = VEHICLE_CONFIG[currentVehicle];
-    trafficLayer.setMap(currentTraffic !== 'empty' && vcfg.driving ? map : null);
-
-    const travelMode = google.maps.TravelMode[vcfg.modeKey];
-
-    const request = {
-        origin:                   { placeId: originPlaceId },
-        destination:              { placeId: destPlaceId },
-        travelMode:               travelMode,
-        provideRouteAlternatives: true,
-    };
-
-    // Traffic-aware departure time (driving modes only)
-    if (vcfg.driving) {
-        if (currentTraffic === 'realtime') {
-            request.drivingOptions = {
-                departureTime: new Date(Date.now() + 1000),
-                trafficModel:  'bestguess'
-            };
-        } else if (currentTraffic === 'congestion') {
-            // Next Friday 6:30 PM — peak Bengaluru traffic
-            const d = new Date();
-            d.setDate(d.getDate() + ((5 + 7 - d.getDay()) % 7));
-            d.setHours(18, 30, 0, 0);
-            if (d <= new Date()) d.setDate(d.getDate() + 7);
-            request.drivingOptions = {
-                departureTime: d,
-                trafficModel:  'pessimistic'
-            };
-        }
-    }
-
-    // Transit mode — prefer fewer transfers
-    if (currentVehicle === 'transit') {
-        request.transitOptions = {
-            departureTime:     new Date(),
-            routingPreference: google.maps.TransitRoutePreference.FEWER_TRANSFERS,
-        };
-    }
-
-    directionsService.route(request, (response, status) => {
-        showLoading(false);
-        if (status !== 'OK') {
-            alert('Route not found: ' + status +
-                  '\n\nTips:\n- Try different locations\n- Some modes may not support this route\n- Walk/Cycle only works for shorter distances');
-            return;
-        }
-        directionsResponse = response;
-        processRoutes(response, vcfg);
-    });
-}
-
-// ── Process & render routes ────────────────────────────────────────────────
-function processRoutes(response, vcfg) {
-    // Score all alternatives and sort best-first
-    const scored = response.routes.map((route, i) => {
-        const leg     = route.legs[0];
-        const scoring = scoreRoute(leg);
-        return { route, leg, originalIndex: i, ...scoring };
-    });
-    scored.sort((a, b) => a.score - b.score);
-    routeDataList = scored;
-    selectedRank  = 0;
-
-    renderAllRoutes(0);
-    renderRouteCards(vcfg);
-    buildSimPath(scored[0].leg);
-
-    document.getElementById('routes-section').style.display    = 'block';
-    document.getElementById('simulation-section').style.display = 'block';
-    setStatus('Ready to simulate (' + simPath.length + ' waypoints)');
-}
-
-function renderAllRoutes(activeRank) {
-    // Clear old renderers and markers
-    renderers.forEach(r => r.setMap(null));
-    renderers = [];
-    if (originMarker) { originMarker.setMap(null); originMarker = null; }
-    if (destMarker)   { destMarker.setMap(null);   destMarker   = null; }
-
-    routeDataList.forEach((rd, rank) => {
-        const isActive = rank === activeRank;
-        const renderer = new google.maps.DirectionsRenderer({
-            map,
-            directions:   directionsResponse,
-            routeIndex:   rd.originalIndex,
-            suppressMarkers: true,
-            polylineOptions: {
-                strokeColor:   ROUTE_COLORS[rank],
-                strokeWeight:  isActive ? 7 : 4,
-                strokeOpacity: isActive ? 1.0 : 0.5,
-                zIndex:        isActive ? 10 : rank,
-            },
+      // ── Map init ──────────────────────────────────────────────────────────────
+      function initMap() {
+        ARROW_ICON.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 12.9716, lng: 77.5946 },
+          zoom: 13,
+          mapTypeControl: false,
         });
-        renderers.push(renderer);
-    });
+        trafficLayer = new google.maps.TrafficLayer();
 
-    // Custom origin / destination markers
-    const bestLeg = routeDataList[activeRank].leg;
-    originMarker = new google.maps.Marker({
-        position: bestLeg.start_location,
-        map,
-        title:    'Origin: ' + bestLeg.start_address,
-        icon: {
-            path:         google.maps.SymbolPath.CIRCLE,
-            scale:        11,
-            fillColor:    '#43A047',
-            fillOpacity:  1,
-            strokeColor:  '#fff',
+        [
+          ["origin-input", "e.g., L K Legacy, J.C.Nagar"],
+          ["dest-input",   "e.g., Fun World, Jayamahal"],
+        ].forEach(([id, ph]) => {
+          const pae = new google.maps.places.PlaceAutocompleteElement({
+            componentRestrictions: { country: "in" },
+          });
+          pae.id = id;
+          pae.setAttribute("placeholder", ph);
+          pae.style.cssText = "width:100%;display:block;margin-top:3px";
+          document.getElementById(id).replaceWith(pae);
+        });
+
+        map.addListener("click", onMapClick);
+
+        // Toggle Google traffic layer immediately when radio changes
+        document.querySelectorAll('input[name="traffic"]').forEach(function(r) {
+          r.addEventListener('change', function() {
+            const isRealtime = this.value === 'realtime';
+            trafficLayer.setMap(isRealtime ? map : null);
+            document.getElementById('live-badge').style.display = isRealtime ? 'inline' : 'none';
+            if (routeData) autoRecalculate();
+          });
+        });
+      }
+
+      function onMapClick(e) {
+        if (drawingZone) {
+          placeZone(e.latLng);
+          return;
+        }
+        if (markingRoad) {
+          showRoadPopup(e.latLng);
+          return;
+        }
+      }
+
+      // ── Draw Zone ─────────────────────────────────────────────────────────────
+      function toggleDrawZone() {
+        drawingZone = !drawingZone;
+        markingRoad = false;
+        document
+          .getElementById("draw-zone-btn")
+          .classList.toggle("btn-active", drawingZone);
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: drawingZone ? "crosshair" : "" });
+      }
+
+      function placeZone(latLng) {
+        const id = ++zoneIdCounter,
+          radius = 400,
+          level = 3;
+        const circle = new google.maps.Circle({
+          map,
+          center: latLng,
+          radius,
+          strokeColor: "#E53935",
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: "#E53935",
+          fillOpacity: 0.25,
+        });
+        zones.push({
+          id,
+          lat: latLng.lat(),
+          lng: latLng.lng(),
+          radius,
+          level,
+          circle,
+        });
+        renderZoneList();
+        drawingZone = false;
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: "" });
+        autoRecalculate();
+      }
+
+      function updateZoneLevel(id, level) {
+        const z = zones.find((z) => z.id === id);
+        if (z) {
+          z.level = parseInt(level);
+          autoRecalculate();
+        }
+      }
+
+      function deleteZone(id) {
+        const idx = zones.findIndex((z) => z.id === id);
+        if (idx !== -1) {
+          zones[idx].circle.setMap(null);
+          zones.splice(idx, 1);
+        }
+        renderZoneList();
+        autoRecalculate();
+      }
+
+      function clearAllZones() {
+        zones.forEach((z) => z.circle.setMap(null));
+        zones = [];
+        renderZoneList();
+        autoRecalculate();
+      }
+
+      const CONGESTION_LABELS = {
+        1: "Light",
+        2: "Moderate",
+        3: "Heavy",
+        4: "Severe",
+        5: "Gridlock",
+      };
+
+      function renderZoneList() {
+        const el = document.getElementById("zone-list");
+        if (!zones.length) {
+          el.innerHTML = "";
+          return;
+        }
+        el.innerHTML = zones
+          .map(
+            (z) => `
+      <div class="zone-item">
+        <div class="zone-item-header">
+          <span>Zone ${z.id}</span>
+          <button class="zone-delete" onclick="deleteZone(${z.id})">✕</button>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Light</span>
+          <input type="range" min="1" max="5" value="${z.level}"
+            oninput="updateZoneLevel(${z.id},this.value);document.getElementById('zlabel-${z.id}').textContent=CONGESTION_LABELS[this.value]">
+          <span class="slider-label">Gridlock</span>
+        </div>
+        <div style="text-align:center;font-size:.75rem;color:#e65100;margin-top:3px" id="zlabel-${z.id}">
+          ${CONGESTION_LABELS[z.level]}
+        </div>
+      </div>`,
+          )
+          .join("");
+      }
+
+      // ── Mark Road ─────────────────────────────────────────────────────────────
+      function toggleMarkRoad() {
+        markingRoad = !markingRoad;
+        drawingZone = false;
+        document
+          .getElementById("mark-road-btn")
+          .classList.toggle("btn-active", markingRoad);
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: markingRoad ? "crosshair" : "" });
+      }
+
+      function showRoadPopup(latLng) {
+        markingRoad = false;
+        map.setOptions({ draggableCursor: "" });
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+        const lat = latLng.lat(),
+          lng = latLng.lng();
+        const iw = new google.maps.InfoWindow({
+          content: `<div style="font-family:Segoe UI,sans-serif;padding:4px;min-width:160px">
+        <p style="font-size:.82rem;font-weight:700;color:#333;margin-bottom:8px">What to do with this road?</p>
+        <div style="display:flex;gap:6px">
+          <button onclick="confirmRoadAction(${lat},${lng},'block')"
+            style="flex:1;padding:7px;background:#212121;color:white;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">🚫 Block</button>
+          <button onclick="confirmRoadAction(${lat},${lng},'slow')"
+            style="flex:1;padding:7px;background:#fff8e1;color:#e65100;border:1px solid #ffcc02;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">🐢 Slow</button>
+        </div></div>`,
+          position: latLng,
+        });
+        iw.open(map);
+        window._activeInfoWindow = iw;
+      }
+
+      function confirmRoadAction(lat, lng, action) {
+        if (window._activeInfoWindow) {
+          window._activeInfoWindow.close();
+          window._activeInfoWindow = null;
+        }
+        const id = ++blockIdCounter;
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: action === "block" ? "#212121" : "#FFA000",
+            fillOpacity: 1,
+            strokeColor: "white",
             strokeWeight: 2,
-        },
-        label: { text: 'A', color: '#fff', fontWeight: 'bold', fontSize: '11px' },
-        zIndex: 20,
-    });
+          },
+          title: action === "block" ? "Blocked Road" : "Slow Road",
+          zIndex: 999,
+        });
+        blockedEdges.push({ id, lat, lng, action, marker });
+        renderBlockedList();
+        autoRecalculate();
+      }
 
-    destMarker = new google.maps.Marker({
-        position: bestLeg.end_location,
-        map,
-        title:    'Destination: ' + bestLeg.end_address,
-        icon: {
-            path:         google.maps.SymbolPath.CIRCLE,
-            scale:        11,
-            fillColor:    '#E53935',
-            fillOpacity:  1,
-            strokeColor:  '#fff',
-            strokeWeight: 2,
-        },
-        label: { text: 'B', color: '#fff', fontWeight: 'bold', fontSize: '11px' },
-        zIndex: 20,
-    });
-}
+      function deleteBlocked(id) {
+        const idx = blockedEdges.findIndex((b) => b.id === id);
+        if (idx !== -1) {
+          blockedEdges[idx].marker.setMap(null);
+          blockedEdges.splice(idx, 1);
+        }
+        renderBlockedList();
+        autoRecalculate();
+      }
 
-// ── Route cards ────────────────────────────────────────────────────────────
-function renderRouteCards(vcfg) {
-    const container = document.getElementById('route-cards');
-    container.innerHTML = '';
+      function clearAllBlocked() {
+        blockedEdges.forEach((b) => b.marker.setMap(null));
+        blockedEdges = [];
+        renderBlockedList();
+        autoRecalculate();
+      }
 
-    const bestDist = routeDataList[0].leg.distance.value;
+      function renderBlockedList() {
+        const el = document.getElementById("blocked-list");
+        if (!blockedEdges.length) {
+          el.innerHTML = "";
+          return;
+        }
+        el.innerHTML = blockedEdges
+          .map(
+            (b) => `
+      <div class="blocked-item ${b.action}">
+        <span>${b.action === "block" ? "🚫" : "🐢"} Road ${b.id} — ${b.action === "block" ? "Blocked" : "Slowed"}</span>
+        <button onclick="deleteBlocked(${b.id})">✕</button>
+      </div>`,
+          )
+          .join("");
+      }
 
-    routeDataList.forEach((rd, rank) => {
-        const isFirst    = rank === 0;
-        const isShorter  = !isFirst && rd.leg.distance.value < bestDist;
-        const timeText   = (rd.leg.duration_in_traffic || rd.leg.duration).text;
-        const distKm     = (rd.leg.distance.value / 1000).toFixed(1);
-        const fareText   = calcFare(vcfg, rd.leg.distance.value);
+      // ── Routing ───────────────────────────────────────────────────────────────
+      function clearRoutes() {
+        if (stdPolyline) {
+          stdPolyline.setMap(null);
+          stdPolyline = null;
+        }
+        if (twPolyline) {
+          twPolyline.setMap(null);
+          twPolyline = null;
+        }
+        if (mlPolyline) {
+          mlPolyline.setMap(null);
+          mlPolyline = null;
+        }
+        markers.forEach((m) => m.setMap(null));
+        markers = [];
+      }
 
-        let badgeHtml = '';
-        if (isFirst)      badgeHtml = '<span class="badge badge-fastest">⚡ Fastest</span>';
-        else if (isShorter) badgeHtml = '<span class="badge badge-shorter">📏 Shorter</span>';
+      function showError(msg) {
+        const el = document.getElementById("error-msg");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+      function hideError() {
+        document.getElementById("error-msg").style.display = "none";
+      }
 
-        const card = document.createElement('div');
-        card.className = 'route-card' + (isFirst ? ' active' : '');
-        card.dataset.rank = rank;
-        card.onclick = () => selectRoute(rank);
+      function highlightVehicleRoute(vehicle) {
+        if (!routeData) return;
+        const preferred = VEHICLES[vehicle].route;
+        const bold = { strokeOpacity: 0.95, strokeWeight: 6 };
+        const dim  = { strokeOpacity: 0.15, strokeWeight: 3 };
+        if (stdPolyline) stdPolyline.setOptions(preferred === "standard" ? bold : dim);
+        if (twPolyline)  twPolyline.setOptions(preferred  === "shortcut" ? bold : dim);
+        if (mlPolyline)  mlPolyline.setOptions(preferred  === "ml"       ? bold : dim);
+        // Update recommended tag
+        ["standard", "shortcut", "ml"].forEach((r) => {
+          document.getElementById("card-" + r).querySelector(".recommended-tag")?.remove();
+        });
+        const tag = document.createElement("span");
+        tag.className = "recommended-tag";
+        tag.textContent = "✅ Best for " + ({
+          scooter: "2-Wheeler", car: "Car", auto: "Auto", cycle: "Cycle"
+        }[vehicle] || vehicle);
+        document.getElementById("card-" + preferred).appendChild(tag);
+        selectSimRoute(preferred);
+      }
 
-        card.innerHTML = `
-            <div class="rc-header">
-                <div class="rc-dot" style="background:${ROUTE_COLORS[rank]}"></div>
-                <div class="rc-title">Route ${rank + 1}</div>
-                ${badgeHtml}
-            </div>
-            <div class="rc-meta">
-                <div>
-                    <div class="rc-metric-val">${timeText}</div>
-                    <div class="rc-metric-label">Est. time</div>
-                </div>
-                <div>
-                    <div class="rc-metric-val">${distKm} km</div>
-                    <div class="rc-metric-label">Distance</div>
-                </div>
-                <div>
-                    <span class="cong-tag ${rd.congClass}">${rd.congestionLevel}</span>
-                </div>
-            </div>
-            ${fareText ? `<div class="fare-row"><span>Estimated fare</span><span><b>${fareText}</b></span></div>` : ''}
-        `;
-        container.appendChild(card);
-    });
-}
+      let recalcTimer = null;
+      function autoRecalculate() {
+        const o = document.getElementById("origin-input").value.trim();
+        const d = document.getElementById("dest-input").value.trim();
+        if (!o || !d) return;
+        clearTimeout(recalcTimer);
+        recalcTimer = setTimeout(calculateRoute, 400);
+      }
 
-function selectRoute(rank) {
-    if (rank === selectedRank) return;
-    selectedRank = rank;
-
-    // Highlight selected card
-    document.querySelectorAll('.route-card').forEach((c, i) => {
-        c.classList.toggle('active', i === rank);
-    });
-
-    // Re-render polylines with new active route
-    renderAllRoutes(rank);
-
-    // Update simulation path
-    buildSimPath(routeDataList[rank].leg);
-    resetSimulation();
-    setStatus('Ready to simulate (' + simPath.length + ' waypoints)');
-}
-
-function calcFare(vcfg, distanceMeters) {
-    if (!vcfg.farePerKm && !vcfg.fareBase) return '';
-    const km   = distanceMeters / 1000;
-    const fare = vcfg.fareBase + km * vcfg.farePerKm;
-    return '₹' + Math.round(fare);
-}
-
-// ── Simulation ─────────────────────────────────────────────────────────────
-function buildSimPath(leg) {
-    simPath = [];
-    leg.steps.forEach(step => step.path.forEach(pt => simPath.push(pt)));
-}
-
-function setSpeed(speed) {
-    currentSpeed = speed;
-    document.querySelectorAll('.speed-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.speed === speed);
-    });
-    if (simTimer) { clearInterval(simTimer); runLoop(); }
-}
-
-function startSimulation() {
-    if (!simPath.length) return;
-    if (simMarker) { simMarker.setMap(null); simMarker = null; }
-    simIndex = 0; simPaused = false;
-
-    simMarker = new google.maps.Marker({
-        position: simPath[0],
-        map,
-        zIndex:   999,
-        title:    VEHICLE_CONFIG[currentVehicle].label,
-        icon:     Object.assign({}, ARROW_ICON, { rotation: 0 }),
-    });
-
-    document.getElementById('btn-start').style.display         = 'none';
-    document.getElementById('btn-pause').style.display         = 'block';
-    document.getElementById('btn-reset').style.display         = 'block';
-    document.getElementById('sim-progress-wrap').style.display = 'block';
-    setProgress(0);
-    setStatus('Simulating...');
-    runLoop();
-}
-
-function runLoop() {
-    simTimer = setInterval(() => {
-        if (simPaused) return;
-
-        if (simIndex >= simPath.length - 1) {
-            clearInterval(simTimer); simTimer = null;
-            document.getElementById('btn-pause').style.display = 'none';
-            document.getElementById('btn-start').style.display = 'block';
-            document.getElementById('btn-start').textContent   = '▶ Replay';
-            setProgress(1);
-            setStatus('Arrived! Simulation complete.');
-            return;
+      async function calculateRoute() {
+        hideError();
+        const origin = document.getElementById("origin-input").value.trim();
+        const dest = document.getElementById("dest-input").value.trim();
+        if (!origin || !dest) {
+          showError("Please enter both source and destination.");
+          return;
         }
 
-        const prev    = simPath[simIndex++];
-        const curr    = simPath[simIndex];
-        const heading = google.maps.geometry.spherical.computeHeading(prev, curr);
-        simMarker.setIcon(Object.assign({}, ARROW_ICON, { rotation: heading }));
-        simMarker.setPosition(curr);
-        map.panTo(curr);
-        setProgress(simIndex / (simPath.length - 1));
-    }, SPEEDS[currentSpeed]);
-}
+        const trafficMode = document.querySelector(
+          'input[name="traffic"]:checked',
+        ).value;
+        // Traffic layer is already toggled by the radio change listener;
+        // sync here in case calculateRoute() is called programmatically
+        const isRealtime = trafficMode === "realtime";
+        trafficLayer.setMap(isRealtime ? map : null);
+        document.getElementById('live-badge').style.display = isRealtime ? 'inline' : 'none';
 
-function togglePause() {
-    simPaused = !simPaused;
-    document.getElementById('btn-pause').textContent = simPaused ? '▶ Resume' : '⏸ Pause';
-    setStatus(simPaused ? 'Paused' : 'Simulating...');
-}
+        const btn = document.getElementById("calc-btn");
+        btn.disabled = true;
+        document.getElementById("loading").style.display = "block";
+        clearRoutes();
+        resetSimulation();
 
-function resetSimulation() {
-    if (simTimer)  { clearInterval(simTimer); simTimer = null; }
-    if (simMarker) { simMarker.setMap(null);  simMarker = null; }
-    simIndex = 0; simPaused = false;
+        try {
+          const res = await fetch("/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              origin,
+              destination: dest,
+              vehicle: selectedVehicle,
+              realtime: trafficMode === "realtime",
+              zones: zones.map((z) => ({
+                lat: z.lat,
+                lng: z.lng,
+                radius: z.radius,
+                level: z.level,
+              })),
+              blocked_edges: blockedEdges.map((b) => ({
+                lat: b.lat,
+                lng: b.lng,
+                action: b.action,
+              })),
+            }),
+          });
+          const text = await res.text();
+          if (!res.ok) {
+            let msg = "Routing failed (server " + res.status + ").";
+            try { msg = JSON.parse(text).error || msg; } catch {}
+            showError(msg);
+            return;
+          }
+          const data = JSON.parse(text);
 
-    const btnStart = document.getElementById('btn-start');
-    btnStart.style.display = 'block';
-    btnStart.textContent   = '▶ Start';
-    document.getElementById('btn-pause').style.display         = 'none';
-    document.getElementById('btn-pause').textContent           = '⏸ Pause';
-    document.getElementById('btn-reset').style.display         = 'none';
-    document.getElementById('sim-progress-wrap').style.display = 'none';
-    setProgress(0);
-    setStatus(simPath.length
-        ? 'Ready to simulate (' + simPath.length + ' waypoints)'
-        : 'Ready to simulate');
-}
+          routeData = data;
 
-function setStatus(msg)     { document.getElementById('sim-status').innerText = msg; }
-function setProgress(ratio) {
-    document.getElementById('sim-progress-bar').style.width = (ratio * 100).toFixed(1) + '%';
-}
-</script>
+          // Draw all 3 routes — ml on top
+          stdPolyline = new google.maps.Polyline({
+            path: data.standard.coords.map((c) => ({ lat: c[0], lng: c[1] })),
+            strokeColor: "#3949AB",
+            strokeOpacity: 0.7,
+            strokeWeight: 5,
+            map,
+          });
+          twPolyline = new google.maps.Polyline({
+            path: data.shortcut.coords.map((c) => ({ lat: c[0], lng: c[1] })),
+            strokeColor: "#E53935",
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+            map,
+          });
+          mlPolyline = new google.maps.Polyline({
+            path: data.ml.coords.map((c) => ({ lat: c[0], lng: c[1] })),
+            strokeColor: "#43A047",
+            strokeOpacity: 0.95,
+            strokeWeight: 5,
+            strokePattern: [
+              {
+                icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+                offset: "0",
+                repeat: "15px",
+              },
+            ],
+            map,
+          });
 
-<script async defer
-    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap">
-</script>
+          // A / B markers
+          markers.push(
+            new google.maps.Marker({
+              position: { lat: data.origin.lat, lng: data.origin.lng },
+              map,
+              label: { text: "A", color: "white", fontWeight: "bold" },
+            }),
+          );
+          markers.push(
+            new google.maps.Marker({
+              position: {
+                lat: data.destination.lat,
+                lng: data.destination.lng,
+              },
+              map,
+              label: { text: "B", color: "white", fontWeight: "bold" },
+            }),
+          );
 
-</body>
+          // Fit bounds
+          const bounds = new google.maps.LatLngBounds();
+          [
+            ...data.standard.coords,
+            ...data.shortcut.coords,
+            ...data.ml.coords,
+          ].forEach((c) => bounds.extend({ lat: c[0], lng: c[1] }));
+          map.fitBounds(bounds, { padding: 50 });
+
+          // Fill stats
+          document.getElementById("std-dist").textContent =
+            data.standard.distance + " km";
+          document.getElementById("std-time").textContent =
+            data.standard.time + " mins";
+          document.getElementById("std-mix").textContent =
+            `🛣 ${data.standard.main_pct}% main roads, ${data.standard.side_pct}% side roads`;
+          document.getElementById("tw-dist").textContent =
+            data.shortcut.distance + " km";
+          document.getElementById("tw-time").textContent =
+            data.shortcut.time + " mins";
+          document.getElementById("tw-mix").textContent =
+            `🛣 ${data.shortcut.main_pct}% main roads, ${data.shortcut.side_pct}% side roads`;
+          document.getElementById("ml-dist").textContent =
+            data.ml.distance + " km";
+          document.getElementById("ml-time").textContent =
+            data.ml.time + " mins";
+          document.getElementById("ml-mix").textContent =
+            `🛣 ${data.ml.main_pct}% main roads, ${data.ml.side_pct}% side roads`;
+
+          // Badges vs standard
+          const stdT = data.standard.time;
+          function setBadge(id, routeTime) {
+            const el = document.getElementById(id);
+            const diff = Math.round(stdT - routeTime);
+            if (diff > 0) {
+              el.textContent = `⚡ ${diff} mins faster`;
+              el.className = "saving-badge badge-green";
+              el.style.display = "inline-block";
+            } else if (diff < 0) {
+              el.textContent = `⏱ ${Math.abs(diff)} mins slower`;
+              el.className = "saving-badge badge-blue";
+              el.style.display = "inline-block";
+            } else {
+              el.style.display = "none";
+            }
+          }
+          setBadge("tw-badge", data.shortcut.time);
+          setBadge("ml-badge", data.ml.time);
+
+          // Mark recommended
+          ["standard", "shortcut", "ml"].forEach((r) => {
+            document
+              .getElementById("card-" + r)
+              .querySelector(".recommended-tag")
+              ?.remove();
+          });
+          const recCard = document.getElementById("card-" + data.recommended);
+          const tag = document.createElement("span");
+          tag.className = "recommended-tag";
+          tag.textContent = "✅ Recommended";
+          recCard.appendChild(tag);
+
+          document.getElementById("comparison").style.display = "flex";
+          document.getElementById("simulation-section").style.display = "block";
+          document.getElementById("ml-info").style.display = "block";
+
+          // Highlight route for the selected vehicle
+          highlightVehicleRoute(selectedVehicle);
+        } catch (err) {
+          showError("Could not connect to routing server.");
+          console.error(err);
+        } finally {
+          btn.disabled = false;
+          document.getElementById("loading").style.display = "none";
+        }
+      }
+
+      // ── Route selector ────────────────────────────────────────────────────────
+      function selectSimRoute(which) {
+        if (!routeData) return;
+        activeSimRoute = which;
+
+        ["standard", "shortcut", "ml"].forEach((r) => {
+          document
+            .getElementById("card-" + r)
+            .classList.toggle("selected", r === which);
+        });
+
+        const btnMap = {
+          standard: "sim-btn-standard",
+          shortcut: "sim-btn-shortcut",
+          ml: "sim-btn-ml",
+        };
+        const classMap = {
+          standard: "active-std",
+          shortcut: "active-tw",
+          ml: "active-ml",
+        };
+        Object.keys(btnMap).forEach((r) => {
+          const el = document.getElementById(btnMap[r]);
+          el.className =
+            "sim-route-btn" + (r === which ? " " + classMap[r] : "");
+        });
+
+        const coords =
+          which === "standard"
+            ? routeData.standard.coords
+            : which === "shortcut"
+              ? routeData.shortcut.coords
+              : routeData.ml.coords;
+        buildSimPath(coords);
+        resetSimulation();
+        setStatus("Ready — " + simPath.length + " waypoints");
+      }
+
+      function buildSimPath(coords) {
+        simPath = coords.map(([lat, lng]) => new google.maps.LatLng(lat, lng));
+      }
+
+      // ── Simulation ────────────────────────────────────────────────────────────
+      function setSpeed(speed) {
+        currentSpeed = speed;
+        document
+          .querySelectorAll(".speed-btn")
+          .forEach((b) =>
+            b.classList.toggle("active", b.dataset.speed === speed),
+          );
+        if (simTimer && !simPaused) {
+          clearInterval(simTimer);
+          simTimer = null;
+          runLoop();
+        }
+      }
+
+      function setVehicle(v) {
+        selectedVehicle = v;
+        document.querySelectorAll(".vehicle-btn").forEach((b) =>
+          b.classList.toggle("active", b.dataset.vehicle === v),
+        );
+        setSpeed(VEHICLES[v].speed);
+        if (routeData) highlightVehicleRoute(v);
+        else resetSimulation();
+      }
+
+      function startSimulation() {
+        if (!simPath.length) {
+          setStatus("Calculate a route first.");
+          return;
+        }
+        if (simMarker) {
+          simMarker.setMap(null);
+          simMarker = null;
+        }
+        simIndex = 0;
+        simPaused = false;
+
+        simMarker = new google.maps.Marker({
+          position: simPath[0],
+          map,
+          zIndex: 999,
+          icon: {
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 7,
+            fillColor: VEHICLES[selectedVehicle].color,
+            fillOpacity: 1,
+            strokeColor: "#fff",
+            strokeWeight: 2,
+            rotation: 0,
+          },
+        });
+
+        document.getElementById("btn-start").style.display = "none";
+        document.getElementById("btn-pause").style.display = "block";
+        document.getElementById("btn-reset").style.display = "block";
+        document.getElementById("sim-progress-wrap").style.display = "block";
+        setProgress(0);
+        setStatus("Simulating...");
+        runLoop();
+      }
+
+      function runLoop() {
+        if (simTimer) {
+          clearInterval(simTimer);
+          simTimer = null;
+        }
+
+        const TICK_MS = 50;
+        let tickCount = 0;
+        let ticksNeeded = 1;
+
+        function computeTicks() {
+          if (simIndex >= simPath.length - 1) return;
+          const distM = google.maps.geometry.spherical.computeDistanceBetween(
+            simPath[simIndex],
+            simPath[simIndex + 1],
+          );
+          const speedMpMs = (SPEEDS[currentSpeed] * 1000) / 3600000;
+          ticksNeeded = Math.max(1, Math.round(distM / speedMpMs / TICK_MS));
+          tickCount = 0;
+        }
+
+        computeTicks();
+
+        simTimer = setInterval(() => {
+          if (simPaused) return;
+
+          if (simIndex >= simPath.length - 1) {
+            clearInterval(simTimer);
+            simTimer = null;
+            document.getElementById("btn-pause").style.display = "none";
+            document.getElementById("btn-start").style.display = "block";
+            document.getElementById("btn-start").textContent = "▶ Replay";
+            setProgress(1);
+            setStatus("Arrived! 🎉");
+            return;
+          }
+
+          tickCount++;
+          if (tickCount < ticksNeeded) return;
+
+          // Advance one or more nodes based on speed budget for this tick
+          const speedMpMs = (SPEEDS[currentSpeed] * 1000) / 3600000;
+          let budget = speedMpMs * TICK_MS;
+
+          while (simIndex < simPath.length - 1 && budget > 0) {
+            const seg = google.maps.geometry.spherical.computeDistanceBetween(
+              simPath[simIndex],
+              simPath[simIndex + 1],
+            );
+            budget -= seg;
+            simIndex++;
+          }
+
+          const curr = simPath[simIndex];
+          const prev = simPath[Math.max(0, simIndex - 1)];
+          const heading = google.maps.geometry.spherical.computeHeading(prev, curr);
+          simMarker.setIcon({
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 7,
+            fillColor: VEHICLES[selectedVehicle].color,
+            fillOpacity: 1,
+            strokeColor: "#fff",
+            strokeWeight: 2,
+            rotation: heading,
+          });
+          simMarker.setPosition(curr);
+          map.panTo(curr);
+          setProgress(simIndex / (simPath.length - 1));
+          computeTicks();
+        }, TICK_MS);
+      }
+
+      function togglePause() {
+        simPaused = !simPaused;
+        document.getElementById("btn-pause").textContent = simPaused
+          ? "▶ Resume"
+          : "⏸ Pause";
+        setStatus(simPaused ? "Paused" : "Simulating...");
+      }
+
+      function resetSimulation() {
+        if (simTimer) {
+          clearInterval(simTimer);
+          simTimer = null;
+        }
+        if (simMarker) {
+          simMarker.setMap(null);
+          simMarker = null;
+        }
+        simIndex = 0;
+        simPaused = false;
+        const btnStart = document.getElementById("btn-start");
+        btnStart.style.display = "block";
+        btnStart.textContent = "▶ Start";
+        document.getElementById("btn-pause").style.display = "none";
+        document.getElementById("btn-pause").textContent = "⏸ Pause";
+        document.getElementById("btn-reset").style.display = "none";
+        document.getElementById("sim-progress-wrap").style.display = "none";
+        setProgress(0);
+        setStatus(
+          simPath.length
+            ? "Ready — " + simPath.length + " waypoints"
+            : "Select a route above and press Start",
+        );
+      }
+
+      function setStatus(msg) {
+        document.getElementById("sim-status").innerText = msg;
+      }
+      function setProgress(ratio) {
+        document.getElementById("sim-progress-bar").style.width =
+          (ratio * 100).toFixed(1) + "%";
+      }
+    </script>
+
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap&loading=async"
+    ></script>
+  </body>
 </html>
