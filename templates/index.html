@@ -104,7 +104,9 @@
         /* Comparison */
         #comparison { display: none; flex-direction: column; gap: 9px; }
         .comp-title { font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-        .route-card { border-radius: 9px; padding: 11px 13px; border-left: 4px solid; }
+        .route-card { border-radius: 9px; padding: 11px 13px; border-left: 4px solid; cursor: pointer; transition: box-shadow 0.15s; }
+        .route-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+        .route-card.selected { box-shadow: 0 0 0 2.5px #1E88E5; }
         .route-card.standard { background: #e8eaf6; border-color: #3949AB; }
         .route-card.shortcut { background: #fce4ec; border-color: #E53935; }
         .route-card h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; }
@@ -121,18 +123,61 @@
         /* Error */
         #error-msg { display: none; background: #ffebee; color: #c62828; padding: 9px 11px; border-radius: 7px; font-size: 0.82rem; }
 
-        /* Road action popup */
-        #road-popup {
-            position: fixed; background: white; border-radius: 9px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2); padding: 12px;
-            z-index: 9999; display: none; min-width: 180px;
+        /* ── Simulation section ───────────────────────────────────────────── */
+        #simulation-section {
+            display: none;
         }
-        #road-popup p { font-size: 0.82rem; color: #555; margin-bottom: 8px; font-weight: 600; }
-        #road-popup .popup-btns { display: flex; gap: 7px; }
-        #road-popup .popup-btns button { flex: 1; padding: 7px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-        .popup-block { background: #212121; color: white; }
-        .popup-slow  { background: #fff8e1; color: #e65100; border: 1px solid #ffcc02 !important; }
-        .popup-cancel { background: #f5f5f5; color: #666; }
+
+        .sim-route-select {
+            display: flex; gap: 6px; margin-bottom: 10px;
+        }
+        .sim-route-btn {
+            flex: 1; padding: 7px 4px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666;
+            transition: all 0.15s;
+        }
+        .sim-route-btn.active-std { background: #3949AB; border-color: #3949AB; color: white; }
+        .sim-route-btn.active-tw  { background: #E53935; border-color: #E53935; color: white; }
+
+        .speed-group { display: flex; gap: 6px; margin-bottom: 10px; }
+        .speed-btn {
+            flex: 1; padding: 7px 4px;
+            border: 1.5px solid #ddd; border-radius: 6px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666;
+            transition: all 0.15s;
+        }
+        .speed-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        .sim-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+        .sim-btn {
+            flex: 1; padding: 9px 4px; border: none;
+            border-radius: 6px; cursor: pointer;
+            font-size: 0.82rem; font-weight: 700; color: white;
+            transition: background 0.15s;
+        }
+        #btn-start { background: #43A047; }
+        #btn-start:hover { background: #388E3C; }
+        #btn-pause { background: #FB8C00; display: none; }
+        #btn-pause:hover { background: #F57C00; }
+        #btn-reset { background: #757575; display: none; }
+        #btn-reset:hover { background: #616161; }
+
+        #sim-progress-wrap {
+            display: none; height: 5px;
+            background: #e8e8e8; border-radius: 3px;
+            overflow: hidden; margin-bottom: 6px;
+        }
+        #sim-progress-bar {
+            height: 100%; width: 0%;
+            background: #1E88E5; transition: width 0.08s linear;
+        }
+        #sim-status {
+            font-size: 0.75rem; color: #999;
+            text-align: center; min-height: 16px;
+        }
     </style>
 </head>
 <body>
@@ -176,7 +221,7 @@
 
     <hr>
 
-    <!-- Simulation Tools -->
+    <!-- Congestion Zones -->
     <div class="tool-section">
         <h3>🔴 Congestion Zones</h3>
         <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Draw a circle on the map to mark a traffic jam area.</p>
@@ -187,6 +232,7 @@
         <div id="zone-list"></div>
     </div>
 
+    <!-- Block / Slow Roads -->
     <div class="tool-section">
         <h3>🚧 Block / Slow Roads</h3>
         <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Click on any road to block it or slow it down.</p>
@@ -199,21 +245,23 @@
 
     <hr>
 
-    <!-- Comparison panel -->
+    <!-- Route Comparison -->
     <div id="comparison">
-        <div class="comp-title">Route Comparison</div>
+        <div class="comp-title">Route Comparison — click a card to simulate</div>
         <div class="legend">
             <span><span class="legend-dot" style="background:#3949AB"></span>Standard</span>
             <span><span class="legend-dot" style="background:#E53935"></span>Shortcut</span>
         </div>
-        <div class="route-card standard">
+
+        <div class="route-card standard selected" id="card-standard" onclick="selectSimRoute('standard')">
             <h4>Standard Route (Main Roads)</h4>
             <div class="route-stats">
                 <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="std-dist">--</span></div>
                 <div class="stat"><span class="stat-label">Est. Time</span><span class="stat-value" id="std-time">--</span></div>
             </div>
         </div>
-        <div class="route-card shortcut">
+
+        <div class="route-card shortcut" id="card-shortcut" onclick="selectSimRoute('shortcut')">
             <h4>Two-Wheeler Shortcut</h4>
             <div class="route-stats">
                 <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="tw-dist">--</span></div>
@@ -222,6 +270,44 @@
             <div id="saving-badge" class="saving-badge" style="display:none"></div>
         </div>
     </div>
+
+    <!-- ── Simulation ────────────────────────────────────────────────────── -->
+    <div id="simulation-section">
+        <hr>
+        <h3>🎬 Route Simulation</h3>
+
+        <!-- Route selector -->
+        <div class="sim-route-select" style="margin-top:8px;">
+            <button class="sim-route-btn active-std" id="sim-btn-standard" onclick="selectSimRoute('standard')">
+                🔵 Standard
+            </button>
+            <button class="sim-route-btn" id="sim-btn-shortcut" onclick="selectSimRoute('shortcut')">
+                🔴 Shortcut
+            </button>
+        </div>
+
+        <!-- Speed -->
+        <label style="margin-bottom:5px;">Playback Speed</label>
+        <div class="speed-group">
+            <button class="speed-btn"        data-speed="slow"   onclick="setSpeed('slow')">Slow</button>
+            <button class="speed-btn active" data-speed="normal" onclick="setSpeed('normal')">Normal</button>
+            <button class="speed-btn"        data-speed="fast"   onclick="setSpeed('fast')">Fast</button>
+        </div>
+
+        <!-- Controls -->
+        <div class="sim-controls">
+            <button class="sim-btn" id="btn-start" onclick="startSimulation()">▶ Start</button>
+            <button class="sim-btn" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
+            <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">↺ Reset</button>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="sim-progress-wrap">
+            <div id="sim-progress-bar"></div>
+        </div>
+        <div id="sim-status">Select a route above and press Start</div>
+    </div>
+
 </div>
 
 <div id="map"></div>
@@ -229,23 +315,43 @@
 <script>
     // ── State ─────────────────────────────────────────────────────────────────
     let map, trafficLayer;
-    let originPlaceId = null, destPlaceId = null;
     let stdPolyline = null, twPolyline = null;
     let markers = [];
 
     // Zones
-    let zones = [];           // { id, lat, lng, radius, level, circle, label }
+    let zones = [];
     let drawingZone = false;
     let zoneIdCounter = 0;
 
     // Blocked roads
-    let blockedEdges = [];    // { id, lat, lng, action, marker }
+    let blockedEdges = [];
     let markingRoad  = false;
     let blockIdCounter = 0;
-    let pendingClickLatLng = null;
+
+    // Route data (set after successful /route call)
+    let routeData = null;   // { standard: { coords, dist, time }, shortcut: { coords, dist, time } }
+
+    // ── Simulation state ──────────────────────────────────────────────────────
+    const SPEEDS = { slow: 80, normal: 25, fast: 8 };
+    const ARROW_ICON = {
+        path: null,         // set in initMap after Maps loads
+        scale: 6,
+        fillColor: '#FF5722', fillOpacity: 1,
+        strokeWeight: 2, strokeColor: '#fff', rotation: 0
+    };
+
+    let simPath      = [];      // google.maps.LatLng[]
+    let simMarker    = null;
+    let simIndex     = 0;
+    let simTimer     = null;
+    let simPaused    = false;
+    let currentSpeed = 'normal';
+    let activeSimRoute = 'standard';   // 'standard' | 'shortcut'
 
     // ── Map init ──────────────────────────────────────────────────────────────
     function initMap() {
+        ARROW_ICON.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
         map = new google.maps.Map(document.getElementById("map"), {
             center: { lat: 12.9716, lng: 77.5946 },
             zoom: 13, mapTypeControl: false,
@@ -262,10 +368,7 @@
             document.getElementById("dest-input"),
             { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
         );
-        originAC.addListener("place_changed", () => { const p = originAC.getPlace(); if (p.place_id) originPlaceId = p.place_id; });
-        destAC.addListener("place_changed",   () => { const p = destAC.getPlace();   if (p.place_id) destPlaceId   = p.place_id; });
 
-        // Map click handler
         map.addListener("click", onMapClick);
     }
 
@@ -285,23 +388,17 @@
     }
 
     function placeZone(latLng) {
-        const id     = ++zoneIdCounter;
-        const radius = 400; // metres default
+        const id = ++zoneIdCounter;
+        const radius = 400;
         const level  = 3;
 
         const circle = new google.maps.Circle({
-            map,
-            center:      latLng,
-            radius,
-            strokeColor: "#E53935",
-            strokeOpacity: 0.9,
-            strokeWeight: 2,
-            fillColor:   "#E53935",
-            fillOpacity: 0.25,
+            map, center: latLng, radius,
+            strokeColor: "#E53935", strokeOpacity: 0.9, strokeWeight: 2,
+            fillColor: "#E53935", fillOpacity: 0.25,
         });
 
-        const zone = { id, lat: latLng.lat(), lng: latLng.lng(), radius, level, circle };
-        zones.push(zone);
+        zones.push({ id, lat: latLng.lat(), lng: latLng.lng(), radius, level, circle });
         renderZoneList();
         drawingZone = false;
         document.getElementById("draw-zone-btn").classList.remove("btn-active");
@@ -317,22 +414,20 @@
     function deleteZone(id) {
         const idx = zones.findIndex(z => z.id === id);
         if (idx !== -1) { zones[idx].circle.setMap(null); zones.splice(idx, 1); }
-        renderZoneList();
-        autoRecalculate();
+        renderZoneList(); autoRecalculate();
     }
 
     function clearAllZones() {
         zones.forEach(z => z.circle.setMap(null));
         zones = [];
-        renderZoneList();
-        autoRecalculate();
+        renderZoneList(); autoRecalculate();
     }
 
     const CONGESTION_LABELS = { 1:"Light", 2:"Moderate", 3:"Heavy", 4:"Severe", 5:"Gridlock" };
 
     function renderZoneList() {
         const el = document.getElementById("zone-list");
-        if (zones.length === 0) { el.innerHTML = ""; return; }
+        if (!zones.length) { el.innerHTML = ""; return; }
         el.innerHTML = zones.map(z => `
             <div class="zone-item">
                 <div class="zone-item-header">
@@ -362,13 +457,11 @@
     }
 
     function showRoadPopup(latLng) {
-        // Temporarily disable map clicks so the InfoWindow buttons work cleanly
         markingRoad = false;
         map.setOptions({ draggableCursor: "" });
         document.getElementById("mark-road-btn").classList.remove("btn-active");
 
-        const lat = latLng.lat();
-        const lng = latLng.lng();
+        const lat = latLng.lat(), lng = latLng.lng();
 
         const infoContent = `
             <div style="font-family:Segoe UI,sans-serif;padding:4px;min-width:160px">
@@ -387,8 +480,6 @@
 
         const infoWindow = new google.maps.InfoWindow({ content: infoContent, position: latLng });
         infoWindow.open(map);
-
-        // Store reference so we can close it after action
         window._activeInfoWindow = infoWindow;
     }
 
@@ -396,17 +487,12 @@
         if (window._activeInfoWindow) { window._activeInfoWindow.close(); window._activeInfoWindow = null; }
 
         const id = ++blockIdCounter;
-        console.log(`[DEBUG] Adding blocked edge: lat=${lat}, lng=${lng}, action=${action}`);
-
         const marker = new google.maps.Marker({
             position: { lat, lng }, map,
             icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 10,
+                path: google.maps.SymbolPath.CIRCLE, scale: 10,
                 fillColor:   action === "block" ? "#212121" : "#FFA000",
-                fillOpacity: 1,
-                strokeColor: "white",
-                strokeWeight: 2,
+                fillOpacity: 1, strokeColor: "white", strokeWeight: 2,
             },
             title: action === "block" ? "Blocked Road" : "Slow Road",
             zIndex: 999,
@@ -414,30 +500,24 @@
 
         blockedEdges.push({ id, lat, lng, action, marker });
         renderBlockedList();
-
-        markingRoad = false;
-        document.getElementById("mark-road-btn").classList.remove("btn-active");
-        map.setOptions({ draggableCursor: "" });
         autoRecalculate();
     }
 
     function deleteBlocked(id) {
         const idx = blockedEdges.findIndex(b => b.id === id);
         if (idx !== -1) { blockedEdges[idx].marker.setMap(null); blockedEdges.splice(idx, 1); }
-        renderBlockedList();
-        autoRecalculate();
+        renderBlockedList(); autoRecalculate();
     }
 
     function clearAllBlocked() {
         blockedEdges.forEach(b => b.marker.setMap(null));
         blockedEdges = [];
-        renderBlockedList();
-        autoRecalculate();
+        renderBlockedList(); autoRecalculate();
     }
 
     function renderBlockedList() {
         const el = document.getElementById("blocked-list");
-        if (blockedEdges.length === 0) { el.innerHTML = ""; return; }
+        if (!blockedEdges.length) { el.innerHTML = ""; return; }
         el.innerHTML = blockedEdges.map(b => `
             <div class="blocked-item ${b.action}">
                 <span>${b.action === "block" ? "🚫" : "🐢"} Road ${b.id} — ${b.action === "block" ? "Blocked" : "Slowed"}</span>
@@ -465,7 +545,7 @@
         const dest   = document.getElementById("dest-input").value.trim();
         if (!origin || !dest) return;
         clearTimeout(recalcTimer);
-        recalcTimer = setTimeout(calculateRoute, 400); // debounce 400ms
+        recalcTimer = setTimeout(calculateRoute, 400);
     }
 
     async function calculateRoute() {
@@ -474,7 +554,6 @@
         const dest   = document.getElementById("dest-input").value.trim();
         if (!origin || !dest) { showError("Please enter both source and destination."); return; }
 
-        // Traffic overlay
         const trafficMode = document.querySelector('input[name="traffic"]:checked').value;
         trafficLayer.setMap(trafficMode !== "empty" ? map : null);
 
@@ -482,23 +561,25 @@
         btn.disabled = true;
         document.getElementById("loading").style.display = "block";
         clearRoutes();
+        resetSimulation();
 
         try {
-            console.log("[DEBUG] Sending blockedEdges:", JSON.stringify(blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))));
-            console.log("[DEBUG] Sending zones:", JSON.stringify(zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level }))));
             const res = await fetch("/route", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     origin,
-                    destination: dest,
-                    zones: zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
+                    destination:   dest,
+                    zones:         zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
                     blocked_edges: blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action }))
                 })
             });
 
             const data = await res.json();
             if (!res.ok) { showError(data.error || "Routing failed."); return; }
+
+            // Store for simulation
+            routeData = data;
 
             // Draw standard route (blue)
             stdPolyline = new google.maps.Polyline({
@@ -512,7 +593,7 @@
                 strokeColor: "#E53935", strokeOpacity: 0.9, strokeWeight: 4, map
             });
 
-            // Markers
+            // A / B markers
             markers.push(new google.maps.Marker({
                 position: { lat: data.origin.lat, lng: data.origin.lng }, map,
                 label: { text: "A", color: "white", fontWeight: "bold" }
@@ -527,7 +608,7 @@
             [...data.standard.coords, ...data.shortcut.coords].forEach(c => bounds.extend({ lat: c[0], lng: c[1] }));
             map.fitBounds(bounds, { padding: 50 });
 
-            // Comparison panel
+            // Stats panel
             document.getElementById("std-dist").textContent = data.standard.distance + " km";
             document.getElementById("std-time").textContent = data.standard.time + " mins";
             document.getElementById("tw-dist").textContent  = data.shortcut.distance + " km";
@@ -540,6 +621,10 @@
 
             document.getElementById("comparison").style.display = "flex";
 
+            // Show simulation section and load standard route by default
+            document.getElementById("simulation-section").style.display = "block";
+            selectSimRoute('standard');
+
         } catch (err) {
             showError("Could not connect to routing server.");
         } finally {
@@ -547,10 +632,131 @@
             document.getElementById("loading").style.display = "none";
         }
     }
+
+    // ── Simulation: route selector ────────────────────────────────────────────
+    function selectSimRoute(which) {
+        if (!routeData) return;
+        activeSimRoute = which;
+
+        // Highlight route cards
+        document.getElementById("card-standard").classList.toggle("selected", which === "standard");
+        document.getElementById("card-shortcut").classList.toggle("selected", which === "shortcut");
+
+        // Highlight sim selector buttons
+        const btnStd = document.getElementById("sim-btn-standard");
+        const btnTw  = document.getElementById("sim-btn-shortcut");
+        btnStd.className = "sim-route-btn" + (which === "standard" ? " active-std" : "");
+        btnTw.className  = "sim-route-btn" + (which === "shortcut" ? " active-tw"  : "");
+
+        // Build sim path from selected route coords
+        const coords = which === "standard"
+            ? routeData.standard.coords
+            : routeData.shortcut.coords;
+        buildSimPath(coords);
+
+        resetSimulation();
+        setStatus("Ready — " + simPath.length + " waypoints");
+    }
+
+    // ── Bridge: [[lat,lng]] → google.maps.LatLng[] ────────────────────────────
+    function buildSimPath(coords) {
+        simPath = coords.map(([lat, lng]) => new google.maps.LatLng(lat, lng));
+    }
+
+    // ── Simulation controls ───────────────────────────────────────────────────
+    function setSpeed(speed) {
+        currentSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.speed === speed);
+        });
+        if (simTimer) { clearInterval(simTimer); runLoop(); }
+    }
+
+    function startSimulation() {
+        if (!simPath.length) { setStatus("Calculate a route first."); return; }
+
+        if (simMarker) { simMarker.setMap(null); simMarker = null; }
+        simIndex  = 0;
+        simPaused = false;
+
+        // Arrow marker — colour matches the active route
+        const arrowColor = activeSimRoute === 'standard' ? '#3949AB' : '#E53935';
+        simMarker = new google.maps.Marker({
+            position: simPath[0],
+            map,
+            zIndex: 999,
+            icon: Object.assign({}, ARROW_ICON, { fillColor: arrowColor, rotation: 0 }),
+        });
+
+        document.getElementById('btn-start').style.display         = 'none';
+        document.getElementById('btn-pause').style.display         = 'block';
+        document.getElementById('btn-reset').style.display         = 'block';
+        document.getElementById('sim-progress-wrap').style.display = 'block';
+        setProgress(0);
+        setStatus('Simulating...');
+        runLoop();
+    }
+
+    function runLoop() {
+        simTimer = setInterval(() => {
+            if (simPaused) return;
+
+            if (simIndex >= simPath.length - 1) {
+                clearInterval(simTimer); simTimer = null;
+                document.getElementById('btn-pause').style.display = 'none';
+                document.getElementById('btn-start').style.display = 'block';
+                document.getElementById('btn-start').textContent   = '▶ Replay';
+                setProgress(1);
+                setStatus('Arrived! 🎉');
+                return;
+            }
+
+            const prev    = simPath[simIndex++];
+            const curr    = simPath[simIndex];
+            const heading = google.maps.geometry.spherical.computeHeading(prev, curr);
+            const arrowColor = activeSimRoute === 'standard' ? '#3949AB' : '#E53935';
+
+            simMarker.setIcon(Object.assign({}, ARROW_ICON, { fillColor: arrowColor, rotation: heading }));
+            simMarker.setPosition(curr);
+            map.panTo(curr);
+            setProgress(simIndex / (simPath.length - 1));
+
+        }, SPEEDS[currentSpeed]);
+    }
+
+    function togglePause() {
+        simPaused = !simPaused;
+        document.getElementById('btn-pause').textContent = simPaused ? '▶ Resume' : '⏸ Pause';
+        setStatus(simPaused ? 'Paused' : 'Simulating...');
+    }
+
+    function resetSimulation() {
+        if (simTimer)  { clearInterval(simTimer); simTimer = null; }
+        if (simMarker) { simMarker.setMap(null);  simMarker = null; }
+        simIndex = 0; simPaused = false;
+
+        const btnStart = document.getElementById('btn-start');
+        btnStart.style.display   = 'block';
+        btnStart.textContent     = '▶ Start';
+        document.getElementById('btn-pause').style.display         = 'none';
+        document.getElementById('btn-pause').textContent           = '⏸ Pause';
+        document.getElementById('btn-reset').style.display         = 'none';
+        document.getElementById('sim-progress-wrap').style.display = 'none';
+        setProgress(0);
+        setStatus(simPath.length
+            ? 'Ready — ' + simPath.length + ' waypoints'
+            : 'Select a route above and press Start');
+    }
+
+    function setStatus(msg)     { document.getElementById('sim-status').innerText = msg; }
+    function setProgress(ratio) {
+        document.getElementById('sim-progress-bar').style.width = (ratio * 100).toFixed(1) + '%';
+    }
 </script>
 
+<!-- geometry library added for computeHeading (arrow rotation) -->
 <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap">
 </script>
 
 </body>
