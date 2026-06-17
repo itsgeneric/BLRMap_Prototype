@@ -2,6 +2,10 @@
 .idea
 node_modules
 .next
-.idea
 bengaluru_graph.graphml
 *.graphml
+
+next-env.d.ts
+package-lock.json
+postcss.config.mjs
+tsconfig.json
