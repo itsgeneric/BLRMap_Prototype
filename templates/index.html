@@ -287,6 +287,26 @@
         </div>
     </div>
 
+    <!-- ── OPTION C: DBSCAN Cluster-Based Traffic ───────────────────────── -->
+    <div class="option-section" style="background:#f3e5f5;border-color:#ce93d8;">
+        <h3 style="color:#6a1b9a;">🤖 Option C — ML Cluster Detection</h3>
+        <p style="font-size:0.78rem;color:#555;margin:6px 0 10px;">
+            Uses DBSCAN to automatically find congestion hotspots from the road network.
+            No manual input — the algorithm detects where high-traffic roads cluster together.
+        </p>
+        <button class="tab-btn" id="tab-dbscan"
+            style="width:100%;background:#7b1fa2;border-color:#7b1fa2;color:white;padding:9px;"
+            onclick="toggleDbscan()">
+            🔍 Enable DBSCAN Mode
+        </button>
+        <div id="dbscan-info" style="display:none;margin-top:10px;">
+            <div id="dbscan-status" style="font-size:0.8rem;color:#6a1b9a;font-weight:600;margin-bottom:6px;">
+                Loading clusters...
+            </div>
+            <div id="dbscan-zone-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+        </div>
+    </div>
+
     <!-- Calculate button -->
     <button class="btn btn-primary" id="calc-btn" onclick="calculateRoute()">
         Calculate &amp; Render Route
@@ -398,8 +418,11 @@
     let routeData = null;
 
     // ── Option A state ────────────────────────────────────────────────────────
-    let trafficMode = "manual";   // "manual" | "time_based"
+    let trafficMode = "manual";   // "manual" | "time_based" | "dbscan"
     let selectedHour = 8;
+    let dbscanActive = false;
+    let dbscanCircles = [];
+    let dbscanZones   = [];
 
     const SLOT_INFO = {
         morning_peak: { label: "🔴 Morning Peak", desc: "High congestion on ORR, Hebbal, ITPL, Electronic City" },
@@ -429,10 +452,97 @@
         document.getElementById("manual-tools").style.display = mode === "manual" ? "" : "none";
 
         // Clear auto zone circles when switching back to manual
-        if (mode === "manual") clearAutoZoneCircles();
+        if (mode === "manual") { clearAutoZoneCircles(); clearDbscanCircles(); dbscanActive = false; updateDbscanBtn(); }
 
         autoRecalculate();
     }
+
+    // ── Option C: DBSCAN ──────────────────────────────────────────────────────
+    function updateDbscanBtn() {
+        const btn = document.getElementById("tab-dbscan");
+        if (dbscanActive) {
+            btn.textContent = "✅ DBSCAN Active — Click to Disable";
+            btn.style.background = "#2e7d32";
+            btn.style.borderColor = "#2e7d32";
+        } else {
+            btn.textContent = "🔍 Enable DBSCAN Mode";
+            btn.style.background = "#7b1fa2";
+            btn.style.borderColor = "#7b1fa2";
+        }
+    }
+
+    async function toggleDbscan() {
+        dbscanActive = !dbscanActive;
+        updateDbscanBtn();
+
+        if (!dbscanActive) {
+            trafficMode = "manual";
+            clearDbscanCircles();
+            document.getElementById("dbscan-info").style.display = "none";
+            document.getElementById("manual-tools").style.display = "";
+            setTrafficMode("manual");
+            return;
+        }
+
+        // Switch to dbscan mode, hide manual tools
+        trafficMode = "dbscan";
+        document.getElementById("manual-tools").style.display = "none";
+        document.getElementById("dbscan-info").style.display = "block";
+        document.getElementById("dbscan-status").textContent = "Fetching clusters from server...";
+
+        if (dbscanZones.length === 0) {
+            try {
+                const res = await fetch("/cluster-zones");
+                const data = await res.json();
+                dbscanZones = data.zones;
+            } catch (e) {
+                document.getElementById("dbscan-status").textContent = "Failed to load clusters.";
+                return;
+            }
+        }
+
+        document.getElementById("dbscan-status").textContent =
+            `✅ ${dbscanZones.length} congestion clusters detected automatically`;
+        renderDbscanList();
+        drawDbscanCircles();
+        autoRecalculate();
+    }
+
+    function renderDbscanList() {
+        const LEVEL_COLORS = { 2: "#FFC107", 3: "#FF9800", 4: "#F44336" };
+        const LEVEL_LABELS = { 2: "Moderate", 3: "Heavy", 4: "Severe" };
+        const container = document.getElementById("dbscan-zone-list");
+        container.innerHTML = dbscanZones.slice(0, 20).map((z, i) =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;
+                padding:4px 8px;border-radius:5px;font-size:0.74rem;font-weight:600;
+                background:${LEVEL_COLORS[z.level] || '#FF9800'}22;
+                border:1px solid ${LEVEL_COLORS[z.level] || '#FF9800'};">
+                <span>Cluster ${i+1} (${z.size} roads)</span>
+                <span>${LEVEL_LABELS[z.level] || 'Heavy'}</span>
+            </div>`
+        ).join("") + (dbscanZones.length > 20 ? `<div style="font-size:0.72rem;color:#888;text-align:center;margin-top:4px;">+ ${dbscanZones.length - 20} more clusters</div>` : "");
+    }
+
+    function drawDbscanCircles() {
+        clearDbscanCircles();
+        const LEVEL_COLORS = { 2: "#FFC107", 3: "#FF9800", 4: "#F44336" };
+        dbscanZones.forEach(z => {
+            const color = LEVEL_COLORS[z.level] || "#FF9800";
+            dbscanCircles.push(new google.maps.Circle({
+                map,
+                center: { lat: z.lat, lng: z.lng },
+                radius: z.radius,
+                strokeColor: color, strokeOpacity: 0.7, strokeWeight: 1.5,
+                fillColor: color, fillOpacity: 0.15,
+            }));
+        });
+    }
+
+    function clearDbscanCircles() {
+        dbscanCircles.forEach(c => c.setMap(null));
+        dbscanCircles = [];
+    }
+
 
     function onTimeSliderChange(val) {
         selectedHour = parseInt(val);
@@ -716,6 +826,7 @@
         document.getElementById("loading").style.display = "block";
         clearRoutes();
         clearAutoZoneCircles();
+        if (trafficMode !== "dbscan") clearDbscanCircles();
         resetSimulation();
 
         // Build request body
@@ -787,6 +898,10 @@
             // Draw auto-zone circles on map (Option A)
             if (trafficMode === "time_based" && data.active_zones) {
                 drawAutoZones(data.active_zones);
+            }
+            // Redraw DBSCAN circles if active (Option C)
+            if (trafficMode === "dbscan" && dbscanZones.length) {
+                drawDbscanCircles();
             }
 
             selectSimRoute('standard');

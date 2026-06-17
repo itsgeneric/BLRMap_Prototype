@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 import osmnx as ox
 import networkx as nx
 from shapely.geometry import Point, LineString
+import numpy as np
+from sklearn.cluster import DBSCAN
 import copy
 
 # Initialize Flask app
@@ -64,6 +66,90 @@ for u, v, data in G.edges(data=True):
     data["tw_weight"] = data["travel_time"] * multiplier
 
 print("Road network loaded!")
+
+
+# ── Option C: DBSCAN Clustering ───────────────────────────────────────────────
+#
+# Runs once at startup. Finds natural congestion hotspot clusters by looking at
+# where high-traffic road types (primary, trunk, secondary) are densely packed.
+# Each cluster becomes an auto congestion zone — no user input needed.
+#
+def compute_dbscan_zones() -> list:
+    HIGH_TRAFFIC = {"motorway", "trunk", "primary", "secondary",
+                    "motorway_link", "primary_link", "trunk_link"}
+
+    coords, levels = [], []
+    for u, v, data in G.edges(data=True):
+        hw = data.get("highway", "unclassified")
+        if isinstance(hw, list):
+            hw = hw[0]
+        if hw not in HIGH_TRAFFIC:
+            continue
+        u_d = G.nodes[u]; v_d = G.nodes[v]
+        mid_lat = (u_d["y"] + v_d["y"]) / 2
+        mid_lng = (u_d["x"] + v_d["x"]) / 2
+        coords.append([mid_lat, mid_lng])
+        # encode severity: motorway/trunk=3, primary=2, secondary=1
+        if hw in ("motorway", "motorway_link", "trunk", "trunk_link"):
+            levels.append(3)
+        elif hw in ("primary", "primary_link"):
+            levels.append(2)
+        else:
+            levels.append(1)
+
+    if not coords:
+        return []
+
+    coords_arr = np.array(coords)
+    # eps in degrees (~300m), min_samples=5 to avoid noise
+    db = DBSCAN(eps=0.003, min_samples=5, algorithm="ball_tree",
+                metric="haversine").fit(np.radians(coords_arr))
+    labels = db.labels_
+
+    zones = []
+    for label in set(labels):
+        if label == -1:
+            continue  # noise
+        mask = labels == label
+        cluster_coords = coords_arr[mask]
+        cluster_levels = np.array(levels)[mask]
+
+        center_lat = float(cluster_coords[:, 0].mean())
+        center_lng = float(cluster_coords[:, 1].mean())
+
+        # radius = max distance from center to any point in cluster (degrees → meters)
+        dists = np.sqrt(
+            (cluster_coords[:, 0] - center_lat) ** 2 +
+            (cluster_coords[:, 1] - center_lng) ** 2
+        )
+        radius_m = float(dists.max() * 111320)
+        radius_m = max(300, min(radius_m, 900))  # clamp 300–900m
+
+        # congestion level based on average road severity in cluster
+        avg_sev = cluster_levels.mean()
+        if avg_sev >= 2.5:
+            level = 4
+        elif avg_sev >= 1.8:
+            level = 3
+        else:
+            level = 2
+
+        zones.append({
+            "lat": center_lat, "lng": center_lng,
+            "radius": round(radius_m),
+            "level": level,
+            "name": f"Cluster-{label}",
+            "size": int(mask.sum()),
+        })
+
+    # Sort by cluster size descending (biggest hotspots first)
+    zones.sort(key=lambda z: z["size"], reverse=True)
+    print(f"[Option C] DBSCAN found {len(zones)} congestion clusters")
+    return zones
+
+print("Computing DBSCAN congestion clusters...")
+DBSCAN_ZONES = compute_dbscan_zones()
+print(f"DBSCAN done — {len(DBSCAN_ZONES)} clusters ready")
 
 
 # ── Option A: Time-Based Traffic Zones ───────────────────────────────────────
@@ -295,6 +381,15 @@ def time_zones():
     })
 
 
+@app.route("/cluster-zones", methods=["GET"])
+def cluster_zones():
+    """Returns pre-computed DBSCAN congestion clusters for Option C."""
+    return jsonify({
+        "count": len(DBSCAN_ZONES),
+        "zones": DBSCAN_ZONES
+    })
+
+
 @app.route("/route", methods=["POST"])
 def get_routes():
     data          = request.get_json()
@@ -304,7 +399,7 @@ def get_routes():
     blocked_edges = data.get("blocked_edges", [])
 
     # ── Option A: time-based zones ────────────────────────────────────────
-    traffic_mode = data.get("traffic_mode", "manual")   # "manual" | "time_based"
+    traffic_mode = data.get("traffic_mode", "manual")   # "manual" | "time_based" | "dbscan"
     time_hour    = data.get("time_hour", None)           # 0–23 int, sent when mode=time_based
 
     if traffic_mode == "time_based" and time_hour is not None:
@@ -314,6 +409,10 @@ def get_routes():
             hour = 8
         auto_zones = build_time_zones(hour)
         print(f"[Option A] Time slot: {get_time_slot(hour)} — {len(auto_zones)} auto zones applied")
+    elif traffic_mode == "dbscan":
+        # ── Option C: DBSCAN cluster zones ────────────────────────────────
+        auto_zones = DBSCAN_ZONES
+        print(f"[Option C] DBSCAN — {len(auto_zones)} cluster zones applied")
     else:
         auto_zones = []
 
