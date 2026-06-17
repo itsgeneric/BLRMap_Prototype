@@ -1,0 +1,7 @@
+.env
+.idea
+node_modules
+.next
+.idea
+bengaluru_graph.graphml
+*.graphml

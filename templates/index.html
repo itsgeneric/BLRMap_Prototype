@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bengaluru Two-Wheeler Dynamic Router</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; height: 100vh; background: #f4f4f9;
+        }
+
+        #sidebar {
+            width: 370px; background: white; padding: 18px;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+            z-index: 10; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        #map { flex-grow: 1; height: 100%; }
+
+        h2  { color: #1a1a2e; font-size: 1.3rem; }
+        h3  { font-size: 0.95rem; color: #333; margin-bottom: 4px; }
+        hr  { border: none; border-top: 1px solid #eee; }
+
+        label {
+            font-weight: 600; font-size: 0.82rem;
+            color: #555; display: block; margin-bottom: 3px;
+        }
+
+        input[type="text"] {
+            width: 100%; padding: 9px 11px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            font-size: 0.88rem; transition: border 0.2s;
+        }
+        input[type="text"]:focus { border-color: #1E88E5; outline: none; }
+
+        /* Traffic radio */
+        .radio-group { display: flex; flex-direction: column; gap: 5px; }
+        .radio-option {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 10px; border: 1.5px solid #eee;
+            border-radius: 7px; cursor: pointer; transition: all 0.2s;
+        }
+        .radio-option:has(input:checked) { border-color: #1E88E5; background: #e3f2fd; }
+        .radio-option label { font-weight: 500; font-size: 0.85rem; color: #333; cursor: pointer; margin: 0; }
+
+        /* Buttons */
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 7px; cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: all 0.2s; }
+        .btn-primary  { background: #1E88E5; color: white; }
+        .btn-primary:hover  { background: #1565C0; }
+        .btn-primary:disabled { background: #90CAF9; cursor: not-allowed; }
+        .btn-danger   { background: #ffebee; color: #c62828; border: 1.5px solid #ef9a9a; }
+        .btn-danger:hover   { background: #ffcdd2; }
+        .btn-warning  { background: #fff8e1; color: #e65100; border: 1.5px solid #ffcc02; }
+        .btn-warning:hover  { background: #fff3cd; }
+        .btn-active   { background: #e8f5e9 !important; border: 1.5px solid #66bb6a !important; color: #2e7d32 !important; }
+
+        /* Tool section */
+        .tool-section {
+            background: #fafafa; border: 1.5px solid #eee;
+            border-radius: 9px; padding: 12px;
+        }
+        .tool-row { display: flex; gap: 8px; }
+        .tool-row .btn { flex: 1; }
+
+        /* Zone list */
+        #zone-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .zone-item {
+            background: #fff3e0; border: 1px solid #ffcc80;
+            border-radius: 7px; padding: 8px 10px;
+        }
+        .zone-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .zone-item-header span { font-size: 0.82rem; font-weight: 600; color: #e65100; }
+        .zone-delete { background: none; border: none; cursor: pointer; color: #c62828; font-size: 1rem; padding: 0 4px; }
+        .slider-row { display: flex; align-items: center; gap: 8px; }
+        .slider-row input[type=range] { flex: 1; accent-color: #e53935; }
+        .slider-label { font-size: 0.75rem; color: #777; white-space: nowrap; }
+
+        /* Blocked roads list */
+        #blocked-list { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+        .blocked-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+        }
+        .blocked-item.block { background: #212121; color: white; }
+        .blocked-item.slow  { background: #fff8e1; color: #e65100; border: 1px solid #ffcc02; }
+        .blocked-item button { background: none; border: none; cursor: pointer; font-size: 0.85rem; }
+        .blocked-item.block button { color: #ef9a9a; }
+        .blocked-item.slow  button { color: #c62828; }
+
+        /* ── Option A: Time-Based Traffic ────────────────────────────────────── */
+        .option-section {
+            background: #f0f7ff; border: 1.5px solid #bbdefb;
+            border-radius: 9px; padding: 12px;
+        }
+        .option-section h3 { color: #1565C0; }
+
+        .time-mode-tabs {
+            display: flex; gap: 6px; margin-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1; padding: 8px 4px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666;
+            transition: all 0.15s;
+        }
+        .tab-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        .time-picker-wrap {
+            display: none; /* shown only when time_based tab active */
+        }
+        .time-picker-wrap.visible { display: block; }
+
+        .time-slider-row {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+        }
+        .time-slider-row input[type=range] { flex: 1; accent-color: #1E88E5; }
+
+        #time-display {
+            text-align: center; font-size: 1.1rem; font-weight: 700; color: #1565C0;
+            margin-bottom: 4px;
+        }
+        #slot-display {
+            text-align: center; font-size: 0.78rem; color: #555; margin-bottom: 8px;
+        }
+
+        /* Active zones preview (shown after route calc) */
+        #auto-zone-list {
+            display: flex; flex-direction: column; gap: 5px; margin-top: 8px;
+        }
+        .auto-zone-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 9px; border-radius: 6px; font-size: 0.77rem; font-weight: 600;
+        }
+        .az-l1 { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .az-l2 { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+        .az-l3 { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+        .az-l4 { background: #fce4ec; color: #c62828; border: 1px solid #f48fb1; }
+        .az-l5 { background: #212121; color: white; }
+
+        /* Loading */
+        #loading { display: none; text-align: center; font-size: 0.82rem; color: #888; padding: 6px; }
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid #ddd; border-top-color: #1E88E5;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin-right: 5px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Comparison */
+        #comparison { display: none; flex-direction: column; gap: 9px; }
+        .comp-title { font-size: 0.75rem; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .route-card { border-radius: 9px; padding: 11px 13px; border-left: 4px solid; cursor: pointer; transition: box-shadow 0.15s; }
+        .route-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+        .route-card.selected { box-shadow: 0 0 0 2.5px #1E88E5; }
+        .route-card.standard { background: #e8eaf6; border-color: #3949AB; }
+        .route-card.shortcut { background: #fce4ec; border-color: #E53935; }
+        .route-card h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; }
+        .route-card.standard h4 { color: #3949AB; }
+        .route-card.shortcut h4 { color: #E53935; }
+        .route-stats { display: flex; gap: 14px; }
+        .stat { display: flex; flex-direction: column; }
+        .stat-label { font-size: 0.7rem; color: #777; }
+        .stat-value { font-size: 1.05rem; font-weight: 700; color: #222; }
+        .saving-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 5px; }
+        .legend { display: flex; gap: 12px; font-size: 0.78rem; color: #555; }
+        .legend-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
+
+        /* Error */
+        #error-msg { display: none; background: #ffebee; color: #c62828; padding: 9px 11px; border-radius: 7px; font-size: 0.82rem; }
+
+        /* ── Simulation ───────────────────────────────────────────────────────── */
+        #simulation-section { display: none; }
+
+        .sim-route-select { display: flex; gap: 6px; margin-bottom: 10px; }
+        .sim-route-btn {
+            flex: 1; padding: 7px 4px;
+            border: 1.5px solid #ddd; border-radius: 7px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666; transition: all 0.15s;
+        }
+        .sim-route-btn.active-std { background: #3949AB; border-color: #3949AB; color: white; }
+        .sim-route-btn.active-tw  { background: #E53935; border-color: #E53935; color: white; }
+
+        .speed-group { display: flex; gap: 6px; margin-bottom: 10px; }
+        .speed-btn {
+            flex: 1; padding: 7px 4px;
+            border: 1.5px solid #ddd; border-radius: 6px;
+            background: white; cursor: pointer;
+            font-size: 0.78rem; font-weight: 700; color: #666; transition: all 0.15s;
+        }
+        .speed-btn.active { background: #1E88E5; border-color: #1E88E5; color: white; }
+
+        .sim-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+        .sim-btn {
+            flex: 1; padding: 9px 4px; border: none;
+            border-radius: 6px; cursor: pointer;
+            font-size: 0.82rem; font-weight: 700; color: white; transition: background 0.15s;
+        }
+        #btn-start { background: #43A047; }
+        #btn-start:hover { background: #388E3C; }
+        #btn-pause { background: #FB8C00; display: none; }
+        #btn-pause:hover { background: #F57C00; }
+        #btn-reset { background: #757575; display: none; }
+        #btn-reset:hover { background: #616161; }
+
+        #sim-progress-wrap {
+            display: none; height: 5px;
+            background: #e8e8e8; border-radius: 3px;
+            overflow: hidden; margin-bottom: 6px;
+        }
+        #sim-progress-bar { height: 100%; width: 0%; background: #1E88E5; transition: width 0.08s linear; }
+        #sim-status { font-size: 0.75rem; color: #999; text-align: center; min-height: 16px; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>🛵 Dynamic Routing Hub</h2>
+    <hr>
+
+    <!-- Source / Dest -->
+    <div>
+        <label>Source Location</label>
+        <input id="origin-input" type="text" placeholder="e.g., L K Legacy, J.C.Nagar">
+    </div>
+    <div>
+        <label>Destination Location</label>
+        <input id="dest-input" type="text" placeholder="e.g., Fun World, Jayamahal">
+    </div>
+
+    <!-- Traffic overlay -->
+    <div>
+        <label>Traffic Overlay (Google Maps)</label>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" id="empty" name="traffic" value="empty" checked>
+                <label for="empty">Empty Traffic</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="realtime" name="traffic" value="realtime">
+                <label for="realtime">Real Time</label>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ── OPTION A: Time-Based Traffic ─────────────────────────────────── -->
+    <div class="option-section">
+        <h3>🕐 Option A — Time-Based Traffic</h3>
+        <p style="font-size:0.78rem;color:#555;margin:6px 0 10px;">
+            Automatically applies real Bengaluru congestion patterns based on time of day. No manual input needed.
+        </p>
+
+        <!-- Manual vs Time-Based tab -->
+        <div class="time-mode-tabs">
+            <button class="tab-btn active" id="tab-manual" onclick="setTrafficMode('manual')">
+                ✋ Manual Zones
+            </button>
+            <button class="tab-btn" id="tab-timebased" onclick="setTrafficMode('time_based')">
+                🕐 Time-Based
+            </button>
+        </div>
+
+        <!-- Time picker (visible only in time_based mode) -->
+        <div class="time-picker-wrap" id="time-picker-wrap">
+            <div id="time-display">8:00 AM</div>
+            <div id="slot-display">🔴 Morning Peak — High congestion on ORR, Hebbal, ITPL, Electronic City</div>
+            <div class="time-slider-row">
+                <span style="font-size:0.72rem;color:#888">12 AM</span>
+                <input type="range" id="time-slider" min="0" max="23" value="8"
+                    oninput="onTimeSliderChange(this.value)">
+                <span style="font-size:0.72rem;color:#888">11 PM</span>
+            </div>
+            <p style="font-size:0.75rem;color:#888;margin-top:4px;">
+                Drag to pick the time → route recalculates automatically.
+            </p>
+
+            <!-- Active zones after routing -->
+            <div id="auto-zone-list"></div>
+        </div>
+    </div>
+
+    <!-- ── OPTION C: DBSCAN Cluster-Based Traffic ───────────────────────── -->
+    <div class="option-section" style="background:#f3e5f5;border-color:#ce93d8;">
+        <h3 style="color:#6a1b9a;">🤖 Option C — ML Cluster Detection</h3>
+        <p style="font-size:0.78rem;color:#555;margin:6px 0 10px;">
+            Uses DBSCAN to automatically find congestion hotspots from the road network.
+            No manual input — the algorithm detects where high-traffic roads cluster together.
+        </p>
+        <button class="tab-btn" id="tab-dbscan"
+            style="width:100%;background:#7b1fa2;border-color:#7b1fa2;color:white;padding:9px;"
+            onclick="toggleDbscan()">
+            🔍 Enable DBSCAN Mode
+        </button>
+        <div id="dbscan-info" style="display:none;margin-top:10px;">
+            <div id="dbscan-status" style="font-size:0.8rem;color:#6a1b9a;font-weight:600;margin-bottom:6px;">
+                Loading clusters...
+            </div>
+            <div id="dbscan-zone-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- Calculate button -->
+    <button class="btn btn-primary" id="calc-btn" onclick="calculateRoute()">
+        Calculate &amp; Render Route
+    </button>
+
+    <div id="loading"><span class="spinner"></span> Calculating routes...</div>
+    <div id="error-msg"></div>
+
+    <hr>
+
+    <!-- Manual Congestion Zones (shown only in manual mode) -->
+    <div class="tool-section" id="manual-tools">
+        <h3>🔴 Congestion Zones</h3>
+        <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Draw a circle on the map to mark a traffic jam area.</p>
+        <div class="tool-row">
+            <button class="btn btn-warning" id="draw-zone-btn" onclick="toggleDrawZone()">+ Draw Zone</button>
+            <button class="btn btn-danger" onclick="clearAllZones()">Clear All</button>
+        </div>
+        <div id="zone-list"></div>
+    </div>
+
+    <!-- Block / Slow Roads -->
+    <div class="tool-section">
+        <h3>🚧 Block / Slow Roads</h3>
+        <p style="font-size:0.78rem;color:#888;margin-bottom:8px;">Click on any road to block it or slow it down.</p>
+        <div class="tool-row">
+            <button class="btn btn-warning" id="mark-road-btn" onclick="toggleMarkRoad()">+ Mark Road</button>
+            <button class="btn btn-danger" onclick="clearAllBlocked()">Clear All</button>
+        </div>
+        <div id="blocked-list"></div>
+    </div>
+
+    <hr>
+
+    <!-- Route Comparison -->
+    <div id="comparison">
+        <div class="comp-title">Route Comparison — click a card to simulate</div>
+        <div class="legend">
+            <span><span class="legend-dot" style="background:#3949AB"></span>Standard</span>
+            <span><span class="legend-dot" style="background:#E53935"></span>Shortcut</span>
+        </div>
+
+        <div class="route-card standard selected" id="card-standard" onclick="selectSimRoute('standard')">
+            <h4>Standard Route (Main Roads)</h4>
+            <div class="route-stats">
+                <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="std-dist">--</span></div>
+                <div class="stat"><span class="stat-label">Est. Time</span><span class="stat-value" id="std-time">--</span></div>
+            </div>
+        </div>
+
+        <div class="route-card shortcut" id="card-shortcut" onclick="selectSimRoute('shortcut')">
+            <h4>Two-Wheeler Shortcut</h4>
+            <div class="route-stats">
+                <div class="stat"><span class="stat-label">Distance</span><span class="stat-value" id="tw-dist">--</span></div>
+                <div class="stat"><span class="stat-label">Est. Time</span><span class="stat-value" id="tw-time">--</span></div>
+            </div>
+            <div id="saving-badge" class="saving-badge" style="display:none"></div>
+        </div>
+    </div>
+
+    <!-- Simulation -->
+    <div id="simulation-section">
+        <hr>
+        <h3>🎬 Route Simulation</h3>
+
+        <div class="sim-route-select" style="margin-top:8px;">
+            <button class="sim-route-btn active-std" id="sim-btn-standard" onclick="selectSimRoute('standard')">🔵 Standard</button>
+            <button class="sim-route-btn" id="sim-btn-shortcut" onclick="selectSimRoute('shortcut')">🔴 Shortcut</button>
+        </div>
+
+        <label style="margin-bottom:5px;">Playback Speed</label>
+        <div class="speed-group">
+            <button class="speed-btn"        data-speed="slow"   onclick="setSpeed('slow')">Slow</button>
+            <button class="speed-btn active" data-speed="normal" onclick="setSpeed('normal')">Normal</button>
+            <button class="speed-btn"        data-speed="fast"   onclick="setSpeed('fast')">Fast</button>
+        </div>
+
+        <div class="sim-controls">
+            <button class="sim-btn" id="btn-start" onclick="startSimulation()">▶ Start</button>
+            <button class="sim-btn" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
+            <button class="sim-btn" id="btn-reset" onclick="resetSimulation()">↺ Reset</button>
+        </div>
+
+        <div id="sim-progress-wrap"><div id="sim-progress-bar"></div></div>
+        <div id="sim-status">Select a route above and press Start</div>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+    // ── State ─────────────────────────────────────────────────────────────────
+    let map, trafficLayer;
+    let stdPolyline = null, twPolyline = null;
+    let markers = [];
+    let autoZoneCircles = [];   // circles drawn for Option A zones
+
+    // Manual zones
+    let zones = [];
+    let drawingZone = false;
+    let zoneIdCounter = 0;
+
+    // Blocked roads
+    let blockedEdges = [];
+    let markingRoad  = false;
+    let blockIdCounter = 0;
+
+    // Route data
+    let routeData = null;
+
+    // ── Option A state ────────────────────────────────────────────────────────
+    let trafficMode = "manual";   // "manual" | "time_based" | "dbscan"
+    let selectedHour = 8;
+    let dbscanActive = false;
+    let dbscanCircles = [];
+    let dbscanZones   = [];
+
+    const SLOT_INFO = {
+        morning_peak: { label: "🔴 Morning Peak", desc: "High congestion on ORR, Hebbal, ITPL, Electronic City" },
+        day:          { label: "🟡 Daytime",      desc: "Moderate congestion — CBD and commercial areas" },
+        evening_peak: { label: "🔴 Evening Peak", desc: "Heavy congestion on Silk Board, KR Puram, Marathahalli" },
+        night:        { label: "🟢 Night / Off-Peak", desc: "Roads mostly clear" },
+    };
+
+    function getSlot(hour) {
+        if (hour >= 7 && hour < 10)  return "morning_peak";
+        if (hour >= 10 && hour < 17) return "day";
+        if (hour >= 17 && hour < 21) return "evening_peak";
+        return "night";
+    }
+
+    function formatHour(h) {
+        const suffix = h < 12 ? "AM" : "PM";
+        const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${display}:00 ${suffix}`;
+    }
+
+    function setTrafficMode(mode) {
+        trafficMode = mode;
+        document.getElementById("tab-manual").classList.toggle("active", mode === "manual");
+        document.getElementById("tab-timebased").classList.toggle("active", mode === "time_based");
+        document.getElementById("time-picker-wrap").classList.toggle("visible", mode === "time_based");
+        document.getElementById("manual-tools").style.display = mode === "manual" ? "" : "none";
+
+        // Clear auto zone circles when switching back to manual
+        if (mode === "manual") { clearAutoZoneCircles(); clearDbscanCircles(); dbscanActive = false; updateDbscanBtn(); }
+
+        autoRecalculate();
+    }
+
+    // ── Option C: DBSCAN ──────────────────────────────────────────────────────
+    function updateDbscanBtn() {
+        const btn = document.getElementById("tab-dbscan");
+        if (dbscanActive) {
+            btn.textContent = "✅ DBSCAN Active — Click to Disable";
+            btn.style.background = "#2e7d32";
+            btn.style.borderColor = "#2e7d32";
+        } else {
+            btn.textContent = "🔍 Enable DBSCAN Mode";
+            btn.style.background = "#7b1fa2";
+            btn.style.borderColor = "#7b1fa2";
+        }
+    }
+
+    async function toggleDbscan() {
+        dbscanActive = !dbscanActive;
+        updateDbscanBtn();
+
+        if (!dbscanActive) {
+            trafficMode = "manual";
+            clearDbscanCircles();
+            document.getElementById("dbscan-info").style.display = "none";
+            document.getElementById("manual-tools").style.display = "";
+            setTrafficMode("manual");
+            return;
+        }
+
+        // Switch to dbscan mode, hide manual tools
+        trafficMode = "dbscan";
+        document.getElementById("manual-tools").style.display = "none";
+        document.getElementById("dbscan-info").style.display = "block";
+        document.getElementById("dbscan-status").textContent = "Fetching clusters from server...";
+
+        if (dbscanZones.length === 0) {
+            try {
+                const res = await fetch("/cluster-zones");
+                const data = await res.json();
+                dbscanZones = data.zones;
+            } catch (e) {
+                document.getElementById("dbscan-status").textContent = "Failed to load clusters.";
+                return;
+            }
+        }
+
+        document.getElementById("dbscan-status").textContent =
+            `✅ ${dbscanZones.length} congestion clusters detected automatically`;
+        renderDbscanList();
+        drawDbscanCircles();
+        autoRecalculate();
+    }
+
+    function renderDbscanList() {
+        const LEVEL_COLORS = { 2: "#FFC107", 3: "#FF9800", 4: "#F44336" };
+        const LEVEL_LABELS = { 2: "Moderate", 3: "Heavy", 4: "Severe" };
+        const container = document.getElementById("dbscan-zone-list");
+        container.innerHTML = dbscanZones.slice(0, 20).map((z, i) =>
+            `<div style="display:flex;justify-content:space-between;align-items:center;
+                padding:4px 8px;border-radius:5px;font-size:0.74rem;font-weight:600;
+                background:${LEVEL_COLORS[z.level] || '#FF9800'}22;
+                border:1px solid ${LEVEL_COLORS[z.level] || '#FF9800'};">
+                <span>Cluster ${i+1} (${z.size} roads)</span>
+                <span>${LEVEL_LABELS[z.level] || 'Heavy'}</span>
+            </div>`
+        ).join("") + (dbscanZones.length > 20 ? `<div style="font-size:0.72rem;color:#888;text-align:center;margin-top:4px;">+ ${dbscanZones.length - 20} more clusters</div>` : "");
+    }
+
+    function drawDbscanCircles() {
+        clearDbscanCircles();
+        const LEVEL_COLORS = { 2: "#FFC107", 3: "#FF9800", 4: "#F44336" };
+        dbscanZones.forEach(z => {
+            const color = LEVEL_COLORS[z.level] || "#FF9800";
+            dbscanCircles.push(new google.maps.Circle({
+                map,
+                center: { lat: z.lat, lng: z.lng },
+                radius: z.radius,
+                strokeColor: color, strokeOpacity: 0.7, strokeWeight: 1.5,
+                fillColor: color, fillOpacity: 0.15,
+            }));
+        });
+    }
+
+    function clearDbscanCircles() {
+        dbscanCircles.forEach(c => c.setMap(null));
+        dbscanCircles = [];
+    }
+
+
+    function onTimeSliderChange(val) {
+        selectedHour = parseInt(val);
+        const slot = getSlot(selectedHour);
+        document.getElementById("time-display").textContent = formatHour(selectedHour);
+        document.getElementById("slot-display").textContent =
+            `${SLOT_INFO[slot].label} — ${SLOT_INFO[slot].desc}`;
+        autoRecalculate();
+    }
+
+    function clearAutoZoneCircles() {
+        autoZoneCircles.forEach(c => c.setMap(null));
+        autoZoneCircles = [];
+        document.getElementById("auto-zone-list").innerHTML = "";
+    }
+
+    function drawAutoZones(zones) {
+        clearAutoZoneCircles();
+        if (!zones || !zones.length) return;
+
+        const LEVEL_COLORS = {
+            1: "#4CAF50", 2: "#FFC107", 3: "#FF9800", 4: "#F44336", 5: "#212121"
+        };
+        const LEVEL_LABELS = {
+            1: "Light", 2: "Moderate", 3: "Heavy", 4: "Severe", 5: "Gridlock"
+        };
+
+        zones.forEach(z => {
+            const color = LEVEL_COLORS[z.level] || "#E53935";
+            const circle = new google.maps.Circle({
+                map,
+                center: { lat: z.lat, lng: z.lng },
+                radius: z.radius,
+                strokeColor: color, strokeOpacity: 0.8, strokeWeight: 1.5,
+                fillColor: color, fillOpacity: 0.18,
+            });
+            autoZoneCircles.push(circle);
+        });
+
+        // Render list
+        const LEVEL_CLASS = { 1: "az-l1", 2: "az-l2", 3: "az-l3", 4: "az-l4", 5: "az-l5" };
+        document.getElementById("auto-zone-list").innerHTML =
+            `<div style="font-size:0.72rem;font-weight:700;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">
+                Active Congestion Zones (${zones.length})
+             </div>` +
+            zones.map(z => `
+                <div class="auto-zone-item ${LEVEL_CLASS[z.level] || 'az-l3'}">
+                    <span>${z.name}</span>
+                    <span>${["","Light","Moderate","Heavy","Severe","Gridlock"][z.level]}</span>
+                </div>
+            `).join("");
+    }
+
+    // ── Simulation state ──────────────────────────────────────────────────────
+    const SPEEDS = { slow: 80, normal: 25, fast: 8 };
+    const ARROW_ICON = {
+        path: null,
+        scale: 6,
+        fillColor: '#FF5722', fillOpacity: 1,
+        strokeWeight: 2, strokeColor: '#fff', rotation: 0
+    };
+
+    let simPath      = [];
+    let simMarker    = null;
+    let simIndex     = 0;
+    let simTimer     = null;
+    let simPaused    = false;
+    let currentSpeed = 'normal';
+    let activeSimRoute = 'standard';
+
+    // ── Map init ──────────────────────────────────────────────────────────────
+    function initMap() {
+        ARROW_ICON.path = google.maps.SymbolPath.FORWARD_CLOSED_ARROW;
+
+        map = new google.maps.Map(document.getElementById("map"), {
+            center: { lat: 12.9716, lng: 77.5946 },
+            zoom: 13, mapTypeControl: false,
+        });
+
+        trafficLayer = new google.maps.TrafficLayer();
+
+        const originAC = new google.maps.places.Autocomplete(
+            document.getElementById("origin-input"),
+            { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
+        );
+        const destAC = new google.maps.places.Autocomplete(
+            document.getElementById("dest-input"),
+            { componentRestrictions: { country: "in" }, fields: ["place_id","geometry","name"] }
+        );
+
+        map.addListener("click", onMapClick);
+    }
+
+    // ── Map click dispatcher ──────────────────────────────────────────────────
+    function onMapClick(e) {
+        if (drawingZone) { placeZone(e.latLng); return; }
+        if (markingRoad) { showRoadPopup(e.latLng); return; }
+    }
+
+    // ── Draw Zone ─────────────────────────────────────────────────────────────
+    function toggleDrawZone() {
+        drawingZone = !drawingZone;
+        markingRoad = false;
+        document.getElementById("draw-zone-btn").classList.toggle("btn-active", drawingZone);
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: drawingZone ? "crosshair" : "" });
+    }
+
+    function placeZone(latLng) {
+        const id = ++zoneIdCounter;
+        const radius = 400;
+        const level  = 3;
+
+        const circle = new google.maps.Circle({
+            map, center: latLng, radius,
+            strokeColor: "#E53935", strokeOpacity: 0.9, strokeWeight: 2,
+            fillColor: "#E53935", fillOpacity: 0.25,
+        });
+
+        zones.push({ id, lat: latLng.lat(), lng: latLng.lng(), radius, level, circle });
+        renderZoneList();
+        drawingZone = false;
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: "" });
+        autoRecalculate();
+    }
+
+    function updateZoneLevel(id, level) {
+        const zone = zones.find(z => z.id === id);
+        if (zone) { zone.level = parseInt(level); autoRecalculate(); }
+    }
+
+    function deleteZone(id) {
+        const idx = zones.findIndex(z => z.id === id);
+        if (idx !== -1) { zones[idx].circle.setMap(null); zones.splice(idx, 1); }
+        renderZoneList(); autoRecalculate();
+    }
+
+    function clearAllZones() {
+        zones.forEach(z => z.circle.setMap(null));
+        zones = [];
+        renderZoneList(); autoRecalculate();
+    }
+
+    const CONGESTION_LABELS = { 1:"Light", 2:"Moderate", 3:"Heavy", 4:"Severe", 5:"Gridlock" };
+
+    function renderZoneList() {
+        const el = document.getElementById("zone-list");
+        if (!zones.length) { el.innerHTML = ""; return; }
+        el.innerHTML = zones.map(z => `
+            <div class="zone-item">
+                <div class="zone-item-header">
+                    <span>Zone ${z.id}</span>
+                    <button class="zone-delete" onclick="deleteZone(${z.id})">✕</button>
+                </div>
+                <div class="slider-row">
+                    <span class="slider-label">Light</span>
+                    <input type="range" min="1" max="5" value="${z.level}"
+                        oninput="updateZoneLevel(${z.id}, this.value); document.getElementById('zlabel-${z.id}').textContent=CONGESTION_LABELS[this.value]">
+                    <span class="slider-label">Gridlock</span>
+                </div>
+                <div style="text-align:center;font-size:0.75rem;color:#e65100;margin-top:3px;" id="zlabel-${z.id}">
+                    ${CONGESTION_LABELS[z.level]}
+                </div>
+            </div>
+        `).join("");
+    }
+
+    // ── Mark Road ─────────────────────────────────────────────────────────────
+    function toggleMarkRoad() {
+        markingRoad = !markingRoad;
+        drawingZone = false;
+        document.getElementById("mark-road-btn").classList.toggle("btn-active", markingRoad);
+        document.getElementById("draw-zone-btn").classList.remove("btn-active");
+        map.setOptions({ draggableCursor: markingRoad ? "crosshair" : "" });
+    }
+
+    function showRoadPopup(latLng) {
+        markingRoad = false;
+        map.setOptions({ draggableCursor: "" });
+        document.getElementById("mark-road-btn").classList.remove("btn-active");
+
+        const lat = latLng.lat(), lng = latLng.lng();
+
+        const infoContent = `
+            <div style="font-family:Segoe UI,sans-serif;padding:4px;min-width:160px">
+                <p style="font-size:0.82rem;font-weight:700;color:#333;margin-bottom:8px">What to do with this road?</p>
+                <div style="display:flex;gap:6px">
+                    <button onclick="confirmRoadAction(${lat},${lng},'block')"
+                        style="flex:1;padding:7px;background:#212121;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🚫 Block
+                    </button>
+                    <button onclick="confirmRoadAction(${lat},${lng},'slow')"
+                        style="flex:1;padding:7px;background:#fff8e1;color:#e65100;border:1px solid #ffcc02;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600">
+                        🐢 Slow
+                    </button>
+                </div>
+            </div>`;
+
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent, position: latLng });
+        infoWindow.open(map);
+        window._activeInfoWindow = infoWindow;
+    }
+
+    function confirmRoadAction(lat, lng, action) {
+        if (window._activeInfoWindow) { window._activeInfoWindow.close(); window._activeInfoWindow = null; }
+
+        const id = ++blockIdCounter;
+        const marker = new google.maps.Marker({
+            position: { lat, lng }, map,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE, scale: 10,
+                fillColor:   action === "block" ? "#212121" : "#FFA000",
+                fillOpacity: 1, strokeColor: "white", strokeWeight: 2,
+            },
+            title: action === "block" ? "Blocked Road" : "Slow Road",
+            zIndex: 999,
+        });
+
+        blockedEdges.push({ id, lat, lng, action, marker });
+        renderBlockedList();
+        autoRecalculate();
+    }
+
+    function deleteBlocked(id) {
+        const idx = blockedEdges.findIndex(b => b.id === id);
+        if (idx !== -1) { blockedEdges[idx].marker.setMap(null); blockedEdges.splice(idx, 1); }
+        renderBlockedList(); autoRecalculate();
+    }
+
+    function clearAllBlocked() {
+        blockedEdges.forEach(b => b.marker.setMap(null));
+        blockedEdges = [];
+        renderBlockedList(); autoRecalculate();
+    }
+
+    function renderBlockedList() {
+        const el = document.getElementById("blocked-list");
+        if (!blockedEdges.length) { el.innerHTML = ""; return; }
+        el.innerHTML = blockedEdges.map(b => `
+            <div class="blocked-item ${b.action}">
+                <span>${b.action === "block" ? "🚫" : "🐢"} Road ${b.id} — ${b.action === "block" ? "Blocked" : "Slowed"}</span>
+                <button onclick="deleteBlocked(${b.id})">✕</button>
+            </div>
+        `).join("");
+    }
+
+    // ── Routing ───────────────────────────────────────────────────────────────
+    function clearRoutes() {
+        if (stdPolyline) { stdPolyline.setMap(null); stdPolyline = null; }
+        if (twPolyline)  { twPolyline.setMap(null);  twPolyline  = null; }
+        markers.forEach(m => m.setMap(null)); markers = [];
+    }
+
+    function showError(msg) {
+        const el = document.getElementById("error-msg");
+        el.textContent = msg; el.style.display = "block";
+    }
+    function hideError() { document.getElementById("error-msg").style.display = "none"; }
+
+    let recalcTimer = null;
+    function autoRecalculate() {
+        const origin = document.getElementById("origin-input").value.trim();
+        const dest   = document.getElementById("dest-input").value.trim();
+        if (!origin || !dest) return;
+        clearTimeout(recalcTimer);
+        recalcTimer = setTimeout(calculateRoute, 500);
+    }
+
+    async function calculateRoute() {
+        hideError();
+        const origin = document.getElementById("origin-input").value.trim();
+        const dest   = document.getElementById("dest-input").value.trim();
+        if (!origin || !dest) { showError("Please enter both source and destination."); return; }
+
+        const googleTraffic = document.querySelector('input[name="traffic"]:checked').value;
+        trafficLayer.setMap(googleTraffic !== "empty" ? map : null);
+
+        const btn = document.getElementById("calc-btn");
+        btn.disabled = true;
+        document.getElementById("loading").style.display = "block";
+        clearRoutes();
+        clearAutoZoneCircles();
+        if (trafficMode !== "dbscan") clearDbscanCircles();
+        resetSimulation();
+
+        // Build request body
+        const body = {
+            origin,
+            destination:   dest,
+            zones:         zones.map(z => ({ lat: z.lat, lng: z.lng, radius: z.radius, level: z.level })),
+            blocked_edges: blockedEdges.map(b => ({ lat: b.lat, lng: b.lng, action: b.action })),
+            traffic_mode:  trafficMode,
+        };
+
+        if (trafficMode === "time_based") {
+            body.time_hour = selectedHour;
+        }
+
+        try {
+            const res = await fetch("/route", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            if (!res.ok) { showError(data.error || "Routing failed."); return; }
+
+            routeData = data;
+
+            // Draw standard route (blue)
+            stdPolyline = new google.maps.Polyline({
+                path: data.standard.coords.map(c => ({ lat: c[0], lng: c[1] })),
+                strokeColor: "#3949AB", strokeOpacity: 0.85, strokeWeight: 5, map
+            });
+
+            // Draw shortcut route (red)
+            twPolyline = new google.maps.Polyline({
+                path: data.shortcut.coords.map(c => ({ lat: c[0], lng: c[1] })),
+                strokeColor: "#E53935", strokeOpacity: 0.9, strokeWeight: 4, map
+            });
+
+            // A / B markers
+            markers.push(new google.maps.Marker({
+                position: { lat: data.origin.lat, lng: data.origin.lng }, map,
+                label: { text: "A", color: "white", fontWeight: "bold" }
+            }));
+            markers.push(new google.maps.Marker({
+                position: { lat: data.destination.lat, lng: data.destination.lng }, map,
+                label: { text: "B", color: "white", fontWeight: "bold" }
+            }));
+
+            // Fit bounds
+            const bounds = new google.maps.LatLngBounds();
+            [...data.standard.coords, ...data.shortcut.coords].forEach(c => bounds.extend({ lat: c[0], lng: c[1] }));
+            map.fitBounds(bounds, { padding: 50 });
+
+            // Stats panel
+            document.getElementById("std-dist").textContent = data.standard.distance + " km";
+            document.getElementById("std-time").textContent = data.standard.time + " mins";
+            document.getElementById("tw-dist").textContent  = data.shortcut.distance + " km";
+            document.getElementById("tw-time").textContent  = data.shortcut.time + " mins";
+
+            const saved = Math.round(data.standard.time - data.shortcut.time);
+            const badge = document.getElementById("saving-badge");
+            if (saved > 0) { badge.textContent = `⚡ ${saved} mins faster`; badge.style.display = "inline-block"; }
+            else           { badge.style.display = "none"; }
+
+            document.getElementById("comparison").style.display = "flex";
+            document.getElementById("simulation-section").style.display = "block";
+
+            // Draw auto-zone circles on map (Option A)
+            if (trafficMode === "time_based" && data.active_zones) {
+                drawAutoZones(data.active_zones);
+            }
+            // Redraw DBSCAN circles if active (Option C)
+            if (trafficMode === "dbscan" && dbscanZones.length) {
+                drawDbscanCircles();
+            }
+
+            selectSimRoute('standard');
+
+        } catch (err) {
+            showError("Could not connect to routing server.");
+        } finally {
+            btn.disabled = false;
+            document.getElementById("loading").style.display = "none";
+        }
+    }
+
+    // ── Simulation ────────────────────────────────────────────────────────────
+    function selectSimRoute(which) {
+        if (!routeData) return;
+        activeSimRoute = which;
+
+        document.getElementById("card-standard").classList.toggle("selected", which === "standard");
+        document.getElementById("card-shortcut").classList.toggle("selected", which === "shortcut");
+
+        const btnStd = document.getElementById("sim-btn-standard");
+        const btnTw  = document.getElementById("sim-btn-shortcut");
+        btnStd.className = "sim-route-btn" + (which === "standard" ? " active-std" : "");
+        btnTw.className  = "sim-route-btn" + (which === "shortcut" ? " active-tw"  : "");
+
+        const coords = which === "standard" ? routeData.standard.coords : routeData.shortcut.coords;
+        buildSimPath(coords);
+        resetSimulation();
+        setStatus("Ready — " + simPath.length + " waypoints");
+    }
+
+    function buildSimPath(coords) {
+        simPath = coords.map(([lat, lng]) => new google.maps.LatLng(lat, lng));
+    }
+
+    function setSpeed(speed) {
+        currentSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.speed === speed);
+        });
+        if (simTimer) { clearInterval(simTimer); runLoop(); }
+    }
+
+    function startSimulation() {
+        if (!simPath.length) { setStatus("Calculate a route first."); return; }
+
+        if (simMarker) { simMarker.setMap(null); simMarker = null; }
+        simIndex  = 0;
+        simPaused = false;
+
+        const arrowColor = activeSimRoute === 'standard' ? '#3949AB' : '#E53935';
+        simMarker = new google.maps.Marker({
+            position: simPath[0], map, zIndex: 999,
+            icon: Object.assign({}, ARROW_ICON, { fillColor: arrowColor, rotation: 0 }),
+        });
+
+        document.getElementById('btn-start').style.display         = 'none';
+        document.getElementById('btn-pause').style.display         = 'block';
+        document.getElementById('btn-reset').style.display         = 'block';
+        document.getElementById('sim-progress-wrap').style.display = 'block';
+        setProgress(0);
+        setStatus('Simulating...');
+        runLoop();
+    }
+
+    function runLoop() {
+        simTimer = setInterval(() => {
+            if (simPaused) return;
+
+            if (simIndex >= simPath.length - 1) {
+                clearInterval(simTimer); simTimer = null;
+                document.getElementById('btn-pause').style.display = 'none';
+                document.getElementById('btn-start').style.display = 'block';
+                document.getElementById('btn-start').textContent   = '▶ Replay';
+                setProgress(1);
+                setStatus('Arrived! 🎉');
+                return;
+            }
+
+            const prev    = simPath[simIndex++];
+            const curr    = simPath[simIndex];
+            const heading = google.maps.geometry.spherical.computeHeading(prev, curr);
+            const arrowColor = activeSimRoute === 'standard' ? '#3949AB' : '#E53935';
+
+            simMarker.setIcon(Object.assign({}, ARROW_ICON, { fillColor: arrowColor, rotation: heading }));
+            simMarker.setPosition(curr);
+            map.panTo(curr);
+            setProgress(simIndex / (simPath.length - 1));
+        }, SPEEDS[currentSpeed]);
+    }
+
+    function togglePause() {
+        simPaused = !simPaused;
+        document.getElementById('btn-pause').textContent = simPaused ? '▶ Resume' : '⏸ Pause';
+        setStatus(simPaused ? 'Paused' : 'Simulating...');
+    }
+
+    function resetSimulation() {
+        if (simTimer)  { clearInterval(simTimer); simTimer = null; }
+        if (simMarker) { simMarker.setMap(null);  simMarker = null; }
+        simIndex = 0; simPaused = false;
+
+        const btnStart = document.getElementById('btn-start');
+        btnStart.style.display   = 'block';
+        btnStart.textContent     = '▶ Start';
+        document.getElementById('btn-pause').style.display         = 'none';
+        document.getElementById('btn-pause').textContent           = '⏸ Pause';
+        document.getElementById('btn-reset').style.display         = 'none';
+        document.getElementById('sim-progress-wrap').style.display = 'none';
+        setProgress(0);
+        setStatus(simPath.length ? 'Ready — ' + simPath.length + ' waypoints' : 'Select a route above and press Start');
+    }
+
+    function setStatus(msg)     { document.getElementById('sim-status').innerText = msg; }
+    function setProgress(ratio) {
+        document.getElementById('sim-progress-bar').style.width = (ratio * 100).toFixed(1) + '%';
+    }
+</script>
+
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ api_key }}&libraries=places,geometry&callback=initMap">
+</script>
+
+</body>
+</html>
