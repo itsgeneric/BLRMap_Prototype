@@ -14,7 +14,7 @@ const [origin, setOrigin] = useState<{ id: string; lat: number; lng: number } | 
 const [dest, setDest] = useState<{ id: string; lat: number; lng: number } | null>(null);
 const [trafficMode, setTrafficMode] = useState<string>("empty");
 const [congestionLevel, setCongestionLevel] = useState<number>(3);
-const [metrics, setMetrics] = useState<{ fastest: any; shortest: any } | null>(null);
+    const [metrics, setMetrics] = useState<{ dist: string; time: string; strategy: string } | null>(null);
 const [isCalculating, setIsCalculating] = useState(false);
 
 // DOM Refs for Autocomplete
@@ -85,151 +85,93 @@ const getSimulatedDepartureTime = (level: number) => {
     return d.toISOString();
 };
 
-const calculateRoute = async () => {
-    if (!origin || !dest || !geometryLib || !map) {
-        alert("Please select valid locations from the dropdowns.");
-        return;
-    }
-
-    setIsCalculating(true);
-    activePolylines.forEach(p => p.setMap(null));
-    setActivePolylines([]);
-
-    const baseRequestBody: any = {
-        origin: { placeId: origin.id },
-        destination: { placeId: dest.id },
-        travelMode: "TWO_WHEELER",
-        units: "METRIC",
-        computeAlternativeRoutes: true,
-    };
-
-    if (trafficMode === "empty") baseRequestBody.routingPreference = "TRAFFIC_UNAWARE";
-    else if (trafficMode === "realtime") baseRequestBody.routingPreference = "TRAFFIC_AWARE";
-    else if (trafficMode === "congestion") {
-        baseRequestBody.routingPreference = "TRAFFIC_AWARE_OPTIMAL";
-        baseRequestBody.departureTime = getSimulatedDepartureTime(congestionLevel);
-    }
-
-    // Two parallel strategies to flood the pool with options without breaking the map grid
-    const strategies = [
-        {
-            id: "standard",
-            label: "Standard Routes",
-            body: { ...baseRequestBody, routeModifiers: { avoidTolls: true } } // Default 2W behavior
-        },
-        {
-            id: "expressway",
-            label: "NICE Road Enabled",
-            body: { ...baseRequestBody, routeModifiers: { avoidTolls: false } } // Unlocks NICE
-        }
-    ];
-
-    try {
-        const results = await Promise.all(
-            strategies.map(async (strat) => {
-                const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Goog-Api-Key": apiKey,
-                        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
-                    },
-                    body: JSON.stringify(strat.body),
-                });
-                const data = await response.json();
-                return data.routes || [];
-            })
-        );
-
-        // Flatten, parse, and strictly deduplicate overlapping routes using the polyline string
-        // Explicitly call the native JS Map
-        const uniqueRoutesMap = new globalThis.Map();
-        results.flat().forEach((route: any) => {
-            const encoded = route.polyline.encodedPolyline;
-            if (!uniqueRoutesMap.has(encoded)) {
-                uniqueRoutesMap.set(encoded, {
-                    distanceMeters: route.distanceMeters,
-                    durationSeconds: parseInt(route.duration.replace("s", "")),
-                    encodedPolyline: encoded,
-                    distStr: (route.distanceMeters / 1000).toFixed(2) + " KM",
-                    timeStr: Math.round(parseInt(route.duration.replace("s", "")) / 60) + " Mins"
-                });
-            }
-        });
-
-        const allParsedRoutes = Array.from(uniqueRoutesMap.values());
-
-        if (allParsedRoutes.length === 0) {
-            alert("Routing engine failed to find any paths.");
-            setIsCalculating(false);
+    const calculateRoute = async () => {
+        // ADD geometryLib and map to this safety check
+        if (!origin || !dest || !geometryLib || !map) {
+            alert("Please select valid locations, and wait for the map to load.");
             return;
         }
+        setIsCalculating(true);
 
-        // Client-Side Data Mining: Isolate the two most important routes
-        const fastestRoute = allParsedRoutes.reduce((prev, curr) =>
-            (prev.durationSeconds < curr.durationSeconds) ? prev : curr
-        );
+        // ... the rest of the mock data logic remains exactly the same ...
 
-        const shortestRoute = allParsedRoutes.reduce((prev, curr) =>
-            (prev.distanceMeters < curr.distanceMeters) ? prev : curr
-        );
+        // 1. THE MOCK DATA: A hardcoded list of back-alley intersections (Max 25 points)
+        // This simulates what your Python OSMnx server WILL return in the future.
+        const mockOsmWaypoints = [
+            { lat: 12.9430, lng: 77.6320 }, // Point 1: Ejipura Main Road
+            { lat: 12.9560, lng: 77.6530 }, // Point 2: Wind Tunnel Road (HAL Backwall)
+            { lat: 12.9450, lng: 77.6750 }, // Point 3: Yemalur / Bellandur Lake Road
+            { lat: 12.9380, lng: 77.7120 }, // Point 4: Panathur Railway Underpass
+            { lat: 12.9510, lng: 77.7350 }, // Point 5: Varthur Kodi / Whitefield Backroads
+        ];
 
-        setMetrics({ fastest: fastestRoute, shortest: shortestRoute });
+        // 2. Format the mock coordinates into Google's strict RouteMatrix schema
+        const googleIntermediates = mockOsmWaypoints.map((coord) => ({
+            location: {
+                latLng: {
+                    latitude: coord.lat,
+                    longitude: coord.lng
+                }
+            },
+            via: true
+        }));
 
-        // Render logic
-        const newPolylines = allParsedRoutes.map((route) => {
-            const isFastest = route === fastestRoute;
-            const isShortest = route === shortestRoute;
-            const isBoth = isFastest && isShortest;
+        // 3. The Payload: Notice we are injecting our mock data into the 'intermediates' array
+        const requestBody: any = {
+            origin: { placeId: origin.id },
+            destination: { placeId: dest.id },
+            intermediates: googleIntermediates,
+            travelMode: "TWO_WHEELER",
+            units: "METRIC",
+            routingPreference: "TRAFFIC_AWARE_OPTIMAL",
+            // Force Google to obey our waypoints rather than taking liberties
+            routeModifiers: { avoidHighways: false, avoidTolls: false }
+        };
 
-            const decodedPath = geometryLib.encoding.decodePath(route.encodedPolyline);
-
-            let strokeColor = "#9CA3AF"; // Gray for ignored alternatives
-            let zIndex = 10;
-            let opacity = 0.4;
-            let weight = 4;
-
-            if (isBoth) {
-                strokeColor = "#8B5CF6"; // Purple (Ultimate Route)
-                zIndex = 100;
-                opacity = 1.0;
-                weight = 6;
-            } else if (isFastest) {
-                strokeColor = "#2563EB"; // Blue (Fastest Time)
-                zIndex = 90;
-                opacity = 1.0;
-                weight = 6;
-            } else if (isShortest) {
-                strokeColor = "#10B981"; // Green (Sneaky Shortcut / Shortest Distance)
-                zIndex = 80;
-                opacity = 1.0;
-                weight = 6;
-            }
-
-            return new google.maps.Polyline({
-                path: decodedPath,
-                strokeColor,
-                strokeWeight: weight,
-                strokeOpacity: opacity,
-                zIndex,
-                map: map,
+        try {
+            const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Goog-Api-Key": apiKey,
+                    "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
+                },
+                body: JSON.stringify(requestBody),
             });
-        });
 
-        setActivePolylines(newPolylines);
+            const data = await response.json();
 
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend({ lat: origin.lat, lng: origin.lng });
-        bounds.extend({ lat: dest.lat, lng: dest.lng });
-        map.fitBounds(bounds, 50);
+            if (data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
 
-    } catch (error) {
-        console.error("Multi-routing error:", error);
-        alert("Failed to connect to the Routes API.");
-    } finally {
-        setIsCalculating(false);
-    }
-};
+                // Clear old paths
+                activePolylines.forEach(p => p.setMap(null));
+
+                // Decode and draw the new forced path
+                const decodedPath = geometryLib.encoding.decodePath(route.polyline.encodedPolyline);
+                const newPath = new google.maps.Polyline({
+                    path: decodedPath,
+                    strokeColor: "#10B981", // Emerald green for our custom shortcut
+                    strokeWeight: 6,
+                    strokeOpacity: 1.0,
+                    map: map,
+                });
+
+                setActivePolylines([newPath]);
+
+                // Update UI Metrics
+                setMetrics({
+                    dist: (route.distanceMeters / 1000).toFixed(2) + " KM",
+                    time: Math.round(parseInt(route.duration.replace("s", "")) / 60) + " Mins",
+                    strategy: "Custom OSM-Forced Grid Route"
+                });
+            }
+        } catch (error) {
+            console.error("Hybrid routing failed:", error);
+        } finally {
+            setIsCalculating(false);
+        }
+    };
 
 return (
     <main className="flex flex-col md:flex-row h-screen bg-gray-50 font-sans">
@@ -298,33 +240,26 @@ return (
 
             {metrics && (
                 <div className="mt-6 space-y-4">
-                    {/* Purple state if both paths are identical */}
-                    {metrics.fastest === metrics.shortest ? (
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 shadow-sm">
-                            <p className="text-xs text-purple-600 uppercase font-bold mb-2">⭐ The Ultimate Path</p>
-                            <div className="flex justify-between">
-                                <span className="text-xl font-black text-purple-900">{metrics.fastest.distStr}</span>
-                                <span className="text-xl font-black text-purple-900">{metrics.fastest.timeStr}</span>
-                            </div>
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 shadow-sm">
+                        <p className="text-xs text-purple-600 uppercase font-bold mb-2">⭐ The Ultimate Path</p>
+
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-semibold text-gray-700">Distance</span>
+                            <span className="text-xl font-black text-purple-900">{metrics.dist}</span>
                         </div>
-                    ) : (
-                        <>
-                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-sm">
-                                <p className="text-xs text-blue-600 uppercase font-bold mb-2">🔵 Fastest Time (Arterial/NICE)</p>
-                                <div className="flex justify-between">
-                                    <span className="text-xl font-black text-blue-900">{metrics.fastest.distStr}</span>
-                                    <span className="text-xl font-black text-blue-900">{metrics.fastest.timeStr}</span>
-                                </div>
-                            </div>
-                            <div className="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
-                                <p className="text-xs text-green-600 uppercase font-bold mb-2">🟢 Sneaky Shortcut (Shortest Dist)</p>
-                                <div className="flex justify-between">
-                                    <span className="text-xl font-black text-green-900">{metrics.shortest.distStr}</span>
-                                    <span className="text-xl font-black text-green-900">{metrics.shortest.timeStr}</span>
-                                </div>
-                            </div>
-                        </>
-                    )}
+
+                        <div className="flex justify-between items-center mb-3">
+                            <span className="text-sm font-semibold text-gray-700">Time</span>
+                            <span className="text-xl font-black text-purple-900">{metrics.time}</span>
+                        </div>
+
+                        <div className="pt-3 border-t border-purple-200/50">
+                            <span className="text-xs text-purple-500 font-semibold uppercase block mb-1">Strategy Used</span>
+                            <span className="text-sm font-bold text-purple-800 bg-purple-200/50 px-2 py-1 rounded inline-block">
+                    {metrics.strategy}
+                </span>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
