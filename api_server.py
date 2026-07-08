@@ -24,6 +24,36 @@ INNER_ROAD_TYPES = {
     'tertiary', 'tertiary_link'
 }
 
+TWO_WHEELER_ROAD_PENALTIES = {
+    'motorway': 4.0,
+    'motorway_link': 3.0,
+    'trunk': 3.0,
+    'trunk_link': 2.5,
+    'primary': 2.2,
+    'primary_link': 2.0,
+    'secondary': 1.5,
+    'secondary_link': 1.4,
+    'tertiary': 1.15,
+    'tertiary_link': 1.1,
+    'residential': 1.0,
+    'living_street': 0.95,
+    'unclassified': 1.0,
+    'service': 0.9,
+    'road': 1.1,
+}
+
+DEFAULT_ROUTE_SPLIT_FRACTIONS = (0.33, 0.5, 0.67)
+
+MAIN_ROAD_TYPES = {
+    'motorway', 'motorway_link', 'trunk', 'trunk_link',
+    'primary', 'primary_link', 'secondary', 'secondary_link'
+}
+
+INNER_ROAD_BIASED_TYPES = {
+    'tertiary', 'tertiary_link', 'residential', 'living_street',
+    'unclassified', 'service', 'road'
+}
+
 def _is_inner(data):
     hw = data.get('highway', 'unclassified')
     if isinstance(hw, list):
@@ -80,6 +110,183 @@ def astar_on_graph(graph, start_node, end_node):
             return float(edge_data['length'])
         return min(float(d.get('length', 1.0)) for d in edge_data.values())
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
+
+def _edge_highway_type(edge_data):
+    hw = edge_data.get('highway', 'unclassified')
+    if isinstance(hw, list):
+        hw = hw[0]
+    return hw
+
+def build_two_wheeler_penalties(
+    main_road_penalty=1.0,
+    inner_road_multiplier=1.0,
+    service_multiplier=1.0,
+    roundabout_multiplier=1.0,
+):
+    penalties = dict(TWO_WHEELER_ROAD_PENALTIES)
+    for road_type in MAIN_ROAD_TYPES:
+        penalties[road_type] = penalties.get(road_type, 1.25) * main_road_penalty
+    for road_type in INNER_ROAD_BIASED_TYPES:
+        penalties[road_type] = penalties.get(road_type, 1.0) * inner_road_multiplier
+    penalties['service'] = penalties.get('service', 1.0) * service_multiplier
+    penalties['_roundabout_multiplier'] = roundabout_multiplier
+    return penalties
+
+def two_wheeler_edge_cost(edge_data, penalties=None):
+    length = float(edge_data.get('length', 1.0))
+    highway = _edge_highway_type(edge_data)
+    penalty_map = penalties or TWO_WHEELER_ROAD_PENALTIES
+    penalty = penalty_map.get(highway, 1.25)
+
+    if edge_data.get('junction') == 'roundabout':
+        penalty *= penalty_map.get('_roundabout_multiplier', 0.95)
+
+    return length * penalty
+
+def two_wheeler_astar(graph, start_node, end_node, penalties=None):
+    def heuristic(a, b):
+        return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'],
+                           graph.nodes[b]['y'], graph.nodes[b]['x'])
+
+    def cost(u, v, edge_data):
+        if 'length' in edge_data:
+            return two_wheeler_edge_cost(edge_data, penalties=penalties)
+        return min(two_wheeler_edge_cost(d, penalties=penalties) for d in edge_data.values())
+
+    return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
+
+def path_cost(graph, route, cost_fn=two_wheeler_edge_cost, penalties=None):
+    total = 0.0
+    for i in range(len(route) - 1):
+        a, b = route[i], route[i + 1]
+        if b in graph[a]:
+            total += min(cost_fn(d, penalties=penalties) for d in graph[a][b].values())
+    return total
+
+def _dedupe_nodes(nodes):
+    deduped = []
+    for node in nodes:
+        if not deduped or node != deduped[-1]:
+            deduped.append(node)
+    return deduped
+
+def _line_split_points(from_lat, from_lng, to_lat, to_lng, fractions):
+    return [
+        (
+            from_lat + (to_lat - from_lat) * fraction,
+            from_lng + (to_lng - from_lng) * fraction,
+        )
+        for fraction in fractions
+    ]
+
+def _derive_split_fractions(straight_line_km, segment_km):
+    if straight_line_km <= segment_km:
+        return ()
+
+    segment_km = max(segment_km, 0.5)
+    segment_count = max(2, math.ceil(straight_line_km / segment_km))
+    return tuple(i / segment_count for i in range(1, segment_count))
+
+def _route_cumulative_lengths(graph, route):
+    cumulative = [0.0]
+    for i in range(len(route) - 1):
+        a, b = route[i], route[i + 1]
+        if b in graph[a]:
+            best = min(graph[a][b].values(), key=lambda d: float(d.get('length', 1.0)))
+            cumulative.append(cumulative[-1] + float(best.get('length', 0)))
+        else:
+            cumulative.append(cumulative[-1])
+    return cumulative
+
+def _graph_aware_split_nodes(graph, route, split_fractions):
+    if len(route) < 3:
+        return []
+
+    cumulative = _route_cumulative_lengths(graph, route)
+    total = cumulative[-1]
+    if total <= 0:
+        return []
+
+    candidate_nodes = []
+    for fraction in split_fractions:
+        target = total * fraction
+        closest_index = min(range(len(cumulative)), key=lambda i: abs(cumulative[i] - target))
+        window_start = max(0, closest_index - 2)
+        window_end = min(len(route), closest_index + 3)
+        window = route[window_start:window_end]
+
+        junction_nodes = [node for node in window if graph.degree(node) >= 3]
+        ordered_window = list(dict.fromkeys(junction_nodes + [route[closest_index]] + window))
+        candidate_nodes.extend(ordered_window[:3])
+
+    return _dedupe_nodes(candidate_nodes)
+
+def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, split_fractions=DEFAULT_ROUTE_SPLIT_FRACTIONS, penalties=None):
+    direct_start = ox.nearest_nodes(graph, from_lng, from_lat)
+    direct_end = ox.nearest_nodes(graph, to_lng, to_lat)
+
+    candidates = []
+
+    try:
+        direct_route = two_wheeler_astar(graph, direct_start, direct_end, penalties=penalties)
+        candidates.append({
+            'strategy': 'direct',
+            'nodes': direct_route,
+            'cost': path_cost(graph, direct_route, penalties=penalties),
+        })
+    except Exception as exc:
+        candidates.append({
+            'strategy': 'direct',
+            'nodes': [],
+            'cost': float('inf'),
+            'error': str(exc),
+        })
+
+    graph_aware_nodes = []
+    if candidates and candidates[0]['nodes']:
+        graph_aware_nodes = _graph_aware_split_nodes(graph, candidates[0]['nodes'], split_fractions)
+
+    fallback_nodes = []
+    for fraction in split_fractions:
+        split_lat, split_lng = _line_split_points(from_lat, from_lng, to_lat, to_lng, [fraction])[0]
+        fallback_nodes.append(ox.nearest_nodes(graph, split_lng, split_lat))
+
+    split_nodes = _dedupe_nodes(graph_aware_nodes + fallback_nodes)
+
+    for split_node in split_nodes:
+        split_fraction = None
+        if candidates and candidates[0]['nodes'] and split_node in candidates[0]['nodes']:
+            split_fraction = round(candidates[0]['nodes'].index(split_node) / max(1, len(candidates[0]['nodes']) - 1), 2)
+
+        try:
+            first_leg = two_wheeler_astar(graph, direct_start, split_node, penalties=penalties)
+            second_leg = two_wheeler_astar(graph, split_node, direct_end, penalties=penalties)
+            stitched = _dedupe_nodes(first_leg + second_leg[1:])
+            candidates.append({
+                'strategy': 'graph_split' if split_fraction is not None else 'line_split',
+                'nodes': stitched,
+                'split_fraction': split_fraction,
+                'split_node': split_node,
+                'cost': path_cost(graph, stitched, penalties=penalties),
+            })
+        except Exception as exc:
+            candidates.append({
+                'strategy': 'graph_split' if split_fraction is not None else 'line_split',
+                'nodes': [],
+                'split_fraction': split_fraction,
+                'split_node': split_node,
+                'cost': float('inf'),
+                'error': str(exc),
+            })
+
+    candidates.sort(key=lambda item: item['cost'])
+    return candidates
+
+def route_nodes_to_coords(graph, route):
+    return [[graph.nodes[node]['y'], graph.nodes[node]['x']] for node in route]
+
+def route_length_m(graph, route):
+    return calc_route_distance(graph, route)
 
 def calc_route_distance(graph, route):
     total = 0.0
@@ -244,6 +451,75 @@ async def traffic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
 
     routes.sort(key=lambda x: x["duration_traffic_s"])
     return {"status": "success", "routes": routes, "fastest": routes[0]}
+
+@app.get("/two-wheeler-route")
+def two_wheeler_route(
+    from_lat: float,
+    from_lng: float,
+    to_lat: float,
+    to_lng: float,
+    main_road_penalty: float = 1.0,
+    inner_road_multiplier: float = 1.0,
+    service_multiplier: float = 1.0,
+    roundabout_multiplier: float = 0.95,
+    segment_km: float = 3.0,
+):
+    print(f"Two-wheeler route: ({from_lat},{from_lng}) -> ({to_lat},{to_lng})")
+    try:
+        penalties = build_two_wheeler_penalties(
+            main_road_penalty=main_road_penalty,
+            inner_road_multiplier=inner_road_multiplier,
+            service_multiplier=service_multiplier,
+            roundabout_multiplier=roundabout_multiplier,
+        )
+        straight_line_km = haversine_m(from_lat, from_lng, to_lat, to_lng) / 1000
+        split_fractions = _derive_split_fractions(straight_line_km, segment_km)
+        candidates = build_split_route_candidates(G, from_lat, from_lng, to_lat, to_lng, split_fractions=split_fractions, penalties=penalties)
+        best = next((candidate for candidate in candidates if candidate["nodes"]), candidates[0])
+
+        if not best["nodes"]:
+            return {"status": "error", "message": "Could not find a two-wheeler route."}
+
+        coords = route_nodes_to_coords(G, best["nodes"])
+        response_candidates = []
+        for candidate in candidates:
+            candidate_nodes = candidate.get("nodes", [])
+            candidate_length = route_length_m(G, candidate_nodes) if candidate_nodes else None
+            candidate_weighted_cost = path_cost(G, candidate_nodes, penalties=penalties) if candidate_nodes else None
+            response_candidates.append({
+                "strategy": candidate["strategy"],
+                "cost": round(candidate["cost"], 2) if candidate["cost"] != float("inf") else None,
+                "points": len(candidate.get("nodes", [])),
+                "split_fraction": candidate.get("split_fraction"),
+                "split_node": candidate.get("split_node"),
+                "distance_meters": round(candidate_length, 2) if candidate_length is not None else None,
+                "distance_km": round(candidate_length / 1000, 2) if candidate_length is not None else None,
+                "weighted_cost": round(candidate_weighted_cost, 2) if candidate_weighted_cost is not None else None,
+                "error": candidate.get("error"),
+            })
+
+        print(f"  Best: {best['strategy']} cost={best['cost']:.2f}")
+        route_length = route_length_m(G, best["nodes"])
+        route_score = path_cost(G, best["nodes"], penalties=penalties)
+        return {
+            "status": "success",
+            "best_strategy": best["strategy"],
+            "path": coords,
+            "distance_meters": round(route_length, 2),
+            "distance_km": round(route_length / 1000, 2),
+            "weighted_cost": round(route_score, 2),
+            "penalties": {
+                "main_road_penalty": main_road_penalty,
+                "inner_road_multiplier": inner_road_multiplier,
+                "service_multiplier": service_multiplier,
+                "roundabout_multiplier": roundabout_multiplier,
+                "segment_km": segment_km,
+            },
+            "candidate_routes": response_candidates,
+        }
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

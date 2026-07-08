@@ -3,7 +3,7 @@ import networkx as nx
 
 # Load the saved graph
 print("Loading Bengaluru road network...")
-G = ox.load_graphml("bengaluru_roads.graphml")
+G = ox.load_graphml("bengaluru_roads_full.graphml")
 print(f"Loaded graph with {len(G.nodes)} nodes")
 
 def find_shortest_path(start_lat, start_lng, end_lat, end_lng):

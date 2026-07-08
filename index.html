@@ -13,7 +13,7 @@
       --bg: #0c0c0e; --surface: #141416; --border: #1f1f23; --border2: #2a2a30;
       --text: #e2e2e6; --muted: #52525e;
       --from: #38bdf8; --to: #fb923c;
-      --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24;
+      --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24; --tw: #60a5fa;
       --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
     }
     html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
@@ -64,6 +64,29 @@
     .mode-btn.act-s { background: var(--shortest); color: #0c0c0e; }
     .mode-btn.act-t { background: var(--traffic);  color: #0c0c0e; }
     .mode-btn.act-i { background: var(--inner);    color: #0c0c0e; }
+    .mode-btn.act-2 { background: var(--tw);       color: #0c0c0e; }
+
+    #two-wheel-controls {
+      display: none; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+      padding: 4px 0;
+    }
+    #two-wheel-controls.on { display: flex; }
+    .tw-field {
+      display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+      border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
+    }
+    .tw-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .tw-field input {
+      width: 62px; background: transparent; border: none; color: var(--text);
+      font-family: var(--mono); font-size: 11px; outline: none;
+    }
+    .tw-slider {
+      min-width: 160px; display: flex; flex-direction: column; gap: 4px;
+      padding: 5px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
+    }
+    .tw-slider-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .tw-slider-row input { width: 100%; accent-color: var(--tw); }
+    .tw-slider-value { font-family: var(--mono); font-size: 11px; color: var(--text); }
 
     #stats { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
@@ -77,6 +100,7 @@
     #status-dot.on  { background: var(--shortest); box-shadow: 0 0 6px var(--shortest); }
     #status-dot.tr  { background: var(--traffic);  box-shadow: 0 0 6px var(--traffic); }
     #status-dot.ir  { background: var(--inner);    box-shadow: 0 0 6px var(--inner); }
+    #status-dot.tw  { background: var(--tw);       box-shadow: 0 0 6px var(--tw); }
     #status-dot.err { background: #f87171; }
     #status-text { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
 
@@ -175,6 +199,20 @@
       <button class="mode-btn act-s" id="btn-s" onclick="setMode('shortest')">Shortest</button>
       <button class="mode-btn"       id="btn-t" onclick="setMode('traffic')">Traffic</button>
       <button class="mode-btn"       id="btn-i" onclick="setMode('inner')">Inner Roads</button>
+      <button class="mode-btn"       id="btn-2" onclick="setMode('twowheeler')">2W Smart</button>
+    </div>
+
+    <div id="two-wheel-controls">
+      <div class="tw-field"><span class="tw-label">Main x</span><input id="tw-main" type="number" min="1" step="0.1" value="1.35"/></div>
+      <div class="tw-field"><span class="tw-label">Inner x</span><input id="tw-inner" type="number" min="0.5" step="0.05" value="0.95"/></div>
+      <div class="tw-field"><span class="tw-label">Service x</span><input id="tw-service" type="number" min="0.5" step="0.05" value="0.9"/></div>
+      <div class="tw-slider">
+        <div class="tw-slider-row">
+          <span class="tw-label">Segment km</span>
+          <span class="tw-slider-value" id="tw-segment-val">3.0</span>
+        </div>
+        <input id="tw-segment" type="range" min="1.5" max="5.5" step="0.5" value="3.0" oninput="document.getElementById('tw-segment-val').textContent=this.value; if(fromCoords&&toCoords&&mode==='twowheeler') routeBetween();"/>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -185,7 +223,7 @@
         <div class="stat-value s hidden" id="val-dist">—</div>
       </div>
       <div>
-        <div class="stat-label">Time</div>
+        <div class="stat-label" id="metric-label">Time</div>
         <div class="stat-value t hidden" id="val-time">—</div>
       </div>
       <div id="status-dot"></div>
@@ -243,6 +281,15 @@ let fromCoords = null, toCoords = null;
 let phase = 'from';
 let trafficRoutes = [];
 
+function setMetricLabel(text) {
+  document.getElementById('metric-label').textContent = text;
+}
+
+function readNumberInput(id, fallback) {
+  const value = parseFloat(document.getElementById(id).value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 const map = L.map('map', { center: [12.9716, 77.5946], zoom: 12 });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>',
@@ -262,8 +309,14 @@ function setMode(m) {
   document.getElementById('btn-s').className = 'mode-btn' + (m==='shortest' ? ' act-s' : '');
   document.getElementById('btn-t').className = 'mode-btn' + (m==='traffic'  ? ' act-t' : '');
   document.getElementById('btn-i').className = 'mode-btn' + (m==='inner'    ? ' act-i' : '');
+  document.getElementById('btn-2').className = 'mode-btn' + (m==='twowheeler' ? ' act-2' : '');
   document.getElementById('inner-panel').style.display = m === 'inner' ? 'block' : 'none';
+  document.getElementById('two-wheel-controls').classList.toggle('on', m === 'twowheeler');
   document.getElementById('route-panel').style.display = 'none';
+  setMetricLabel(m === 'twowheeler' ? 'Score' : 'Time');
+  if (m === 'twowheeler') {
+    document.getElementById('inner-panel').style.display = 'none';
+  }
   if (fromCoords && toCoords) routeBetween();
 }
 
@@ -279,7 +332,7 @@ function setStat(id, val, cls, show=true) {
 function showSpinner(on) {
   const s = document.getElementById('spinner');
   s.style.display = on ? 'block' : 'none';
-  s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : 'var(--shortest)';
+  s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : mode==='twowheeler' ? 'var(--tw)' : 'var(--shortest)';
 }
 function hideHint() { document.getElementById('hint').classList.add('gone'); }
 function clearRoutes() {
@@ -363,14 +416,15 @@ async function routeBetween() {
   setStat('val-time','','t',false);
   showSpinner(true);
 
-  const statusMap = { shortest:'on', traffic:'tr', inner:'ir' };
-  const msgMap    = { shortest:'Finding shortest path…', traffic:'Checking live traffic…', inner:'Finding inner road route…' };
+  const statusMap = { shortest:'on', traffic:'tr', inner:'ir', twowheeler:'tw' };
+  const msgMap    = { shortest:'Finding shortest path…', traffic:'Checking live traffic…', inner:'Finding inner road route…', twowheeler:'Optimizing two-wheeler route…' };
   setStatus(msgMap[mode], statusMap[mode]);
 
   try {
     if (mode === 'shortest') await doShortest();
     else if (mode === 'traffic') await doTraffic();
-    else await doInner();
+    else if (mode === 'inner') await doInner();
+    else await doTwoWheeler();
   } catch(e) {
     setStatus(`Error: ${e.message}`, 'err');
   } finally {
@@ -409,6 +463,40 @@ async function doInner() {
   document.getElementById('ip-dist').textContent  = `${data.distance_km} km`;
   document.getElementById('ip-wpts').textContent  = `${data.waypoints_used} waypoints`;
   document.getElementById('inner-panel').style.display = 'block';
+}
+
+async function doTwoWheeler() {
+  const params = new URLSearchParams({
+    from_lat: fromCoords.lat,
+    from_lng: fromCoords.lng,
+    to_lat: toCoords.lat,
+    to_lng: toCoords.lng,
+    main_road_penalty: readNumberInput('tw-main', 1.35),
+    inner_road_multiplier: readNumberInput('tw-inner', 0.95),
+    service_multiplier: readNumberInput('tw-service', 0.9),
+    segment_km: readNumberInput('tw-segment', 3),
+  });
+  const url = `${API}/two-wheeler-route?${params.toString()}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+
+  drawRoute(data.path, '#60a5fa', 'rgba(96,165,250,0.15)');
+  setStat('val-dist', `${data.distance_km} km`, 't', true);
+  setStat('val-time', `${data.weighted_cost.toFixed(0)} score`, 't', true);
+  setStatus(`${data.distance_km} km · ${data.best_strategy}`, 'tw');
+
+  const panel = document.getElementById('route-panel');
+  const head = panel.querySelector('.rp-head');
+  const list = document.getElementById('rp-list');
+  head.textContent = 'Route candidates';
+  list.innerHTML = '';
+  data.candidate_routes.forEach(route => {
+    const el = document.createElement('div');
+    el.className = 'rp-route';
+    el.innerHTML = `<div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}</div><div class="rp-meta"><span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' score' : 'n/a'}</span><span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span></div>`;
+    list.appendChild(el);
+  });
+  panel.style.display = 'block';
 }
 
 function drawRoute(path, color, haloColor) {
@@ -465,6 +553,7 @@ function reset() {
   setStat('val-time','','t',false);
   setStatus('Ready','');
   document.getElementById('inner-panel').style.display = 'none';
+  document.getElementById('two-wheel-controls').classList.remove('on');
   document.getElementById('hint').classList.remove('gone');
 }
 </script>
