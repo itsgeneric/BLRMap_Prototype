@@ -283,7 +283,49 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
     return candidates
 
 def route_nodes_to_coords(graph, route):
-    return [[graph.nodes[node]['y'], graph.nodes[node]['x']] for node in route]
+    """Convert route nodes to coordinates, using edge geometry for road-snapped paths."""
+    if not route:
+        return []
+    if len(route) == 1:
+        return [[graph.nodes[route[0]]['y'], graph.nodes[route[0]]['x']]]
+
+    coords = []
+    for i in range(len(route) - 1):
+        u, v = route[i], route[i + 1]
+        if v in graph[u]:
+            edge_data = min(graph[u][v].values(), key=lambda d: float(d.get('length', 1.0)))
+            geom = edge_data.get('geometry')
+            if geom is not None:
+                # Use the full road geometry from the edge
+                geom_coords = list(geom.coords)
+                # Check if geometry direction matches u -> v traversal
+                u_xy = (graph.nodes[u]['x'], graph.nodes[u]['y'])
+                first_pt = geom_coords[0]
+                last_pt = geom_coords[-1]
+                dist_to_first = (u_xy[0] - first_pt[0])**2 + (u_xy[1] - first_pt[1])**2
+                dist_to_last = (u_xy[0] - last_pt[0])**2 + (u_xy[1] - last_pt[1])**2
+                if dist_to_last < dist_to_first:
+                    geom_coords = geom_coords[::-1]
+                # Add all geometry points (lng, lat -> [lat, lng])
+                for lng, lat in geom_coords:
+                    point = [lat, lng]
+                    if not coords or coords[-1] != point:
+                        coords.append(point)
+            else:
+                # No geometry — straight line between nodes
+                point = [graph.nodes[u]['y'], graph.nodes[u]['x']]
+                if not coords or coords[-1] != point:
+                    coords.append(point)
+        else:
+            # Edge not found — add source node
+            point = [graph.nodes[u]['y'], graph.nodes[u]['x']]
+            if not coords or coords[-1] != point:
+                coords.append(point)
+    # Always add the last node
+    last_point = [graph.nodes[route[-1]]['y'], graph.nodes[route[-1]]['x']]
+    if not coords or coords[-1] != last_point:
+        coords.append(last_point)
+    return coords
 
 def route_length_m(graph, route):
     return calc_route_distance(graph, route)
@@ -317,6 +359,10 @@ def root():
 
 @app.get("/search")
 async def search_places(q: str):
+    # Use Nominatim (free, no API key) when Google key is not available
+    if not GOOGLE_KEY:
+        return await _search_nominatim(q)
+
     params = {
         "input": q, "key": GOOGLE_KEY,
         "components": "country:in",
@@ -344,6 +390,48 @@ async def search_places(q: str):
             })
     return {"results": results}
 
+async def _search_nominatim(q: str):
+    """Fallback search using OpenStreetMap Nominatim (no API key needed)."""
+    search_query = q.strip()
+    # Append Bengaluru if not already mentioned to bias results locally
+    q_lower = search_query.lower()
+    if "bengaluru" not in q_lower and "bangalore" not in q_lower and "blr" not in q_lower:
+        search_query = f"{search_query}, Bengaluru"
+
+    params = {
+        "q": search_query,
+        "format": "json",
+        "addressdetails": 1,
+        "limit": 5,
+        "viewbox": "77.4,13.1,77.8,12.8",  # Bengaluru bounding box
+        "bounded": 0,  # prefer but don't restrict to viewbox
+    }
+    headers = {"User-Agent": "BLR-Router/1.0"}
+    results = []
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params=params, headers=headers, timeout=10.0,
+            )
+            data = res.json()
+
+        for place in data:
+            lat = float(place.get("lat", 0))
+            lng = float(place.get("lon", 0))
+            name = place.get("display_name", "").split(",")[0]
+            address = place.get("display_name", "")
+            results.append({
+                "name": name,
+                "address": address,
+                "lat": lat,
+                "lng": lng,
+            })
+    except Exception as e:
+        print(f"Nominatim search error: {e}")
+
+    return {"results": results}
+
 @app.get("/route")
 def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
     print(f"Shortest: ({from_lat},{from_lng}) -> ({to_lat},{to_lng})")
@@ -351,7 +439,7 @@ def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
         start = ox.nearest_nodes(G, from_lng, from_lat)
         end   = ox.nearest_nodes(G, to_lng, to_lat)
         route = astar_on_graph(G, start, end)
-        coords = [[G.nodes[n]['y'], G.nodes[n]['x']] for n in route]
+        coords = route_nodes_to_coords(G, route)
         dist = calc_route_distance(G, route)
         print(f"  Done: {dist/1000:.2f}km")
         return {"status": "success", "path": coords,
@@ -405,7 +493,7 @@ def get_inner_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         if len(full_route) < 2:
             return {"status": "error", "message": "Could not find inner road path."}
 
-        coords = [[G.nodes[n]['y'], G.nodes[n]['x']] for n in full_route]
+        coords = route_nodes_to_coords(G, full_route)
         print(f"  Done: {len(coords)} pts, {total_dist/1000:.2f}km")
         return {
             "status": "success", "path": coords,
