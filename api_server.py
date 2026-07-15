@@ -4,11 +4,15 @@ import osmnx as ox
 import networkx as nx
 import os
 import httpx
+import asyncio
 from dotenv import load_dotenv
 import math
 
 load_dotenv()
 GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
+# Routes API (live traffic) uses the Maps key, falls back to the Places key if unset
+ROUTES_KEY = os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_KEY
+ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
 app = FastAPI()
 app.add_middleware(
@@ -67,6 +71,28 @@ def haversine_m(lat1, lng1, lat2, lng2):
     dlam = math.radians(lng2 - lng1)
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlam/2)**2
     return R * 2 * math.asin(math.sqrt(a))
+
+def _bearing_deg(lat1, lng1, lat2, lng2):
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dlam = math.radians(lng2 - lng1)
+    x = math.sin(dlam) * math.cos(phi2)
+    y = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlam)
+    return (math.degrees(math.atan2(x, y)) + 360) % 360
+
+def _destination_point(lat, lng, bearing_deg, distance_m):
+    R = 6371000.0
+    phi1 = math.radians(lat)
+    lam1 = math.radians(lng)
+    theta = math.radians(bearing_deg)
+    ang_dist = distance_m / R
+    phi2 = math.asin(
+        math.sin(phi1) * math.cos(ang_dist) + math.cos(phi1) * math.sin(ang_dist) * math.cos(theta)
+    )
+    lam2 = lam1 + math.atan2(
+        math.sin(theta) * math.sin(ang_dist) * math.cos(phi1),
+        math.cos(ang_dist) - math.sin(phi1) * math.sin(phi2)
+    )
+    return math.degrees(phi2), math.degrees(lam2)
 
 def interpolate_waypoints(lat1, lng1, lat2, lng2, segment_km):
     total_km = haversine_m(lat1, lng1, lat2, lng2) / 1000
@@ -179,6 +205,25 @@ def _line_split_points(from_lat, from_lng, to_lat, to_lng, fractions):
         for fraction in fractions
     ]
 
+def _offset_split_points(from_lat, from_lng, to_lat, to_lng, fractions, offsets_m=(150, 300)):
+    """
+    Generate split candidate points offset perpendicular to the direct line,
+    on both sides, at a couple of distances. Plain points on the straight
+    line almost always snap to whatever node is already on the optimal
+    corridor (Bengaluru's grid is dense), which just reproduces the direct
+    route. Offsetting sideways is what actually lands on a parallel inner
+    road, giving the algorithm a genuinely different candidate to score.
+    """
+    bearing = _bearing_deg(from_lat, from_lng, to_lat, to_lng)
+    points = []
+    for fraction in fractions:
+        base_lat, base_lng = _line_split_points(from_lat, from_lng, to_lat, to_lng, [fraction])[0]
+        for offset_m in offsets_m:
+            for side_bearing in (bearing + 90, bearing - 90):
+                pt_lat, pt_lng = _destination_point(base_lat, base_lng, side_bearing, offset_m)
+                points.append((pt_lat, pt_lng))
+    return points
+
 def _derive_split_fractions(straight_line_km, segment_km):
     if straight_line_km <= segment_km:
         return ()
@@ -221,6 +266,8 @@ def _graph_aware_split_nodes(graph, route, split_fractions):
 
     return _dedupe_nodes(candidate_nodes)
 
+DETOUR_TOLERANCE = 1.20  # reject split candidates more than 20% longer than direct
+
 def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, split_fractions=DEFAULT_ROUTE_SPLIT_FRACTIONS, penalties=None):
     direct_start = ox.nearest_nodes(graph, from_lng, from_lat)
     direct_end = ox.nearest_nodes(graph, to_lng, to_lat)
@@ -242,16 +289,25 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
             'error': str(exc),
         })
 
+    # distance baseline for sanity-checking split candidates
+    direct_length = None
+    if candidates and candidates[0]['nodes']:
+        direct_length = route_length_m(graph, candidates[0]['nodes'])
+
     graph_aware_nodes = []
     if candidates and candidates[0]['nodes']:
         graph_aware_nodes = _graph_aware_split_nodes(graph, candidates[0]['nodes'], split_fractions)
 
-    fallback_nodes = []
-    for fraction in split_fractions:
-        split_lat, split_lng = _line_split_points(from_lat, from_lng, to_lat, to_lng, [fraction])[0]
-        fallback_nodes.append(ox.nearest_nodes(graph, split_lng, split_lat))
+    # Offset points (parallel inner roads) are what actually produce a
+    # genuinely different candidate — see _offset_split_points().
+    offset_points = _offset_split_points(from_lat, from_lng, to_lat, to_lng, split_fractions)
+    fallback_nodes = [ox.nearest_nodes(graph, lng, lat) for lat, lng in offset_points]
 
     split_nodes = _dedupe_nodes(graph_aware_nodes + fallback_nodes)
+
+    seen_paths = set()
+    if candidates and candidates[0]['nodes']:
+        seen_paths.add(tuple(candidates[0]['nodes']))
 
     for split_node in split_nodes:
         split_fraction = None
@@ -262,6 +318,22 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
             first_leg = two_wheeler_astar(graph, direct_start, split_node, penalties=penalties)
             second_leg = two_wheeler_astar(graph, split_node, direct_end, penalties=penalties)
             stitched = _dedupe_nodes(first_leg + second_leg[1:])
+
+            # Skip candidates that turned out identical (or near-identical)
+            # to the direct route or to another candidate already found —
+            # these are redundant, not real alternatives, and just burn
+            # extra traffic-API calls without giving the user any real choice.
+            stitched_key = tuple(stitched)
+            if stitched_key in seen_paths:
+                continue
+            seen_paths.add(stitched_key)
+
+            # NEW: reject geometrically bad stitches (zigzags / pointless detours)
+            if direct_length:
+                stitched_length = route_length_m(graph, stitched)
+                if stitched_length > direct_length * DETOUR_TOLERANCE:
+                    continue
+
             candidates.append({
                 'strategy': 'graph_split' if split_fraction is not None else 'line_split',
                 'nodes': stitched,
@@ -283,52 +355,77 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
     return candidates
 
 def route_nodes_to_coords(graph, route):
-    """Convert route nodes to coordinates, using edge geometry for road-snapped paths."""
+    """
+    Build the coordinate path for the frontend, following each edge's real
+    road geometry (when OSM provides it) instead of drawing a straight line
+    from node to node — straight node-to-node lines are what was causing
+    the drawn route to cut across buildings on curved/long roads.
+    """
     if not route:
         return []
-    if len(route) == 1:
-        return [[graph.nodes[route[0]]['y'], graph.nodes[route[0]]['x']]]
-
-    coords = []
+    coords = [[graph.nodes[route[0]]['y'], graph.nodes[route[0]]['x']]]
     for i in range(len(route) - 1):
-        u, v = route[i], route[i + 1]
-        if v in graph[u]:
-            edge_data = min(graph[u][v].values(), key=lambda d: float(d.get('length', 1.0)))
-            geom = edge_data.get('geometry')
-            if geom is not None:
-                # Use the full road geometry from the edge
-                geom_coords = list(geom.coords)
-                # Check if geometry direction matches u -> v traversal
-                u_xy = (graph.nodes[u]['x'], graph.nodes[u]['y'])
-                first_pt = geom_coords[0]
-                last_pt = geom_coords[-1]
-                dist_to_first = (u_xy[0] - first_pt[0])**2 + (u_xy[1] - first_pt[1])**2
-                dist_to_last = (u_xy[0] - last_pt[0])**2 + (u_xy[1] - last_pt[1])**2
-                if dist_to_last < dist_to_first:
-                    geom_coords = geom_coords[::-1]
-                # Add all geometry points (lng, lat -> [lat, lng])
-                for lng, lat in geom_coords:
-                    point = [lat, lng]
-                    if not coords or coords[-1] != point:
-                        coords.append(point)
-            else:
-                # No geometry — straight line between nodes
-                point = [graph.nodes[u]['y'], graph.nodes[u]['x']]
-                if not coords or coords[-1] != point:
-                    coords.append(point)
+        a, b = route[i], route[i + 1]
+        if b not in graph[a]:
+            coords.append([graph.nodes[b]['y'], graph.nodes[b]['x']])
+            continue
+        edge_data = min(graph[a][b].values(), key=lambda d: float(d.get('length', 1.0)))
+        geom = edge_data.get('geometry')
+        if geom is not None and hasattr(geom, 'coords'):
+            pts = [[lat, lng] for lng, lat in geom.coords]
+            # geometry may run start->end or end->start depending on OSM way direction
+            start_pt = [graph.nodes[a]['y'], graph.nodes[a]['x']]
+            if pts and haversine_m(pts[0][0], pts[0][1], start_pt[0], start_pt[1]) > \
+                       haversine_m(pts[-1][0], pts[-1][1], start_pt[0], start_pt[1]):
+                pts = pts[::-1]
+            coords.extend(pts[1:] if pts and pts[0] == coords[-1] else pts)
         else:
-            # Edge not found — add source node
-            point = [graph.nodes[u]['y'], graph.nodes[u]['x']]
-            if not coords or coords[-1] != point:
-                coords.append(point)
-    # Always add the last node
-    last_point = [graph.nodes[route[-1]]['y'], graph.nodes[route[-1]]['x']]
-    if not coords or coords[-1] != last_point:
-        coords.append(last_point)
+            coords.append([graph.nodes[b]['y'], graph.nodes[b]['x']])
     return coords
 
 def route_length_m(graph, route):
     return calc_route_distance(graph, route)
+
+async def fetch_traffic_duration(client, from_lat, from_lng, to_lat, to_lng, waypoint=None):
+    """
+    Ask Google Routes API for the REAL, live, traffic-aware travel time
+    (TWO_WHEELER mode) for a given path. If `waypoint` is given, the route is
+    forced through that point — this is how we get a real duration for one
+    of our own split/inner-road candidates instead of only the direct route.
+    Returns seconds (float) or None if the call fails / key missing.
+    """
+    if not ROUTES_KEY:
+        return None
+
+    body = {
+        "origin": {"location": {"latLng": {"latitude": from_lat, "longitude": from_lng}}},
+        "destination": {"location": {"latLng": {"latitude": to_lat, "longitude": to_lng}}},
+        "travelMode": "TWO_WHEELER",
+        "routingPreference": "TRAFFIC_AWARE",
+    }
+    if waypoint is not None:
+        wp_lat, wp_lng = waypoint
+        body["intermediates"] = [{"location": {"latLng": {"latitude": wp_lat, "longitude": wp_lng}}}]
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": ROUTES_KEY,
+        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters",
+    }
+    try:
+        res = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=8.0)
+        data = res.json()
+        routes = data.get("routes")
+        if not routes:
+            print(f"  Routes API returned no route: {data}")
+            return None
+        duration_str = routes[0].get("duration", "")
+        if not duration_str:
+            return None
+        return float(duration_str.rstrip("s"))
+    except Exception as exc:
+        print(f"  Routes API call failed: {exc}")
+        return None
 
 def calc_route_distance(graph, route):
     total = 0.0
@@ -345,6 +442,35 @@ G = ox.load_graphml("bengaluru_roads_full.graphml")
 for u, v, key, data in G.edges(keys=True, data=True):
     data['length'] = float(data.get('length', 1.0))
 print(f"Loaded graph with {len(G.nodes):,} nodes and {len(G.edges):,} edges")
+
+# Remove suspiciously long inner road edges (likely OSM errors / phantom roads)
+MAX_EDGE_LENGTH = {
+    'residential':   250,
+    'living_street': 200,
+    'service':       200,
+    'unclassified':  400,
+    'tertiary':      600,
+}
+edges_to_remove = []
+for u, v, k, data in G.edges(keys=True, data=True):
+    hw = data.get('highway', '')
+    if isinstance(hw, list):
+        hw = hw[0]
+    max_len = MAX_EDGE_LENGTH.get(hw)
+    if max_len and float(data.get('length', 0)) > max_len:
+        edges_to_remove.append((u, v, k))
+G.remove_edges_from(edges_to_remove)
+print(f"Removed {len(edges_to_remove)} suspicious long edges")
+
+# Keep only the largest strongly connected component. Routing into a node that
+# sits in a small disconnected pocket is exactly what caused routes to "get
+# stuck" and never reach the destination, especially heading south where
+# OSM data has gaps/one-way mismatches that split the graph.
+before_nodes, before_edges = len(G.nodes), len(G.edges)
+largest_cc_nodes = max(nx.strongly_connected_components(G), key=len)
+G = G.subgraph(largest_cc_nodes).copy()
+print(f"Kept largest connected component: {len(G.nodes):,}/{before_nodes:,} nodes, "
+      f"{len(G.edges):,}/{before_edges:,} edges")
 
 print("Building inner road subgraph...")
 G_inner = G.edge_subgraph(
@@ -541,7 +667,7 @@ async def traffic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
     return {"status": "success", "routes": routes, "fastest": routes[0]}
 
 @app.get("/two-wheeler-route")
-def two_wheeler_route(
+async def two_wheeler_route(
     from_lat: float,
     from_lng: float,
     to_lat: float,
@@ -563,10 +689,43 @@ def two_wheeler_route(
         straight_line_km = haversine_m(from_lat, from_lng, to_lat, to_lng) / 1000
         split_fractions = _derive_split_fractions(straight_line_km, segment_km)
         candidates = build_split_route_candidates(G, from_lat, from_lng, to_lat, to_lng, split_fractions=split_fractions, penalties=penalties)
-        best = next((candidate for candidate in candidates if candidate["nodes"]), candidates[0])
 
-        if not best["nodes"]:
+        scoreable = [c for c in candidates if c["nodes"]]
+        if not scoreable:
             return {"status": "error", "message": "Could not find a two-wheeler route."}
+
+        # ── Live traffic scoring ──────────────────────────────
+        # Your penalty/split logic above already generated and filtered the
+        # candidates. Now, instead of picking the winner by static weighted
+        # cost, ask Google for the REAL current traffic-aware duration of
+        # each surviving candidate and pick whichever is actually fastest
+        # right now. Static cost is only used as a fallback if the API
+        # is unreachable.
+        async with httpx.AsyncClient() as client:
+            tasks = []
+            for candidate in scoreable:
+                nodes = candidate["nodes"]
+                if candidate["strategy"] == "direct":
+                    waypoint = None
+                else:
+                    mid_node = nodes[len(nodes) // 2]
+                    waypoint = (G.nodes[mid_node]['y'], G.nodes[mid_node]['x'])
+                tasks.append(fetch_traffic_duration(client, from_lat, from_lng, to_lat, to_lng, waypoint=waypoint))
+            traffic_seconds_list = await asyncio.gather(*tasks)
+
+        for candidate, secs in zip(scoreable, traffic_seconds_list):
+            candidate["traffic_seconds"] = secs
+
+        timed_candidates = [c for c in scoreable if c["traffic_seconds"] is not None]
+        if timed_candidates:
+            timed_candidates.sort(key=lambda c: c["traffic_seconds"])
+            best = timed_candidates[0]
+            selection_method = "live_traffic"
+        else:
+            print("  Live traffic unavailable for all candidates, falling back to static cost")
+            scoreable.sort(key=lambda c: c["cost"])
+            best = scoreable[0]
+            selection_method = "static_cost_fallback"
 
         coords = route_nodes_to_coords(G, best["nodes"])
         response_candidates = []
@@ -574,6 +733,7 @@ def two_wheeler_route(
             candidate_nodes = candidate.get("nodes", [])
             candidate_length = route_length_m(G, candidate_nodes) if candidate_nodes else None
             candidate_weighted_cost = path_cost(G, candidate_nodes, penalties=penalties) if candidate_nodes else None
+            traffic_secs = candidate.get("traffic_seconds")
             response_candidates.append({
                 "strategy": candidate["strategy"],
                 "cost": round(candidate["cost"], 2) if candidate["cost"] != float("inf") else None,
@@ -583,19 +743,26 @@ def two_wheeler_route(
                 "distance_meters": round(candidate_length, 2) if candidate_length is not None else None,
                 "distance_km": round(candidate_length / 1000, 2) if candidate_length is not None else None,
                 "weighted_cost": round(candidate_weighted_cost, 2) if candidate_weighted_cost is not None else None,
+                "traffic_seconds": round(traffic_secs, 1) if traffic_secs is not None else None,
+                "traffic_minutes": round(traffic_secs / 60, 1) if traffic_secs is not None else None,
                 "error": candidate.get("error"),
             })
 
-        print(f"  Best: {best['strategy']} cost={best['cost']:.2f}")
+        print(f"  Best: {best['strategy']} via={selection_method} "
+              f"traffic_s={best.get('traffic_seconds')} cost={best['cost']:.2f}")
         route_length = route_length_m(G, best["nodes"])
         route_score = path_cost(G, best["nodes"], penalties=penalties)
+        best_traffic_seconds = best.get("traffic_seconds")
         return {
             "status": "success",
             "best_strategy": best["strategy"],
+            "selection_method": selection_method,
             "path": coords,
             "distance_meters": round(route_length, 2),
             "distance_km": round(route_length / 1000, 2),
             "weighted_cost": round(route_score, 2),
+            "traffic_seconds": round(best_traffic_seconds, 1) if best_traffic_seconds is not None else None,
+            "traffic_minutes": round(best_traffic_seconds / 60, 1) if best_traffic_seconds is not None else None,
             "penalties": {
                 "main_road_penalty": main_road_penalty,
                 "inner_road_multiplier": inner_road_multiplier,

@@ -137,6 +137,8 @@
     .rp-meta { display: flex; gap: 10px; }
     .rp-time { font-family: var(--mono); font-size: 12px; color: var(--traffic); font-weight: 500; }
     .rp-dist { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .rp-traffic { font-family: var(--mono); font-size: 11px; color: #34d399; font-weight: 500; }
+    .rp-route.selected { background: rgba(52,211,153,0.06); border-radius: 6px; padding-left: 6px; padding-right: 6px; }
     .rp-route.selected .rp-via { color: var(--traffic); }
 
     /* Inner road info panel */
@@ -205,7 +207,7 @@
     <div id="two-wheel-controls">
       <div class="tw-field"><span class="tw-label">Main x</span><input id="tw-main" type="number" min="1" step="0.1" value="1.35"/></div>
       <div class="tw-field"><span class="tw-label">Inner x</span><input id="tw-inner" type="number" min="0.5" step="0.05" value="0.95"/></div>
-      <div class="tw-field"><span class="tw-label">Service x</span><input id="tw-service" type="number" min="0.5" step="0.05" value="0.9"/></div>
+      <div class="tw-field"><span class="tw-label">Service x</span><input id="tw-service" type="number" min="0.5" step="0.05" value="1.2"/></div>
       <div class="tw-slider">
         <div class="tw-slider-row">
           <span class="tw-label">Segment km</span>
@@ -473,7 +475,7 @@ async function doTwoWheeler() {
     to_lng: toCoords.lng,
     main_road_penalty: readNumberInput('tw-main', 1.35),
     inner_road_multiplier: readNumberInput('tw-inner', 0.95),
-    service_multiplier: readNumberInput('tw-service', 0.9),
+    service_multiplier: readNumberInput('tw-service', 1.2),
     segment_km: readNumberInput('tw-segment', 3),
   });
   const url = `${API}/two-wheeler-route?${params.toString()}`;
@@ -482,8 +484,18 @@ async function doTwoWheeler() {
 
   drawRoute(data.path, '#60a5fa', 'rgba(96,165,250,0.15)');
   setStat('val-dist', `${data.distance_km} km`, 't', true);
-  setStat('val-time', `${data.weighted_cost.toFixed(0)} score`, 't', true);
-  setStatus(`${data.distance_km} km · ${data.best_strategy}`, 'tw');
+  setStat(
+    'val-time',
+    data.traffic_minutes !== null && data.traffic_minutes !== undefined
+      ? `${data.traffic_minutes} min` : `${data.weighted_cost.toFixed(0)} score`,
+    't', true
+  );
+  setStatus(
+    `${data.distance_km} km · ${data.best_strategy}` +
+    (data.traffic_minutes !== null && data.traffic_minutes !== undefined
+      ? ` · ${data.traffic_minutes} min live` : ''),
+    'tw'
+  );
 
   const panel = document.getElementById('route-panel');
   const head = panel.querySelector('.rp-head');
@@ -492,8 +504,10 @@ async function doTwoWheeler() {
   list.innerHTML = '';
   data.candidate_routes.forEach(route => {
     const el = document.createElement('div');
-    el.className = 'rp-route';
-    el.innerHTML = `<div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}</div><div class="rp-meta"><span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' score' : 'n/a'}</span><span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span></div>`;
+    const isSelected = route.strategy === data.best_strategy &&
+      route.traffic_seconds === data.traffic_seconds;
+    el.className = 'rp-route' + (isSelected ? ' selected' : '');
+    el.innerHTML = `<div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}${isSelected ? ' · picked (live traffic)' : ''}</div><div class="rp-meta"><span class="rp-traffic">${route.traffic_minutes !== null && route.traffic_minutes !== undefined ? route.traffic_minutes + ' min live' : 'n/a'}</span><span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' score' : 'n/a'}</span><span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span></div>`;
     list.appendChild(el);
   });
   panel.style.display = 'block';

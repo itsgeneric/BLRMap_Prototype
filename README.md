@@ -100,10 +100,13 @@ The two-wheeler mode also exposes tuning controls for:
 
 ## Current Run Steps
 
+
+0. pip install geopandas shapely --break-system-packages
 1. Install dependencies:
 
    ```bash
    pip install osmnx networkx fastapi uvicorn geopandas httpx python-dotenv
+
    ```
 
 2. Make sure `bengaluru_roads_full.graphml` exists.
@@ -144,3 +147,9 @@ The implementation is intentionally experimental. The important part is that the
 - `api_server.py` is the main algorithm file.
 - `router.py` and the debug scripts are legacy helpers.
 - The current two-wheeler logic is still a work in progress and will likely need tuning on real Bengaluru origin-destination pairs.
+
+
+
+
+
+
