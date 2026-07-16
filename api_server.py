@@ -355,32 +355,6 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
     return candidates
 
 def route_nodes_to_coords(graph, route):
-    """
-    Build the coordinate path for the frontend, following each edge's real
-    road geometry (when OSM provides it) instead of drawing a straight line
-    from node to node — straight node-to-node lines are what was causing
-    the drawn route to cut across buildings on curved/long roads.
-    """
-    if not route:
-        return []
-    coords = [[graph.nodes[route[0]]['y'], graph.nodes[route[0]]['x']]]
-    for i in range(len(route) - 1):
-        a, b = route[i], route[i + 1]
-        if b not in graph[a]:
-            coords.append([graph.nodes[b]['y'], graph.nodes[b]['x']])
-            continue
-        edge_data = min(graph[a][b].values(), key=lambda d: float(d.get('length', 1.0)))
-        geom = edge_data.get('geometry')
-        if geom is not None and hasattr(geom, 'coords'):
-            pts = [[lat, lng] for lng, lat in geom.coords]
-            # geometry may run start->end or end->start depending on OSM way direction
-            start_pt = [graph.nodes[a]['y'], graph.nodes[a]['x']]
-            if pts and haversine_m(pts[0][0], pts[0][1], start_pt[0], start_pt[1]) > \
-                       haversine_m(pts[-1][0], pts[-1][1], start_pt[0], start_pt[1]):
-                pts = pts[::-1]
-            coords.extend(pts[1:] if pts and pts[0] == coords[-1] else pts)
-        else:
-            coords.append([graph.nodes[b]['y'], graph.nodes[b]['x']])
     return coords
 
 def route_length_m(graph, route):
