@@ -355,7 +355,7 @@ def build_split_route_candidates(graph, from_lat, from_lng, to_lat, to_lng, spli
     return candidates
 
 def route_nodes_to_coords(graph, route):
-    return coords
+    return [[graph.nodes[node]['y'], graph.nodes[node]['x']] for node in route]
 
 def route_length_m(graph, route):
     return calc_route_distance(graph, route)
@@ -388,6 +388,7 @@ async def fetch_traffic_duration(client, from_lat, from_lng, to_lat, to_lng, way
     }
     try:
         res = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=8.0)
+        res.raise_for_status()  # <--- Added this to catch 400/403/429/500 errors
         data = res.json()
         routes = data.get("routes")
         if not routes:
@@ -397,8 +398,12 @@ async def fetch_traffic_duration(client, from_lat, from_lng, to_lat, to_lng, way
         if not duration_str:
             return None
         return float(duration_str.rstrip("s"))
+    except httpx.HTTPStatusError as exc:
+        print(f"  Routes API HTTP Error: {exc.response.status_code} - {exc.response.text}")
+        return None
     except Exception as exc:
-        print(f"  Routes API call failed: {exc}")
+        # repr(exc) will show 'ReadTimeout()' instead of a blank string
+        print(f"  Routes API call failed: {type(exc).__name__} - {repr(exc)}")
         return None
 
 def calc_route_distance(graph, route):
@@ -457,6 +462,7 @@ print(f"Inner road subgraph: {len(G_inner.nodes):,} nodes, {len(G_inner.edges):,
 def root():
     return {"message": "Bengaluru Router API"}
 
+
 @app.get("/search")
 async def search_places(q: str):
     # Use Nominatim (free, no API key) when Google key is not available
@@ -469,25 +475,45 @@ async def search_places(q: str):
         "location": "12.9716,77.5946",
         "radius": 50000, "language": "en"
     }
-    async with httpx.AsyncClient() as client:
-        res  = await client.get("https://maps.googleapis.com/maps/api/place/autocomplete/json", params=params)
-        data = res.json()
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.get("https://maps.googleapis.com/maps/api/place/autocomplete/json", params=params)
+            res.raise_for_status()
+            data = res.json()
+    except httpx.RequestError as exc:
+        print(f"Google Places Autocomplete API failed: {exc}")
+        return {"status": "error", "message": "Failed to connect to Google Places API."}
+    except Exception as e:
+        print(f"Unexpected error in autocomplete API: {e}")
+        return {"status": "error", "message": str(e)}
 
     results = []
     for prediction in data.get("predictions", [])[:5]:
-        async with httpx.AsyncClient() as c2:
-            det = await c2.get("https://maps.googleapis.com/maps/api/place/details/json", params={
-                "place_id": prediction["place_id"], "key": GOOGLE_KEY,
-                "fields": "name,formatted_address,geometry"
-            })
-            details = det.json().get("result", {})
-        if "geometry" in details:
-            results.append({
-                "name":    details.get("name", prediction["structured_formatting"]["main_text"]),
-                "address": details.get("formatted_address", ""),
-                "lat":     details["geometry"]["location"]["lat"],
-                "lng":     details["geometry"]["location"]["lng"],
-            })
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as c2:
+                det = await c2.get("https://maps.googleapis.com/maps/api/place/details/json", params={
+                    "place_id": prediction["place_id"], "key": GOOGLE_KEY,
+                    "fields": "name,formatted_address,geometry"
+                })
+                det.raise_for_status()
+                details = det.json().get("result", {})
+
+            if "geometry" in details:
+                results.append({
+                    "name": details.get("name", prediction["structured_formatting"]["main_text"]),
+                    "address": details.get("formatted_address", ""),
+                    "lat": details["geometry"]["location"]["lat"],
+                    "lng": details["geometry"]["location"]["lng"],
+                })
+        except httpx.RequestError as exc:
+            print(f"Google Places Details API failed for place {prediction.get('place_id')}: {exc}")
+            # If one detail fetch fails due to a timeout, we skip it and try to fetch the others
+            continue
+        except Exception as e:
+            print(f"Unexpected error fetching details for {prediction.get('place_id')}: {e}")
+            continue
+
     return {"results": results}
 
 async def _search_nominatim(q: str):
@@ -676,6 +702,13 @@ async def two_wheeler_route(
         # right now. Static cost is only used as a fallback if the API
         # is unreachable.
         async with httpx.AsyncClient() as client:
+            # Limit to 5 concurrent requests to Google Routes API
+            semaphore = asyncio.Semaphore(5)
+
+            async def sem_fetch(*args, **kwargs):
+                async with semaphore:
+                    return await fetch_traffic_duration(*args, **kwargs)
+
             tasks = []
             for candidate in scoreable:
                 nodes = candidate["nodes"]
@@ -684,7 +717,10 @@ async def two_wheeler_route(
                 else:
                     mid_node = nodes[len(nodes) // 2]
                     waypoint = (G.nodes[mid_node]['y'], G.nodes[mid_node]['x'])
-                tasks.append(fetch_traffic_duration(client, from_lat, from_lng, to_lat, to_lng, waypoint=waypoint))
+
+                # Call our semaphore-wrapped function
+                tasks.append(sem_fetch(client, from_lat, from_lng, to_lat, to_lng, waypoint=waypoint))
+
             traffic_seconds_list = await asyncio.gather(*tasks)
 
         for candidate, secs in zip(scoreable, traffic_seconds_list):

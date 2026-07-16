@@ -29,8 +29,17 @@ print()
 
 # ── Step 1: Configure OSMnx ──────────────────────────────
 ox.settings.log_console = True
-ox.settings.use_cache   = True   # caches OSM responses so re-runs are faster
+ox.settings.use_cache   = True
 
+# ADD THESE TWO LINES:
+ox.settings.timeout = 600             # Increase server timeout to 10 minutes
+ox.settings.max_query_area_size = 5e7 # Force chunks to be 50 sq km (default is 2500 sq km)
+# ox.settings.overpass_endpoint = "https://overpass-api.de/api"             # 1. Default (Germany - usually busiest)
+# ox.settings.overpass_endpoint = "https://z.overpass-api.de/api"           # 2. Main Fallback (Germany)
+# ox.settings.overpass_endpoint = "https://lz4.overpass-api.de/api"         # 3. Secondary Fallback (Germany)
+ox.settings.overpass_endpoint = "https://overpass.kumi.systems/api"       # 4. Kumi Systems (Taiwan - very fast)
+# ox.settings.overpass_endpoint = "https://overpass.openstreetmap.fr/api"   # 5. OSM France
+# ox.settings.overpass_endpoint = "https://overpass.openstreetmap.ru/api"   # 6. OSM Russia
 # ── Step 2: Define what roads to include ─────────────────
 # This includes EVERY road type:
 # motorway, trunk, primary    → big highways
