@@ -1,10 +1,21 @@
 """
 download_graph_full.py
-Downloads ALL road types for Bengaluru including inner roads,
+Downloads ALL road types for Greater Bengaluru including inner roads,
 residential lanes, service roads, cross-roads etc.
 
-Run once — saves to bengaluru_roads_full.graphml
-Takes 5-15 minutes depending on your internet speed.
+UPDATED: now uses a bounding box instead of "Bengaluru, India" place lookup.
+The place lookup only resolves to the BBMP municipal boundary, which
+excludes Devanahalli, Electronic City, Attibele, and other outer areas
+people actually commute to/from. The bbox below covers:
+  north  → past Devanahalli
+  south  → past Attibele
+  east   → past Seegehalli / Whitefield-KR Puram side
+  west   → past Honnaganahatti / Magadi Road side
+This roughly follows the proposed Peripheral Ring Road alignment.
+
+Run once — saves to bengaluru_roads_extended.graphml
+Takes longer than the original BBMP-only download since the area is
+much bigger — don't interrupt it.
 """
 
 import osmnx as ox
@@ -12,7 +23,7 @@ import os
 import time
 
 print("=" * 55)
-print("  Bengaluru Full Road Network Downloader")
+print("  Greater Bengaluru Full Road Network Downloader")
 print("=" * 55)
 print()
 
@@ -33,18 +44,25 @@ ROAD_FILTER = (
     '|residential|living_street|unclassified|service|road"]'
 )
 
-OUTPUT_FILE = "bengaluru_roads_full.graphml"
+# ── Bounding box (replaces the old "Bengaluru, India" place lookup) ──
+# Covers Devanahalli (N), Attibele (S), Seegehalli (E), Honnaganahatti (W)
+# with a small buffer on each side so roads AT these towns are included,
+# not just cut off at the edge.
+NORTH, SOUTH, EAST, WEST = 13.28, 12.74, 77.80, 77.38
+
+OUTPUT_FILE = "bengaluru_roads_extended.graphml"
 
 # ── Step 3: Download ──────────────────────────────────────
 print("Step 1/4 — Connecting to OpenStreetMap...")
-print("         This downloads ALL road types including inner roads.")
+print("         This downloads ALL road types including inner roads,")
+print(f"         across bbox N={NORTH} S={SOUTH} E={EAST} W={WEST}")
 print()
 
 start = time.time()
 
 try:
-    G = ox.graph_from_place(
-        "Bengaluru, India",
+    G = ox.graph_from_bbox(
+        bbox=(WEST, SOUTH, EAST, NORTH),
         custom_filter=ROAD_FILTER,
         retain_all=False,   # keep only the largest connected component
         simplify=True,      # merge straight road segments (smaller file)
@@ -81,7 +99,9 @@ try:
     print(f"  Nodes: {len(G.nodes):,}  |  Edges: {len(G.edges):,}")
     print()
     print("  Next step:")
-    print("  Update api_server.py to load bengaluru_roads_full.graphml")
+    print("  Point api_server.py's ox.load_graphml(...) at")
+    print(f"  {OUTPUT_FILE} to test coverage before replacing")
+    print("  your current bengaluru_roads_full.graphml")
     print("=" * 55)
 
 except Exception as e:
@@ -91,3 +111,6 @@ except Exception as e:
     print("  - No internet connection")
     print("  - OSM servers temporarily down (try again in a few minutes)")
     print("  - osmnx not installed: pip install osmnx")
+    print("  - bbox parameter order changed between osmnx versions —")
+    print("    check that graph_from_bbox expects (west, south, east, north)")
+    print("    for your installed osmnx version")

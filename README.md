@@ -1,3 +1,5 @@
+python download_graph_full.py
+
 # BLR Map Prototype
 
 This project experiments with Bengaluru two-wheeler routing by keeping the full road graph locally and controlling the routing logic in `api_server.py`.

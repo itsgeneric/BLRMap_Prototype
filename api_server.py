@@ -412,7 +412,7 @@ def calc_route_distance(graph, route):
 
 # ── Load graphs ───────────────────────────────────────────
 print("Loading Bengaluru road network...")
-G = ox.load_graphml("bengaluru_roads_full.graphml")
+G = ox.load_graphml("bengaluru_roads_extended.graphml")
 for u, v, key, data in G.edges(keys=True, data=True):
     data['length'] = float(data.get('length', 1.0))
 print(f"Loaded graph with {len(G.nodes):,} nodes and {len(G.edges):,} edges")
