@@ -8,7 +8,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
       --bg: #0c0c0e; --surface: #141416; --border: #1f1f23; --border2: #2a2a30;
       --text: #e2e2e6; --muted: #52525e;
@@ -16,27 +18,29 @@
       --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24; --tw: #60a5fa;
       --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
     }
+
     html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
     #shell { display: flex; flex-direction: column; height: 100vh; }
 
     #topbar {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px; background: var(--surface);
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; background: var(--surface);
       border-bottom: 1px solid var(--border); z-index: 1000; flex-shrink: 0; flex-wrap: wrap;
     }
-    .brand { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+
+    .brand { font-family: var(--mono); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
     .brand b { color: var(--shortest); }
     .divider { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
 
-    .search-group { display: flex; gap: 8px; flex: 1; min-width: 0; }
+    .search-group { display: flex; gap: 8px; flex: 1; min-width: 250px; }
     .search-wrap { position: relative; flex: 1; min-width: 0; }
     .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; z-index: 1; }
     .search-wrap.from .search-icon { background: var(--from); }
     .search-wrap.to   .search-icon { background: var(--to); }
     .search-wrap input {
       width: 100%; background: var(--bg); border: 1px solid var(--border2);
-      color: var(--text); font-family: var(--sans); font-size: 12px;
-      padding: 6px 10px 6px 26px; border-radius: 4px; outline: none; transition: border-color 0.15s;
+      color: var(--text); font-family: var(--sans); font-size: 13px;
+      padding: 7px 10px 7px 28px; border-radius: 4px; outline: none; transition: border-color 0.15s;
     }
     .search-wrap input::placeholder { color: var(--muted); }
     .search-wrap.from input:focus { border-color: var(--from); }
@@ -51,129 +55,147 @@
     .suggestion-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
     .suggestion-item:last-child { border-bottom: none; }
     .suggestion-item:hover { background: var(--border); }
-    .s-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .s-addr { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-name { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-addr { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .s-loading { font-size: 11px; color: var(--muted); padding: 12px; text-align: center; font-family: var(--mono); }
 
-    #mode-toggle { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--border2); border-radius: 5px; padding: 2px; flex-shrink: 0; }
-    .mode-btn {
-      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 4px 11px; border-radius: 3px; border: none; cursor: pointer;
-      background: transparent; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap;
+    /* --- Dropdown UI Components --- */
+    .dropdown { position: relative; display: inline-block; flex-shrink: 0; }
+    .dropdown-btn {
+      background: var(--bg); border: 1px solid var(--border2); color: var(--text);
+      padding: 6px 12px; border-radius: 4px; font-family: var(--sans); font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
     }
-    .mode-btn.act-s { background: var(--shortest); color: #0c0c0e; }
-    .mode-btn.act-t { background: var(--traffic);  color: #0c0c0e; }
-    .mode-btn.act-i { background: var(--inner);    color: #0c0c0e; }
-    .mode-btn.act-2 { background: var(--tw);       color: #0c0c0e; }
+    .dropdown-btn:hover { border-color: var(--muted); }
+    .dropdown-btn b { font-weight: 500; font-family: var(--mono); letter-spacing: 0.05em; font-size: 11px; text-transform: uppercase;}
+    .dropdown-arrow { font-size: 9px; color: var(--muted); }
 
-    #two-wheel-controls {
-      display: none; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
-      padding: 4px 0;
+    .dropdown-menu {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      min-width: 160px; z-index: 2000; display: none; flex-direction: column;
     }
-    #two-wheel-controls.on { display: flex; }
-    .tw-field {
-      display: flex; align-items: center; gap: 6px; padding: 5px 8px;
-      border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
-    }
-    .tw-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-    .tw-field input {
-      width: 62px; background: transparent; border: none; color: var(--text);
-      font-family: var(--mono); font-size: 11px; outline: none;
-    }
-    .tw-slider {
-      min-width: 160px; display: flex; flex-direction: column; gap: 4px;
-      padding: 5px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
-    }
-    .tw-slider-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-    .tw-slider-row input { width: 100%; accent-color: var(--tw); }
-    .tw-slider-value { font-family: var(--mono); font-size: 11px; color: var(--text); }
+    .dropdown.open .dropdown-menu { display: flex; }
 
-    #stats { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .dd-item {
+      padding: 10px 14px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);
+      transition: background 0.15s, color 0.15s;
+    }
+    .dd-item:last-child { border-bottom: none; }
+    .dd-item:hover:not(.active) { background: var(--border); }
+
+    /* Active Dropdown Colors */
+    .dd-item[data-mode="shortest"].active { background: var(--shortest); color: #0c0c0e; font-weight: 500; }
+    .dd-item[data-mode="traffic"].active  { background: var(--traffic);  color: #0c0c0e; font-weight: 500; }
+    .dd-item[data-mode="inner"].active    { background: var(--inner);    color: #0c0c0e; font-weight: 500; }
+    .dd-item[data-mode="twowheeler"].active { background: var(--tw);     color: #0c0c0e; font-weight: 500; }
+
+    /* 2W Options Panel */
+    .options-panel { width: 240px; padding: 14px; gap: 12px; cursor: default; }
+    .options-header { font-family: var(--mono); font-size: 10px; color: var(--tw); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 8px;}
+    .tw-field-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .tw-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+    .tw-field-row input[type="number"] {
+      width: 55px; background: var(--bg); border: 1px solid var(--border2);
+      color: var(--text); font-family: var(--mono); font-size: 11px;
+      padding: 4px 6px; border-radius: 3px; outline: none; text-align: right;
+    }
+    .tw-field-row input[type="number"]:focus { border-color: var(--tw); }
+    .tw-slider-col { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .tw-slider-col input[type="range"] { accent-color: var(--tw); width: 100%; }
+    .tw-val { color: var(--text); font-weight: 500; }
+
+    /* --- Stats & Utility --- */
+    #stats { display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin-left: auto; }
+    .stat-block { display: flex; flex-direction: column; }
+    .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
     .stat-value { font-family: var(--mono); font-size: 13px; font-weight: 500; }
     .stat-value.s { color: var(--shortest); }
     .stat-value.t { color: var(--traffic); }
     .stat-value.i { color: var(--inner); }
     .stat-value.hidden { visibility: hidden; }
 
-    #status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s; }
+    #status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s; margin-left: 4px; }
     #status-dot.on  { background: var(--shortest); box-shadow: 0 0 6px var(--shortest); }
     #status-dot.tr  { background: var(--traffic);  box-shadow: 0 0 6px var(--traffic); }
     #status-dot.ir  { background: var(--inner);    box-shadow: 0 0 6px var(--inner); }
     #status-dot.tw  { background: var(--tw);       box-shadow: 0 0 6px var(--tw); }
     #status-dot.err { background: #f87171; }
-    #status-text { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+    #status-text { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 
     #clear-btn {
       font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-      padding: 5px 12px; background: transparent; border: 1px solid var(--border2);
-      color: var(--muted); cursor: pointer; border-radius: 3px; transition: border-color 0.15s, color 0.15s; flex-shrink: 0;
+      padding: 6px 14px; background: transparent; border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer; border-radius: 4px; transition: border-color 0.15s, color 0.15s; flex-shrink: 0;
     }
     #clear-btn:hover { border-color: #f87171; color: #f87171; }
 
     #map { flex: 1; cursor: crosshair; }
 
+    /* --- Floating Panels --- */
     #legend {
       position: absolute; bottom: 28px; left: 14px; z-index: 1001;
       background: rgba(20,20,22,0.92); border: 1px solid var(--border2);
-      border-radius: 4px; padding: 10px 14px; backdrop-filter: blur(8px);
+      border-radius: 4px; padding: 12px 16px; backdrop-filter: blur(8px);
     }
-    .legend-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-family: var(--mono); font-size: 10px; color: #6b7280; }
+    .legend-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-family: var(--mono); font-size: 10px; color: #8b92a0; }
     .legend-row:last-child { margin-bottom: 0; }
     .ldot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
     .lline { width: 20px; height: 3px; border-radius: 99px; flex-shrink: 0; }
 
     #route-panel {
-      position: absolute; top: 70px; right: 14px; z-index: 1001;
+      position: absolute; top: 75px; right: 14px; z-index: 1001;
       background: rgba(20,20,22,0.95); border: 1px solid var(--border2);
-      border-radius: 4px; padding: 10px 14px; backdrop-filter: blur(8px);
-      min-width: 200px; display: none;
+      border-radius: 4px; padding: 12px 14px; backdrop-filter: blur(8px);
+      min-width: 220px; display: none;
     }
-    .rp-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-    .rp-route { padding: 6px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .rp-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .rp-route { padding: 8px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
     .rp-route:last-child { border-bottom: none; }
-    .rp-via  { font-family: var(--sans); font-size: 11px; color: #888; margin-bottom: 3px; }
-    .rp-meta { display: flex; gap: 10px; }
-    .rp-time { font-family: var(--mono); font-size: 12px; color: var(--traffic); font-weight: 500; }
+    .rp-via  { font-family: var(--sans); font-size: 12px; color: #a1a1aa; margin-bottom: 4px; }
+    .rp-meta { display: flex; gap: 12px; align-items: baseline; }
+    .rp-time { font-family: var(--mono); font-size: 13px; color: var(--traffic); font-weight: 500; }
     .rp-dist { font-family: var(--mono); font-size: 11px; color: var(--muted); }
     .rp-traffic { font-family: var(--mono); font-size: 11px; color: #34d399; font-weight: 500; }
-    .rp-route.selected { background: rgba(52,211,153,0.06); border-radius: 6px; padding-left: 6px; padding-right: 6px; }
-    .rp-route.selected .rp-via { color: var(--traffic); }
+    .rp-route.selected { background: rgba(52,211,153,0.06); border-radius: 6px; padding-left: 8px; padding-right: 8px; border-bottom: none; }
+    .rp-route.selected .rp-via { color: var(--traffic); font-weight: 500; }
 
-    /* Inner road info panel */
     #inner-panel {
-      position: absolute; top: 70px; right: 14px; z-index: 1001;
+      position: absolute; top: 75px; right: 14px; z-index: 1001;
       background: rgba(20,20,22,0.95); border: 1px solid var(--border2);
-      border-radius: 4px; padding: 12px 16px; backdrop-filter: blur(8px);
-      min-width: 200px; display: none;
+      border-radius: 4px; padding: 14px 18px; backdrop-filter: blur(8px);
+      min-width: 220px; display: none;
     }
-    .ip-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--inner); margin-bottom: 10px; }
-    .ip-row  { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 6px; }
-    .ip-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
-    .ip-val   { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 500; }
-    .ip-note  { font-family: var(--sans); font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 8px; }
+    .ip-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--inner); margin-bottom: 12px; }
+    .ip-row  { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 8px; }
+    .ip-label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .ip-val   { font-family: var(--mono); font-size: 12px; color: var(--text); font-weight: 500; }
+    .ip-note  { font-family: var(--sans); font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; }
 
-    /* Segment slider */
-    .ip-slider-row { margin-top: 8px; }
-    .ip-slider-label { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 4px; }
+    .ip-slider-row { margin-top: 12px; }
+    .ip-slider-label { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between;}
     #seg-slider { width: 100%; accent-color: var(--inner); }
 
     #spinner {
       display: none; position: absolute; bottom: 28px; right: 14px; z-index: 1001;
-      width: 22px; height: 22px; border: 2px solid var(--border2); border-top-color: var(--shortest);
+      width: 24px; height: 24px; border: 2px solid var(--border2); border-top-color: var(--shortest);
       border-radius: 50%; animation: spin 0.65s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     #hint {
       position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-      z-index: 1001; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      z-index: 1001; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
       color: var(--muted); pointer-events: none; white-space: nowrap; transition: opacity 0.3s;
+      background: rgba(12,12,14,0.7); padding: 6px 12px; border-radius: 4px; backdrop-filter: blur(4px);
     }
     #hint.gone { opacity: 0; }
-    .leaflet-control-attribution { background: rgba(12,12,14,0.85) !important; color: #333 !important; font-size: 9px !important; }
-    .leaflet-control-attribution a { color: #444 !important; }
+    .leaflet-control-attribution { background: rgba(12,12,14,0.85) !important; color: #444 !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: #555 !important; }
   </style>
 </head>
 <body>
@@ -197,39 +219,65 @@
 
     <div class="divider"></div>
 
-    <div id="mode-toggle">
-      <button class="mode-btn act-s" id="btn-s" onclick="setMode('shortest')">Shortest</button>
-      <button class="mode-btn"       id="btn-t" onclick="setMode('traffic')">Traffic</button>
-      <button class="mode-btn"       id="btn-i" onclick="setMode('inner')">Inner Roads</button>
-      <button class="mode-btn"       id="btn-2" onclick="setMode('twowheeler')">2W Smart</button>
-    </div>
-
-    <div id="two-wheel-controls">
-      <div class="tw-field"><span class="tw-label">Main x</span><input id="tw-main" type="number" min="1" step="0.1" value="1.35"/></div>
-      <div class="tw-field"><span class="tw-label">Inner x</span><input id="tw-inner" type="number" min="0.5" step="0.05" value="0.95"/></div>
-      <div class="tw-field"><span class="tw-label">Service x</span><input id="tw-service" type="number" min="0.5" step="0.05" value="1.2"/></div>
-      <div class="tw-slider">
-        <div class="tw-slider-row">
-          <span class="tw-label">Segment km</span>
-          <span class="tw-slider-value" id="tw-segment-val">3.0</span>
-        </div>
-        <input id="tw-segment" type="range" min="1.5" max="5.5" step="0.5" value="3.0" oninput="document.getElementById('tw-segment-val').textContent=this.value; if(fromCoords&&toCoords&&mode==='twowheeler') routeBetween();"/>
+    <!-- Routing Mode Dropdown -->
+    <div class="dropdown" id="mode-dropdown">
+      <button class="dropdown-btn" onclick="toggleDropdown('mode-dropdown')">
+        Mode: <b id="mode-label">Shortest Path</b> <span class="dropdown-arrow">▼</span>
+      </button>
+      <div class="dropdown-menu">
+        <div class="dd-item active" data-mode="shortest" onclick="setMode('shortest')">Shortest Path</div>
+        <div class="dd-item" data-mode="traffic" onclick="setMode('traffic')">Live Traffic</div>
+        <div class="dd-item" data-mode="inner" onclick="setMode('inner')">Inner Roads</div>
+        <div class="dd-item" data-mode="twowheeler" onclick="setMode('twowheeler')">2W Smart</div>
       </div>
     </div>
 
-    <div class="divider"></div>
+    <!-- 2W Options Dropdown (Hidden by default) -->
+    <div class="dropdown" id="options-dropdown" style="display: none;">
+      <button class="dropdown-btn" onclick="toggleDropdown('options-dropdown')">
+        ⚙️ <span class="dropdown-arrow">▼</span>
+      </button>
+      <div class="dropdown-menu options-panel">
+        <div class="options-header">Two-Wheeler Penalties</div>
+        <div class="tw-field-row">
+          <span class="tw-label">Main Road</span>
+          <input id="tw-main" type="number" min="1" step="0.1" value="1.35"/>
+        </div>
+        <div class="tw-field-row">
+          <span class="tw-label">Inner Road</span>
+          <input id="tw-inner" type="number" min="0.5" step="0.05" value="0.95"/>
+        </div>
+        <div class="tw-field-row">
+          <span class="tw-label">Service Road</span>
+          <input id="tw-service" type="number" min="0.5" step="0.05" value="1.2"/>
+        </div>
+        <div class="tw-slider-col">
+          <div class="tw-field-row">
+            <span class="tw-label">Segment Split</span>
+            <span class="tw-val tw-label" id="tw-segment-val">3.0 km</span>
+          </div>
+          <!-- Use onchange for API trigger to avoid spamming the backend, oninput just for the label -->
+          <input id="tw-segment" type="range" min="1.5" max="5.5" step="0.5" value="3.0"
+                 oninput="document.getElementById('tw-segment-val').textContent = this.value + ' km';"
+                 onchange="if(fromCoords && toCoords && mode === 'twowheeler') routeBetween();"/>
+        </div>
+      </div>
+    </div>
 
+    <!-- Stats & Utility aligned right via auto margin -->
     <div id="stats">
-      <div>
+      <div class="stat-block">
         <div class="stat-label">Distance</div>
         <div class="stat-value s hidden" id="val-dist">—</div>
       </div>
-      <div>
+      <div class="stat-block">
         <div class="stat-label" id="metric-label">Time</div>
         <div class="stat-value t hidden" id="val-time">—</div>
       </div>
-      <div id="status-dot"></div>
-      <div id="status-text">Ready</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="status-dot"></div>
+        <div id="status-text">Ready</div>
+      </div>
     </div>
 
     <button id="clear-btn" onclick="reset()">Clear</button>
@@ -238,6 +286,7 @@
   <div id="map"></div>
 </div>
 
+<!-- Map Overlays -->
 <div id="legend">
   <div class="legend-head">Legend</div>
   <div class="legend-row"><div class="ldot" style="background:var(--from)"></div>Start</div>
@@ -259,16 +308,19 @@
     <span class="ip-val" id="ip-dist">—</span>
   </div>
   <div class="ip-row">
-    <span class="ip-label">Waypoints</span>
+    <span class="ip-label">Waypoints Used</span>
     <span class="ip-val" id="ip-wpts">—</span>
   </div>
   <div class="ip-slider-row">
-    <div class="ip-slider-label">Segment spacing: <span id="seg-val">1.0</span> km</div>
+    <div class="ip-slider-label">
+      <span>Segment Spacing</span>
+      <span id="seg-val" style="color: var(--text)">1.0 km</span>
+    </div>
     <input type="range" id="seg-slider" min="0.5" max="3.0" step="0.5" value="1.0"
-           oninput="document.getElementById('seg-val').textContent=this.value"
-           onchange="if(fromCoords&&toCoords) routeBetween()"/>
+           oninput="document.getElementById('seg-val').textContent = this.value + ' km'"
+           onchange="if(fromCoords && toCoords) routeBetween()"/>
   </div>
-  <div class="ip-note">Uses only residential, service &amp; tertiary roads. Avoids highways &amp; main roads.</div>
+  <div class="ip-note">Strictly uses residential, service & tertiary roads. Avoids highways entirely.</div>
 </div>
 
 <div id="spinner"></div>
@@ -283,6 +335,55 @@ let fromCoords = null, toCoords = null;
 let phase = 'from';
 let trafficRoutes = [];
 
+const modeNames = {
+  shortest: 'Shortest Path',
+  traffic: 'Live Traffic',
+  inner: 'Inner Roads',
+  twowheeler: '2W Smart'
+};
+
+// --- UI Interaction Logic ---
+function toggleDropdown(id) {
+  const dd = document.getElementById(id);
+  const wasOpen = dd.classList.contains('open');
+  // Close all other dropdowns
+  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+  if (!wasOpen) dd.classList.add('open');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', e => {
+  document.querySelectorAll('.dropdown').forEach(dd => {
+    // Check if click was inside the dropdown menu (important for input fields)
+    if (!dd.contains(e.target)) {
+      dd.classList.remove('open');
+    }
+  });
+});
+
+function setMode(m) {
+  mode = m;
+
+  // Update Dropdown UI
+  document.getElementById('mode-label').textContent = modeNames[m];
+  document.querySelectorAll('.dd-item').forEach(el => {
+    if (el.dataset.mode === m) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+
+  // Toggle Visibility of Options & Panels
+  document.getElementById('options-dropdown').style.display = (m === 'twowheeler') ? 'inline-block' : 'none';
+  document.getElementById('inner-panel').style.display = (m === 'inner') ? 'block' : 'none';
+  document.getElementById('route-panel').style.display = 'none';
+
+  setMetricLabel(m === 'twowheeler' ? 'Score' : 'Time');
+
+  // Close dropdown
+  document.getElementById('mode-dropdown').classList.remove('open');
+
+  if (fromCoords && toCoords) routeBetween();
+}
+
 function setMetricLabel(text) {
   document.getElementById('metric-label').textContent = text;
 }
@@ -292,7 +393,10 @@ function readNumberInput(id, fallback) {
   return Number.isFinite(value) ? value : fallback;
 }
 
-const map = L.map('map', { center: [12.9716, 77.5946], zoom: 12 });
+// --- Map Initialization ---
+const map = L.map('map', { center: [12.9716, 77.5946], zoom: 12, zoomControl: false });
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>',
   maxZoom: 19, subdomains: 'abcd',
@@ -301,49 +405,36 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 function makeIcon(color) {
   return L.divIcon({
     className: '',
-    html: `<div style="width:13px;height:13px;background:${color};border-radius:50%;border:2px solid #0c0c0e;box-shadow:0 0 0 2px ${color}55,0 2px 8px rgba(0,0,0,0.5);"></div>`,
-    iconSize: [13,13], iconAnchor: [6,6],
+    html: `<div style="width:14px;height:14px;background:${color};border-radius:50%;border:2px solid #0c0c0e;box-shadow:0 0 0 2px ${color}66,0 2px 8px rgba(0,0,0,0.6);"></div>`,
+    iconSize: [14,14], iconAnchor: [7,7],
   });
-}
-
-function setMode(m) {
-  mode = m;
-  document.getElementById('btn-s').className = 'mode-btn' + (m==='shortest' ? ' act-s' : '');
-  document.getElementById('btn-t').className = 'mode-btn' + (m==='traffic'  ? ' act-t' : '');
-  document.getElementById('btn-i').className = 'mode-btn' + (m==='inner'    ? ' act-i' : '');
-  document.getElementById('btn-2').className = 'mode-btn' + (m==='twowheeler' ? ' act-2' : '');
-  document.getElementById('inner-panel').style.display = m === 'inner' ? 'block' : 'none';
-  document.getElementById('two-wheel-controls').classList.toggle('on', m === 'twowheeler');
-  document.getElementById('route-panel').style.display = 'none';
-  setMetricLabel(m === 'twowheeler' ? 'Score' : 'Time');
-  if (m === 'twowheeler') {
-    document.getElementById('inner-panel').style.display = 'none';
-  }
-  if (fromCoords && toCoords) routeBetween();
 }
 
 function setStatus(text, state='') {
   document.getElementById('status-text').textContent = text;
   document.getElementById('status-dot').className = state;
 }
+
 function setStat(id, val, cls, show=true) {
   const el = document.getElementById(id);
   el.textContent = val; el.className = `stat-value ${cls}`;
   el.classList.toggle('hidden', !show);
 }
+
 function showSpinner(on) {
   const s = document.getElementById('spinner');
   s.style.display = on ? 'block' : 'none';
   s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : mode==='twowheeler' ? 'var(--tw)' : 'var(--shortest)';
 }
 function hideHint() { document.getElementById('hint').classList.add('gone'); }
+
 function clearRoutes() {
   routeLayers.forEach(l => map.removeLayer(l));
   routeLayers = [];
   document.getElementById('route-panel').style.display = 'none';
 }
 
-// ── Search ────────────────────────────────────────────────
+// --- Search Implementation ---
 const timers = {};
 function setupSearch(inputId, suggId, role) {
   const inp  = document.getElementById(inputId);
@@ -360,6 +451,7 @@ function setupSearch(inputId, suggId, role) {
     if (!inp.contains(e.target) && !sugg.contains(e.target)) sugg.classList.remove('open');
   });
 }
+
 async function runSearch(q, sugg, role, inp) {
   try {
     const res  = await fetch(`${API}/search?q=${encodeURIComponent(q)}`);
@@ -379,7 +471,7 @@ async function runSearch(q, sugg, role, inp) {
 setupSearch('from-input', 'from-sugg', 'from');
 setupSearch('to-input',   'to-sugg',   'to');
 
-// ── Place point ───────────────────────────────────────────
+// --- Point Placement ---
 async function placePoint(role, latlng, label) {
   hideHint();
   if (!label) {
@@ -393,14 +485,14 @@ async function placePoint(role, latlng, label) {
   const display = label || `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
   if (role === 'from') {
     if (fromMarker) map.removeLayer(fromMarker);
-    fromMarker = L.marker(latlng, {icon:makeIcon('#38bdf8')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
+    fromMarker = L.marker(latlng, {icon:makeIcon('var(--from)')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
     fromCoords = latlng;
     document.getElementById('from-input').value = display;
     phase = 'to'; setStatus('Set your end point','');
     if (toCoords) routeBetween();
   } else {
     if (toMarker) map.removeLayer(toMarker);
-    toMarker = L.marker(latlng, {icon:makeIcon('#fb923c')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
+    toMarker = L.marker(latlng, {icon:makeIcon('var(--to)')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
     toCoords = latlng;
     document.getElementById('to-input').value = display;
     if (fromCoords) routeBetween();
@@ -410,7 +502,7 @@ async function placePoint(role, latlng, label) {
 
 map.on('click', e => { if (phase === 'done') return; placePoint(phase, e.latlng, null); });
 
-// ── Route ─────────────────────────────────────────────────
+// --- Routing APIs ---
 async function routeBetween() {
   phase = 'done';
   clearRoutes();
@@ -438,7 +530,7 @@ async function doShortest() {
   const url = `${API}/route?from_lat=${fromCoords.lat}&from_lng=${fromCoords.lng}&to_lat=${toCoords.lat}&to_lng=${toCoords.lng}`;
   const data = await (await fetch(url)).json();
   if (data.status === 'error') throw new Error(data.message);
-  drawRoute(data.path, '#a3e635', 'rgba(163,230,53,0.15)');
+  drawRoute(data.path, 'var(--shortest)', 'rgba(163,230,53,0.15)');
   setStat('val-dist', `${data.distance_km} km`, 's', true);
   setStatus(`${data.distance_km} km · shortest path`, 'on');
 }
@@ -458,12 +550,12 @@ async function doInner() {
   const data = await (await fetch(url)).json();
   if (data.status === 'error') throw new Error(data.message);
 
-  drawRoute(data.path, '#fbbf24', 'rgba(251,191,36,0.15)');
+  drawRoute(data.path, 'var(--inner)', 'rgba(251,191,36,0.15)');
   setStat('val-dist', `${data.distance_km} km`, 'i', true);
   setStatus(`${data.distance_km} km · inner roads`, 'ir');
 
   document.getElementById('ip-dist').textContent  = `${data.distance_km} km`;
-  document.getElementById('ip-wpts').textContent  = `${data.waypoints_used} waypoints`;
+  document.getElementById('ip-wpts').textContent  = `${data.waypoints_used}`;
   document.getElementById('inner-panel').style.display = 'block';
 }
 
@@ -482,7 +574,7 @@ async function doTwoWheeler() {
   const data = await (await fetch(url)).json();
   if (data.status === 'error') throw new Error(data.message);
 
-  drawRoute(data.path, '#60a5fa', 'rgba(96,165,250,0.15)');
+  drawRoute(data.path, 'var(--tw)', 'rgba(96,165,250,0.18)');
   setStat('val-dist', `${data.distance_km} km`, 't', true);
   setStat(
     'val-time',
@@ -504,18 +596,24 @@ async function doTwoWheeler() {
   list.innerHTML = '';
   data.candidate_routes.forEach(route => {
     const el = document.createElement('div');
-    const isSelected = route.strategy === data.best_strategy &&
-      route.traffic_seconds === data.traffic_seconds;
+    const isSelected = route.strategy === data.best_strategy && route.traffic_seconds === data.traffic_seconds;
     el.className = 'rp-route' + (isSelected ? ' selected' : '');
-    el.innerHTML = `<div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}${isSelected ? ' · picked (live traffic)' : ''}</div><div class="rp-meta"><span class="rp-traffic">${route.traffic_minutes !== null && route.traffic_minutes !== undefined ? route.traffic_minutes + ' min live' : 'n/a'}</span><span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' score' : 'n/a'}</span><span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span></div>`;
+    el.innerHTML = `
+      <div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}${isSelected ? ' · picked (live traffic)' : ''}</div>
+      <div class="rp-meta">
+        <span class="rp-traffic">${route.traffic_minutes !== null && route.traffic_minutes !== undefined ? route.traffic_minutes + ' min' : 'n/a'}</span>
+        <span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' cost' : 'n/a'}</span>
+        <span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span>
+      </div>
+    `;
     list.appendChild(el);
   });
   panel.style.display = 'block';
 }
 
 function drawRoute(path, color, haloColor) {
-  const halo = L.polyline(path, { color: haloColor, weight: 14, lineJoin: 'round' }).addTo(map);
-  const line = L.polyline(path, { color, weight: 4, opacity: 0.95, lineJoin: 'round' }).addTo(map);
+  const halo = L.polyline(path, { color: haloColor, weight: 16, lineJoin: 'round' }).addTo(map);
+  const line = L.polyline(path, { color, weight: 4.5, opacity: 0.95, lineJoin: 'round' }).addTo(map);
   routeLayers.push(halo, line);
   map.fitBounds(line.getBounds(), { padding: [48, 48] });
 }
@@ -525,8 +623,8 @@ function drawTrafficRoutes(selectedIdx) {
   trafficRoutes.forEach((r, i) => {
     const sel = i === selectedIdx;
     routeLayers.push(
-      L.polyline(r.path, { color: sel ? 'rgba(244,114,182,0.18)' : 'rgba(80,80,80,0.08)', weight: sel ? 14 : 8, lineJoin:'round' }).addTo(map),
-      L.polyline(r.path, { color: sel ? '#f472b6' : '#2a2a3a', weight: sel ? 4 : 2.5, opacity: sel ? 0.95 : 0.45, lineJoin:'round' }).addTo(map)
+      L.polyline(r.path, { color: sel ? 'rgba(244,114,182,0.18)' : 'rgba(80,80,80,0.08)', weight: sel ? 16 : 10, lineJoin:'round' }).addTo(map),
+      L.polyline(r.path, { color: sel ? '#f472b6' : '#2a2a3a', weight: sel ? 4.5 : 3, opacity: sel ? 1 : 0.45, lineJoin:'round' }).addTo(map)
     );
   });
   const fastest = trafficRoutes[selectedIdx];
@@ -567,8 +665,9 @@ function reset() {
   setStat('val-time','','t',false);
   setStatus('Ready','');
   document.getElementById('inner-panel').style.display = 'none';
-  document.getElementById('two-wheel-controls').classList.remove('on');
+  document.getElementById('options-dropdown').style.display = 'none';
   document.getElementById('hint').classList.remove('gone');
+  setMode('shortest');
 }
 </script>
 </body>
