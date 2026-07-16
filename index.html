@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BLR Router</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0c0e; --surface: #141416; --border: #1f1f23; --border2: #2a2a30;
+      --text: #e2e2e6; --muted: #52525e;
+      --from: #38bdf8; --to: #fb923c;
+      --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24; --tw: #60a5fa;
+      --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+    }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); }
+    #shell { display: flex; flex-direction: column; height: 100vh; }
+
+    #topbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; background: var(--surface);
+      border-bottom: 1px solid var(--border); z-index: 1000; flex-shrink: 0; flex-wrap: wrap;
+    }
+    .brand { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .brand b { color: var(--shortest); }
+    .divider { width: 1px; height: 22px; background: var(--border2); flex-shrink: 0; }
+
+    .search-group { display: flex; gap: 8px; flex: 1; min-width: 0; }
+    .search-wrap { position: relative; flex: 1; min-width: 0; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; z-index: 1; }
+    .search-wrap.from .search-icon { background: var(--from); }
+    .search-wrap.to   .search-icon { background: var(--to); }
+    .search-wrap input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2);
+      color: var(--text); font-family: var(--sans); font-size: 12px;
+      padding: 6px 10px 6px 26px; border-radius: 4px; outline: none; transition: border-color 0.15s;
+    }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-wrap.from input:focus { border-color: var(--from); }
+    .search-wrap.to   input:focus { border-color: var(--to); }
+
+    .suggestions {
+      position: absolute; top: calc(100% + 5px); left: 0; right: 0;
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 4px;
+      z-index: 3000; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5); overflow: hidden;
+    }
+    .suggestions.open { display: block; }
+    .suggestion-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover { background: var(--border); }
+    .s-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-addr { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .s-loading { font-size: 11px; color: var(--muted); padding: 12px; text-align: center; font-family: var(--mono); }
+
+    #mode-toggle { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--border2); border-radius: 5px; padding: 2px; flex-shrink: 0; }
+    .mode-btn {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 11px; border-radius: 3px; border: none; cursor: pointer;
+      background: transparent; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap;
+    }
+    .mode-btn.act-s { background: var(--shortest); color: #0c0c0e; }
+    .mode-btn.act-t { background: var(--traffic);  color: #0c0c0e; }
+    .mode-btn.act-i { background: var(--inner);    color: #0c0c0e; }
+    .mode-btn.act-2 { background: var(--tw);       color: #0c0c0e; }
+
+    #two-wheel-controls {
+      display: none; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+      padding: 4px 0;
+    }
+    #two-wheel-controls.on { display: flex; }
+    .tw-field {
+      display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+      border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
+    }
+    .tw-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .tw-field input {
+      width: 62px; background: transparent; border: none; color: var(--text);
+      font-family: var(--mono); font-size: 11px; outline: none;
+    }
+    .tw-slider {
+      min-width: 160px; display: flex; flex-direction: column; gap: 4px;
+      padding: 5px 8px; border: 1px solid var(--border2); border-radius: 4px; background: var(--bg);
+    }
+    .tw-slider-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .tw-slider-row input { width: 100%; accent-color: var(--tw); }
+    .tw-slider-value { font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+    #stats { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .stat-value { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+    .stat-value.s { color: var(--shortest); }
+    .stat-value.t { color: var(--traffic); }
+    .stat-value.i { color: var(--inner); }
+    .stat-value.hidden { visibility: hidden; }
+
+    #status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s; }
+    #status-dot.on  { background: var(--shortest); box-shadow: 0 0 6px var(--shortest); }
+    #status-dot.tr  { background: var(--traffic);  box-shadow: 0 0 6px var(--traffic); }
+    #status-dot.ir  { background: var(--inner);    box-shadow: 0 0 6px var(--inner); }
+    #status-dot.tw  { background: var(--tw);       box-shadow: 0 0 6px var(--tw); }
+    #status-dot.err { background: #f87171; }
+    #status-text { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+    #clear-btn {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 5px 12px; background: transparent; border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer; border-radius: 3px; transition: border-color 0.15s, color 0.15s; flex-shrink: 0;
+    }
+    #clear-btn:hover { border-color: #f87171; color: #f87171; }
+
+    #map { flex: 1; cursor: crosshair; }
+
+    #legend {
+      position: absolute; bottom: 28px; left: 14px; z-index: 1001;
+      background: rgba(20,20,22,0.92); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 10px 14px; backdrop-filter: blur(8px);
+    }
+    .legend-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-family: var(--mono); font-size: 10px; color: #6b7280; }
+    .legend-row:last-child { margin-bottom: 0; }
+    .ldot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .lline { width: 20px; height: 3px; border-radius: 99px; flex-shrink: 0; }
+
+    #route-panel {
+      position: absolute; top: 70px; right: 14px; z-index: 1001;
+      background: rgba(20,20,22,0.95); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 10px 14px; backdrop-filter: blur(8px);
+      min-width: 200px; display: none;
+    }
+    .rp-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .rp-route { padding: 6px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .rp-route:last-child { border-bottom: none; }
+    .rp-via  { font-family: var(--sans); font-size: 11px; color: #888; margin-bottom: 3px; }
+    .rp-meta { display: flex; gap: 10px; }
+    .rp-time { font-family: var(--mono); font-size: 12px; color: var(--traffic); font-weight: 500; }
+    .rp-dist { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .rp-traffic { font-family: var(--mono); font-size: 11px; color: #34d399; font-weight: 500; }
+    .rp-route.selected { background: rgba(52,211,153,0.06); border-radius: 6px; padding-left: 6px; padding-right: 6px; }
+    .rp-route.selected .rp-via { color: var(--traffic); }
+
+    /* Inner road info panel */
+    #inner-panel {
+      position: absolute; top: 70px; right: 14px; z-index: 1001;
+      background: rgba(20,20,22,0.95); border: 1px solid var(--border2);
+      border-radius: 4px; padding: 12px 16px; backdrop-filter: blur(8px);
+      min-width: 200px; display: none;
+    }
+    .ip-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--inner); margin-bottom: 10px; }
+    .ip-row  { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 6px; }
+    .ip-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+    .ip-val   { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 500; }
+    .ip-note  { font-family: var(--sans); font-size: 10px; color: var(--muted); margin-top: 8px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 8px; }
+
+    /* Segment slider */
+    .ip-slider-row { margin-top: 8px; }
+    .ip-slider-label { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 4px; }
+    #seg-slider { width: 100%; accent-color: var(--inner); }
+
+    #spinner {
+      display: none; position: absolute; bottom: 28px; right: 14px; z-index: 1001;
+      width: 22px; height: 22px; border: 2px solid var(--border2); border-top-color: var(--shortest);
+      border-radius: 50%; animation: spin 0.65s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #hint {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 1001; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      color: var(--muted); pointer-events: none; white-space: nowrap; transition: opacity 0.3s;
+    }
+    #hint.gone { opacity: 0; }
+    .leaflet-control-attribution { background: rgba(12,12,14,0.85) !important; color: #333 !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: #444 !important; }
+  </style>
+</head>
+<body>
+<div id="shell">
+  <div id="topbar">
+    <div class="brand">BLR&nbsp;<b>ROUTER</b></div>
+    <div class="divider"></div>
+
+    <div class="search-group">
+      <div class="search-wrap from">
+        <div class="search-icon"></div>
+        <input id="from-input" type="text" placeholder="Start — search or click" autocomplete="off"/>
+        <div class="suggestions" id="from-sugg"></div>
+      </div>
+      <div class="search-wrap to">
+        <div class="search-icon"></div>
+        <input id="to-input" type="text" placeholder="End — search or click" autocomplete="off"/>
+        <div class="suggestions" id="to-sugg"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="mode-toggle">
+      <button class="mode-btn act-s" id="btn-s" onclick="setMode('shortest')">Shortest</button>
+      <button class="mode-btn"       id="btn-t" onclick="setMode('traffic')">Traffic</button>
+      <button class="mode-btn"       id="btn-i" onclick="setMode('inner')">Inner Roads</button>
+      <button class="mode-btn"       id="btn-2" onclick="setMode('twowheeler')">2W Smart</button>
+    </div>
+
+    <div id="two-wheel-controls">
+      <div class="tw-field"><span class="tw-label">Main x</span><input id="tw-main" type="number" min="1" step="0.1" value="1.35"/></div>
+      <div class="tw-field"><span class="tw-label">Inner x</span><input id="tw-inner" type="number" min="0.5" step="0.05" value="0.95"/></div>
+      <div class="tw-field"><span class="tw-label">Service x</span><input id="tw-service" type="number" min="0.5" step="0.05" value="1.2"/></div>
+      <div class="tw-slider">
+        <div class="tw-slider-row">
+          <span class="tw-label">Segment km</span>
+          <span class="tw-slider-value" id="tw-segment-val">3.0</span>
+        </div>
+        <input id="tw-segment" type="range" min="1.5" max="5.5" step="0.5" value="3.0" oninput="document.getElementById('tw-segment-val').textContent=this.value; if(fromCoords&&toCoords&&mode==='twowheeler') routeBetween();"/>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="stats">
+      <div>
+        <div class="stat-label">Distance</div>
+        <div class="stat-value s hidden" id="val-dist">—</div>
+      </div>
+      <div>
+        <div class="stat-label" id="metric-label">Time</div>
+        <div class="stat-value t hidden" id="val-time">—</div>
+      </div>
+      <div id="status-dot"></div>
+      <div id="status-text">Ready</div>
+    </div>
+
+    <button id="clear-btn" onclick="reset()">Clear</button>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<div id="legend">
+  <div class="legend-head">Legend</div>
+  <div class="legend-row"><div class="ldot" style="background:var(--from)"></div>Start</div>
+  <div class="legend-row"><div class="ldot" style="background:var(--to)"></div>End</div>
+  <div class="legend-row"><div class="lline" style="background:var(--shortest)"></div>Shortest path</div>
+  <div class="legend-row"><div class="lline" style="background:var(--traffic)"></div>Fastest (traffic)</div>
+  <div class="legend-row"><div class="lline" style="background:var(--inner)"></div>Inner roads</div>
+</div>
+
+<div id="route-panel">
+  <div class="rp-head">Route options</div>
+  <div id="rp-list"></div>
+</div>
+
+<div id="inner-panel">
+  <div class="ip-head">⚡ Inner Road Route</div>
+  <div class="ip-row">
+    <span class="ip-label">Distance</span>
+    <span class="ip-val" id="ip-dist">—</span>
+  </div>
+  <div class="ip-row">
+    <span class="ip-label">Waypoints</span>
+    <span class="ip-val" id="ip-wpts">—</span>
+  </div>
+  <div class="ip-slider-row">
+    <div class="ip-slider-label">Segment spacing: <span id="seg-val">1.0</span> km</div>
+    <input type="range" id="seg-slider" min="0.5" max="3.0" step="0.5" value="1.0"
+           oninput="document.getElementById('seg-val').textContent=this.value"
+           onchange="if(fromCoords&&toCoords) routeBetween()"/>
+  </div>
+  <div class="ip-note">Uses only residential, service &amp; tertiary roads. Avoids highways &amp; main roads.</div>
+</div>
+
+<div id="spinner"></div>
+<div id="hint">Search above — or click map to set start, then end</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let mode = 'shortest';
+let fromMarker = null, toMarker = null;
+let routeLayers = [];
+let fromCoords = null, toCoords = null;
+let phase = 'from';
+let trafficRoutes = [];
+
+function setMetricLabel(text) {
+  document.getElementById('metric-label').textContent = text;
+}
+
+function readNumberInput(id, fallback) {
+  const value = parseFloat(document.getElementById(id).value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+const map = L.map('map', { center: [12.9716, 77.5946], zoom: 12 });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+  maxZoom: 19, subdomains: 'abcd',
+}).addTo(map);
+
+function makeIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:13px;height:13px;background:${color};border-radius:50%;border:2px solid #0c0c0e;box-shadow:0 0 0 2px ${color}55,0 2px 8px rgba(0,0,0,0.5);"></div>`,
+    iconSize: [13,13], iconAnchor: [6,6],
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-s').className = 'mode-btn' + (m==='shortest' ? ' act-s' : '');
+  document.getElementById('btn-t').className = 'mode-btn' + (m==='traffic'  ? ' act-t' : '');
+  document.getElementById('btn-i').className = 'mode-btn' + (m==='inner'    ? ' act-i' : '');
+  document.getElementById('btn-2').className = 'mode-btn' + (m==='twowheeler' ? ' act-2' : '');
+  document.getElementById('inner-panel').style.display = m === 'inner' ? 'block' : 'none';
+  document.getElementById('two-wheel-controls').classList.toggle('on', m === 'twowheeler');
+  document.getElementById('route-panel').style.display = 'none';
+  setMetricLabel(m === 'twowheeler' ? 'Score' : 'Time');
+  if (m === 'twowheeler') {
+    document.getElementById('inner-panel').style.display = 'none';
+  }
+  if (fromCoords && toCoords) routeBetween();
+}
+
+function setStatus(text, state='') {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-dot').className = state;
+}
+function setStat(id, val, cls, show=true) {
+  const el = document.getElementById(id);
+  el.textContent = val; el.className = `stat-value ${cls}`;
+  el.classList.toggle('hidden', !show);
+}
+function showSpinner(on) {
+  const s = document.getElementById('spinner');
+  s.style.display = on ? 'block' : 'none';
+  s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : mode==='twowheeler' ? 'var(--tw)' : 'var(--shortest)';
+}
+function hideHint() { document.getElementById('hint').classList.add('gone'); }
+function clearRoutes() {
+  routeLayers.forEach(l => map.removeLayer(l));
+  routeLayers = [];
+  document.getElementById('route-panel').style.display = 'none';
+}
+
+// ── Search ────────────────────────────────────────────────
+const timers = {};
+function setupSearch(inputId, suggId, role) {
+  const inp  = document.getElementById(inputId);
+  const sugg = document.getElementById(suggId);
+  inp.addEventListener('input', () => {
+    clearTimeout(timers[role]);
+    const q = inp.value.trim();
+    if (q.length < 2) { sugg.classList.remove('open'); return; }
+    sugg.innerHTML = '<div class="s-loading">Searching…</div>';
+    sugg.classList.add('open');
+    timers[role] = setTimeout(() => runSearch(q, sugg, role, inp), 380);
+  });
+  document.addEventListener('click', e => {
+    if (!inp.contains(e.target) && !sugg.contains(e.target)) sugg.classList.remove('open');
+  });
+}
+async function runSearch(q, sugg, role, inp) {
+  try {
+    const res  = await fetch(`${API}/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const list = data.results || [];
+    if (!list.length) { sugg.innerHTML = '<div class="s-loading">No results</div>'; return; }
+    sugg.innerHTML = '';
+    list.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'suggestion-item';
+      el.innerHTML = `<div class="s-name">${p.name}</div><div class="s-addr">${p.address}</div>`;
+      el.onclick = () => { inp.value = p.name; sugg.classList.remove('open'); placePoint(role, {lat:p.lat,lng:p.lng}, p.name); };
+      sugg.appendChild(el);
+    });
+  } catch { sugg.innerHTML = '<div class="s-loading">Backend not reachable</div>'; }
+}
+setupSearch('from-input', 'from-sugg', 'from');
+setupSearch('to-input',   'to-sugg',   'to');
+
+// ── Place point ───────────────────────────────────────────
+async function placePoint(role, latlng, label) {
+  hideHint();
+  if (!label) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`);
+      const d = await r.json();
+      const a = d.address || {};
+      label = a.road || a.suburb || a.neighbourhood || a.city_district || null;
+    } catch {}
+  }
+  const display = label || `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+  if (role === 'from') {
+    if (fromMarker) map.removeLayer(fromMarker);
+    fromMarker = L.marker(latlng, {icon:makeIcon('#38bdf8')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
+    fromCoords = latlng;
+    document.getElementById('from-input').value = display;
+    phase = 'to'; setStatus('Set your end point','');
+    if (toCoords) routeBetween();
+  } else {
+    if (toMarker) map.removeLayer(toMarker);
+    toMarker = L.marker(latlng, {icon:makeIcon('#fb923c')}).bindTooltip(display,{direction:'top',offset:[0,-6]}).addTo(map);
+    toCoords = latlng;
+    document.getElementById('to-input').value = display;
+    if (fromCoords) routeBetween();
+    else { phase = 'from'; setStatus('Set your start point',''); }
+  }
+}
+
+map.on('click', e => { if (phase === 'done') return; placePoint(phase, e.latlng, null); });
+
+// ── Route ─────────────────────────────────────────────────
+async function routeBetween() {
+  phase = 'done';
+  clearRoutes();
+  setStat('val-dist','','s',false);
+  setStat('val-time','','t',false);
+  showSpinner(true);
+
+  const statusMap = { shortest:'on', traffic:'tr', inner:'ir', twowheeler:'tw' };
+  const msgMap    = { shortest:'Finding shortest path…', traffic:'Checking live traffic…', inner:'Finding inner road route…', twowheeler:'Optimizing two-wheeler route…' };
+  setStatus(msgMap[mode], statusMap[mode]);
+
+  try {
+    if (mode === 'shortest') await doShortest();
+    else if (mode === 'traffic') await doTraffic();
+    else if (mode === 'inner') await doInner();
+    else await doTwoWheeler();
+  } catch(e) {
+    setStatus(`Error: ${e.message}`, 'err');
+  } finally {
+    showSpinner(false);
+  }
+}
+
+async function doShortest() {
+  const url = `${API}/route?from_lat=${fromCoords.lat}&from_lng=${fromCoords.lng}&to_lat=${toCoords.lat}&to_lng=${toCoords.lng}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+  drawRoute(data.path, '#a3e635', 'rgba(163,230,53,0.15)');
+  setStat('val-dist', `${data.distance_km} km`, 's', true);
+  setStatus(`${data.distance_km} km · shortest path`, 'on');
+}
+
+async function doTraffic() {
+  const url = `${API}/traffic-route?from_lat=${fromCoords.lat}&from_lng=${fromCoords.lng}&to_lat=${toCoords.lat}&to_lng=${toCoords.lng}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+  trafficRoutes = data.routes;
+  drawTrafficRoutes(0);
+  buildRoutePanel(data.routes);
+}
+
+async function doInner() {
+  const seg = document.getElementById('seg-slider').value;
+  const url = `${API}/inner-route?from_lat=${fromCoords.lat}&from_lng=${fromCoords.lng}&to_lat=${toCoords.lat}&to_lng=${toCoords.lng}&segment_km=${seg}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+
+  drawRoute(data.path, '#fbbf24', 'rgba(251,191,36,0.15)');
+  setStat('val-dist', `${data.distance_km} km`, 'i', true);
+  setStatus(`${data.distance_km} km · inner roads`, 'ir');
+
+  document.getElementById('ip-dist').textContent  = `${data.distance_km} km`;
+  document.getElementById('ip-wpts').textContent  = `${data.waypoints_used} waypoints`;
+  document.getElementById('inner-panel').style.display = 'block';
+}
+
+async function doTwoWheeler() {
+  const params = new URLSearchParams({
+    from_lat: fromCoords.lat,
+    from_lng: fromCoords.lng,
+    to_lat: toCoords.lat,
+    to_lng: toCoords.lng,
+    main_road_penalty: readNumberInput('tw-main', 1.35),
+    inner_road_multiplier: readNumberInput('tw-inner', 0.95),
+    service_multiplier: readNumberInput('tw-service', 1.2),
+    segment_km: readNumberInput('tw-segment', 3),
+  });
+  const url = `${API}/two-wheeler-route?${params.toString()}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+
+  drawRoute(data.path, '#60a5fa', 'rgba(96,165,250,0.15)');
+  setStat('val-dist', `${data.distance_km} km`, 't', true);
+  setStat(
+    'val-time',
+    data.traffic_minutes !== null && data.traffic_minutes !== undefined
+      ? `${data.traffic_minutes} min` : `${data.weighted_cost.toFixed(0)} score`,
+    't', true
+  );
+  setStatus(
+    `${data.distance_km} km · ${data.best_strategy}` +
+    (data.traffic_minutes !== null && data.traffic_minutes !== undefined
+      ? ` · ${data.traffic_minutes} min live` : ''),
+    'tw'
+  );
+
+  const panel = document.getElementById('route-panel');
+  const head = panel.querySelector('.rp-head');
+  const list = document.getElementById('rp-list');
+  head.textContent = 'Route candidates';
+  list.innerHTML = '';
+  data.candidate_routes.forEach(route => {
+    const el = document.createElement('div');
+    const isSelected = route.strategy === data.best_strategy &&
+      route.traffic_seconds === data.traffic_seconds;
+    el.className = 'rp-route' + (isSelected ? ' selected' : '');
+    el.innerHTML = `<div class="rp-via">${route.strategy}${route.split_fraction !== null && route.split_fraction !== undefined ? ` · split ${Math.round(route.split_fraction * 100)}%` : ''}${isSelected ? ' · picked (live traffic)' : ''}</div><div class="rp-meta"><span class="rp-traffic">${route.traffic_minutes !== null && route.traffic_minutes !== undefined ? route.traffic_minutes + ' min live' : 'n/a'}</span><span class="rp-time">${route.weighted_cost !== null && route.weighted_cost !== undefined ? route.weighted_cost.toFixed(0) + ' score' : 'n/a'}</span><span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span></div>`;
+    list.appendChild(el);
+  });
+  panel.style.display = 'block';
+}
+
+function drawRoute(path, color, haloColor) {
+  const halo = L.polyline(path, { color: haloColor, weight: 14, lineJoin: 'round' }).addTo(map);
+  const line = L.polyline(path, { color, weight: 4, opacity: 0.95, lineJoin: 'round' }).addTo(map);
+  routeLayers.push(halo, line);
+  map.fitBounds(line.getBounds(), { padding: [48, 48] });
+}
+
+function drawTrafficRoutes(selectedIdx) {
+  clearRoutes();
+  trafficRoutes.forEach((r, i) => {
+    const sel = i === selectedIdx;
+    routeLayers.push(
+      L.polyline(r.path, { color: sel ? 'rgba(244,114,182,0.18)' : 'rgba(80,80,80,0.08)', weight: sel ? 14 : 8, lineJoin:'round' }).addTo(map),
+      L.polyline(r.path, { color: sel ? '#f472b6' : '#2a2a3a', weight: sel ? 4 : 2.5, opacity: sel ? 0.95 : 0.45, lineJoin:'round' }).addTo(map)
+    );
+  });
+  const fastest = trafficRoutes[selectedIdx];
+  map.fitBounds(L.polyline(fastest.path).getBounds(), { padding: [48, 48] });
+  setStat('val-dist', fastest.distance_text, 't', true);
+  setStat('val-time', fastest.duration_traffic, 't', true);
+  setStatus(`Fastest: ${fastest.duration_traffic} via ${fastest.summary}`, 'tr');
+}
+
+function buildRoutePanel(routes) {
+  const list = document.getElementById('rp-list');
+  list.innerHTML = '';
+  routes.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'rp-route' + (i===0 ? ' selected' : '');
+    el.innerHTML = `<div class="rp-via">via ${r.summary}</div><div class="rp-meta"><span class="rp-time">${r.duration_traffic}</span><span class="rp-dist">${r.distance_text}</span></div>`;
+    el.onclick = () => {
+      document.querySelectorAll('.rp-route').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      drawTrafficRoutes(i);
+    };
+    list.appendChild(el);
+  });
+  document.getElementById('route-panel').style.display = 'block';
+}
+
+function reset() {
+  if (fromMarker) map.removeLayer(fromMarker);
+  if (toMarker)   map.removeLayer(toMarker);
+  fromMarker = toMarker = null;
+  fromCoords = toCoords = null;
+  phase = 'from';
+  clearRoutes();
+  document.getElementById('from-input').value = '';
+  document.getElementById('to-input').value   = '';
+  ['from-sugg','to-sugg'].forEach(id => document.getElementById(id).classList.remove('open'));
+  setStat('val-dist','','s',false);
+  setStat('val-time','','t',false);
+  setStatus('Ready','');
+  document.getElementById('inner-panel').style.display = 'none';
+  document.getElementById('two-wheel-controls').classList.remove('on');
+  document.getElementById('hint').classList.remove('gone');
+}
+</script>
+</body>
+</html>
