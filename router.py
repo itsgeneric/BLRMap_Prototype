@@ -1,66 +1,22 @@
 import osmnx as ox
-import networkx as nx
+from routing.graph_manager import graph_manager
+from routing.algorithms import two_wheeler_astar, build_two_wheeler_penalties, calc_route_distance
 
-# Load the saved graph
-print("Loading Bengaluru road network...")
-G = ox.load_graphml("bengaluru_roads_full.graphml")
-print(f"Loaded graph with {len(G.nodes)} nodes")
+def test_offline_route(from_lat, from_lng, to_lat, to_lng):
+    print("Initializing Graph Manager...")
+    graph_manager.load_graph()
+    
+    start_node = ox.nearest_nodes(graph_manager.G, from_lng, from_lat)
+    end_node = ox.nearest_nodes(graph_manager.G, to_lng, to_lat)
+    
+    penalties = build_two_wheeler_penalties(main_road_penalty=1.5, inner_road_multiplier=0.9)
+    route = two_wheeler_astar(graph_manager.G, start_node, end_node, graph_manager, penalties=penalties)
+    
+    dist_km = calc_route_distance(graph_manager.G, route) / 1000.0
+    print(f"Route calculated successfully!")
+    print(f"Nodes in path: {len(route)}")
+    print(f"Total distance: {dist_km:.2f} km")
 
-def find_shortest_path(start_lat, start_lng, end_lat, end_lng):
-    """
-    Find shortest path between two coordinates.
-    Returns list of (lat, lng) tuples and distance.
-    """
-    # Find nearest nodes to the clicked points
-    start_node = ox.nearest_nodes(G, start_lng, start_lat)
-    end_node = ox.nearest_nodes(G, end_lng, end_lat)
-    
-    print(f"Start node: {start_node}, End node: {end_node}")
-    
-    # Calculate shortest path using length as weight
-    route = nx.shortest_path(
-        G, 
-        start_node, 
-        end_node, 
-        weight='length'
-    )
-    
-    # Convert node IDs to coordinates
-    route_coords = [
-        (G.nodes[node]['y'], G.nodes[node]['x']) 
-        for node in route
-    ]
-    
-    # Calculate total distance by summing edge lengths
-    total_distance = 0
-    for i in range(len(route) - 1):
-        u, v = route[i], route[i + 1]
-        
-        # Access edge data for MultiDiGraph
-        # Format: G[u][v][key] where key is typically 0
-        edge_dict = G[u][v]
-        
-        # Get the first (usually only) edge
-        for key in edge_dict:
-            edge_data = edge_dict[key]
-            if 'length' in edge_data:
-                total_distance += float(edge_data['length'])
-            break
-    
-    print(f"Route found: {len(route)} nodes, {total_distance:.2f} meters")
-    
-    return route_coords, total_distance
-
-# Test with two points in Bengaluru
-# MG Road area
-start_lat, start_lng = 12.9716, 77.5946
-
-# Indiranagar
-end_lat, end_lng = 12.9784, 77.6408
-
-print("\nTesting route from MG Road to Indiranagar...")
-path, distance = find_shortest_path(start_lat, start_lng, end_lat, end_lng)
-
-print(f"\nPath has {len(path)} points")
-print(f"Total distance: {distance:.2f} meters ({distance/1000:.2f} km)")
-print(f"First 3 points: {path[:3]}")
+if __name__ == "__main__":
+    # Test coordinates: BNMIT -> MG Road
+    test_offline_route(12.9237, 77.5714, 12.9756, 77.6066)

@@ -15,7 +15,7 @@
       --bg: #0c0c0e; --surface: #141416; --border: #1f1f23; --border2: #2a2a30;
       --text: #e2e2e6; --muted: #52525e;
       --from: #38bdf8; --to: #fb923c;
-      --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24; --tw: #60a5fa;
+      --shortest: #a3e635; --traffic: #f472b6; --inner: #fbbf24; --tw: #60a5fa; --combined: #c084fc;
       --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
     }
 
@@ -92,6 +92,7 @@
     .dd-item[data-mode="traffic"].active  { background: var(--traffic);  color: #0c0c0e; font-weight: 500; }
     .dd-item[data-mode="inner"].active    { background: var(--inner);    color: #0c0c0e; font-weight: 500; }
     .dd-item[data-mode="twowheeler"].active { background: var(--tw);     color: #0c0c0e; font-weight: 500; }
+    .dd-item[data-mode="combined"].active   { background: var(--combined); color: #0c0c0e; font-weight: 500; }
 
     /* 2W Options Panel */
     .options-panel { width: 240px; padding: 14px; gap: 12px; cursor: default; }
@@ -116,6 +117,7 @@
     .stat-value.s { color: var(--shortest); }
     .stat-value.t { color: var(--traffic); }
     .stat-value.i { color: var(--inner); }
+    .stat-value.cb { color: var(--combined); }
     .stat-value.hidden { visibility: hidden; }
 
     #status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s; margin-left: 4px; }
@@ -123,6 +125,7 @@
     #status-dot.tr  { background: var(--traffic);  box-shadow: 0 0 6px var(--traffic); }
     #status-dot.ir  { background: var(--inner);    box-shadow: 0 0 6px var(--inner); }
     #status-dot.tw  { background: var(--tw);       box-shadow: 0 0 6px var(--tw); }
+    #status-dot.cb  { background: var(--combined); box-shadow: 0 0 6px var(--combined); }
     #status-dot.err { background: #f87171; }
     #status-text { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 
@@ -226,9 +229,7 @@
       </button>
       <div class="dropdown-menu">
         <div class="dd-item active" data-mode="shortest" onclick="setMode('shortest')">Shortest Path</div>
-        <div class="dd-item" data-mode="traffic" onclick="setMode('traffic')">Live Traffic</div>
-        <div class="dd-item" data-mode="inner" onclick="setMode('inner')">Inner Roads</div>
-        <div class="dd-item" data-mode="twowheeler" onclick="setMode('twowheeler')">2W Smart</div>
+        <div class="dd-item" data-mode="dynamic" onclick="setMode('dynamic')">Dynamic Route</div>
       </div>
     </div>
 
@@ -294,6 +295,7 @@
   <div class="legend-row"><div class="lline" style="background:var(--shortest)"></div>Shortest path</div>
   <div class="legend-row"><div class="lline" style="background:var(--traffic)"></div>Fastest (traffic)</div>
   <div class="legend-row"><div class="lline" style="background:var(--inner)"></div>Inner roads</div>
+  <div class="legend-row"><div class="lline" style="background:var(--combined)"></div>Combined (overlap)</div>
 </div>
 
 <div id="route-panel">
@@ -334,13 +336,19 @@ let routeLayers = [];
 let fromCoords = null, toCoords = null;
 let phase = 'from';
 let trafficRoutes = [];
+let combinedRoutes = {};
+let combinedBest = null;
 
 const modeNames = {
   shortest: 'Shortest Path',
   traffic: 'Live Traffic',
   inner: 'Inner Roads',
-  twowheeler: '2W Smart'
+  twowheeler: '2W Smart',
+  combined: 'Combined'
 };
+
+const combinedRouteColors = { shortest: 'var(--shortest)', twowheeler: 'var(--tw)', combined: 'var(--combined)' };
+const combinedRouteLabels = { shortest: 'Shortest Path', twowheeler: '2W Smart', combined: 'Combined (overlap)' };
 
 // --- UI Interaction Logic ---
 function toggleDropdown(id) {
@@ -372,7 +380,7 @@ function setMode(m) {
   });
 
   // Toggle Visibility of Options & Panels
-  document.getElementById('options-dropdown').style.display = (m === 'twowheeler') ? 'inline-block' : 'none';
+  document.getElementById('options-dropdown').style.display = (m === 'twowheeler' || m === 'combined') ? 'inline-block' : 'none';
   document.getElementById('inner-panel').style.display = (m === 'inner') ? 'block' : 'none';
   document.getElementById('route-panel').style.display = 'none';
 
@@ -424,7 +432,7 @@ function setStat(id, val, cls, show=true) {
 function showSpinner(on) {
   const s = document.getElementById('spinner');
   s.style.display = on ? 'block' : 'none';
-  s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : mode==='twowheeler' ? 'var(--tw)' : 'var(--shortest)';
+  s.style.borderTopColor = mode==='traffic' ? 'var(--traffic)' : mode==='inner' ? 'var(--inner)' : mode==='twowheeler' ? 'var(--tw)' : mode==='combined' ? 'var(--combined)' : 'var(--shortest)';
 }
 function hideHint() { document.getElementById('hint').classList.add('gone'); }
 
@@ -503,27 +511,37 @@ async function placePoint(role, latlng, label) {
 map.on('click', e => { if (phase === 'done') return; placePoint(phase, e.latlng, null); });
 
 // --- Routing APIs ---
+// Replace routeBetween switch logic with this:
 async function routeBetween() {
   phase = 'done';
   clearRoutes();
   setStat('val-dist','','s',false);
-  setStat('val-time','','t',false);
   showSpinner(true);
 
-  const statusMap = { shortest:'on', traffic:'tr', inner:'ir', twowheeler:'tw' };
-  const msgMap    = { shortest:'Finding shortest path…', traffic:'Checking live traffic…', inner:'Finding inner road route…', twowheeler:'Optimizing two-wheeler route…' };
-  setStatus(msgMap[mode], statusMap[mode]);
-
   try {
-    if (mode === 'shortest') await doShortest();
-    else if (mode === 'traffic') await doTraffic();
-    else if (mode === 'inner') await doInner();
-    else await doTwoWheeler();
+    if (mode === 'shortest') {
+        setStatus('Finding shortest path…', 'on');
+        await doShortest();
+    } else {
+        setStatus('Fetching live congestion data…', 'tw');
+        await doDynamic();
+    }
   } catch(e) {
     setStatus(`Error: ${e.message}`, 'err');
   } finally {
     showSpinner(false);
   }
+}
+
+// Add the new doDynamic fetch function
+async function doDynamic() {
+  const url = `${API}/dynamic-route?from_lat=${fromCoords.lat}&from_lng=${fromCoords.lng}&to_lat=${toCoords.lat}&to_lng=${toCoords.lng}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+  
+  drawRoute(data.path, 'var(--tw)', 'rgba(96,165,250,0.18)');
+  setStat('val-dist', `${data.distance_km} km`, 't', true);
+  setStatus(`${data.distance_km} km · Avoided ${data.congested_nodes_avoided} jammed nodes`, 'tw');
 }
 
 async function doShortest() {
@@ -606,6 +624,82 @@ async function doTwoWheeler() {
         <span class="rp-dist">${route.distance_km !== null && route.distance_km !== undefined ? route.distance_km + ' km' : 'n/a'}</span>
       </div>
     `;
+    list.appendChild(el);
+  });
+  panel.style.display = 'block';
+}
+
+async function doCombined() {
+  const params = new URLSearchParams({
+    from_lat: fromCoords.lat,
+    from_lng: fromCoords.lng,
+    to_lat: toCoords.lat,
+    to_lng: toCoords.lng,
+    main_road_penalty: readNumberInput('tw-main', 1.35),
+    inner_road_multiplier: readNumberInput('tw-inner', 0.95),
+    service_multiplier: readNumberInput('tw-service', 1.2),
+    segment_km: readNumberInput('tw-segment', 3),
+  });
+  const url = `${API}/combined-route?${params.toString()}`;
+  const data = await (await fetch(url)).json();
+  if (data.status === 'error') throw new Error(data.message);
+
+  combinedRoutes = data.routes;
+  combinedBest = data.best_route;
+  drawCombinedRoutes();
+  buildCombinedPanel();
+}
+
+function drawCombinedRoutes() {
+  clearRoutes();
+  Object.entries(combinedRoutes).forEach(([name, r]) => {
+    const sel = name === combinedBest;
+    const color = combinedRouteColors[name] || '#999';
+    if (sel) {
+      routeLayers.push(L.polyline(r.path, { color, weight: 16, opacity: 0.18, lineJoin: 'round' }).addTo(map));
+    }
+    routeLayers.push(
+      L.polyline(r.path, {
+        color, weight: sel ? 4.5 : 3, opacity: sel ? 0.95 : 0.4,
+        lineJoin: 'round', dashArray: sel ? null : '6,6',
+      }).addTo(map)
+    );
+  });
+
+  const best = combinedRoutes[combinedBest];
+  map.fitBounds(L.polyline(best.path).getBounds(), { padding: [48, 48] });
+  setStat('val-dist', `${best.distance_km} km`, 'cb', true);
+  setStat('val-time', best.traffic_minutes != null ? `${best.traffic_minutes} min` : '—', 'cb', true);
+  setStatus(
+    `Best: ${combinedRouteLabels[combinedBest]}` +
+    (best.traffic_minutes != null ? ` · ${best.traffic_minutes} min live` : ''),
+    'cb'
+  );
+}
+
+function buildCombinedPanel() {
+  const panel = document.getElementById('route-panel');
+  const head = panel.querySelector('.rp-head');
+  const list = document.getElementById('rp-list');
+  head.textContent = 'Combined route options';
+  list.innerHTML = '';
+  Object.entries(combinedRoutes).forEach(([name, r]) => {
+    const isSelected = name === combinedBest;
+    const el = document.createElement('div');
+    el.className = 'rp-route' + (isSelected ? ' selected' : '');
+    el.innerHTML = `
+      <div class="rp-via">${combinedRouteLabels[name] || name}${isSelected ? ' · picked (live traffic)' : ''}</div>
+      <div class="rp-meta">
+        <span class="rp-traffic">${r.traffic_minutes != null ? r.traffic_minutes + ' min' : 'n/a'}</span>
+        <span class="rp-dist">${r.distance_km} km</span>
+      </div>
+    `;
+    el.onclick = () => {
+      combinedBest = name;
+      drawCombinedRoutes();
+      document.querySelectorAll('.rp-route').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+    };
     list.appendChild(el);
   });
   panel.style.display = 'block';
