@@ -3,7 +3,7 @@
 .venv/
 venv/
 env/
-
+bengaluru_roads_extended.graphml
 # ── Python Internals ──
 __pycache__/
 *.py[cod]
@@ -25,7 +25,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+node_modules
 # ── Spatial Data & Assets (Heavy Files) ──
 # You generally do not want to push 100MB+ graphml or geojson files to GitHub.
 # If you need to track specific small files, you can force them with `git add -f`
