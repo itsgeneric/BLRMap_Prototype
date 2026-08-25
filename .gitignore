@@ -62,3 +62,14 @@ route_decisions.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+next-env.d.ts
+package-lock.json
+tsconfig.json
+
+bengaluru_graph.graphml
+bengaluru_roads_extended.graphml
+bengaluru_roads_full.graphml
+cache
+
+node_modules
