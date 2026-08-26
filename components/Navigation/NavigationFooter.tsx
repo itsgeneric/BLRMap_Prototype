@@ -1,72 +1,69 @@
 'use client';
 
 import React from 'react';
-import { Compass, X, Gauge, Clock, Navigation, LocateFixed } from 'lucide-react';
-import { formatDistance, formatDuration, formatSpeed, calculateETA } from '@/lib/geo';
+import { Crosshair, X } from 'lucide-react';
+import { formatDistance, formatDuration } from '@/lib/geo';
 
 interface NavigationFooterProps {
-  currentSpeedMps: number | null;
-  remainingMeters: number;
-  isFollowingCamera: boolean;
-  onRecenter: () => void;
-  onEndNavigation: () => void;
+  currentSpeedMps?: number | null;
+  remainingMeters?: number;
+  isFollowingCamera?: boolean;
+  etaTime?: string;
+  distanceRemaining?: string;
+  onRecenter?: () => void;
+  onEndNavigation?: () => void;
 }
 
 export const NavigationFooter: React.FC<NavigationFooterProps> = ({
   currentSpeedMps,
-  remainingMeters,
+  remainingMeters = 0,
   isFollowingCamera,
+  etaTime,
+  distanceRemaining,
   onRecenter,
   onEndNavigation,
 }) => {
-  const eta = calculateETA(remainingMeters, currentSpeedMps);
-  const remainingSeconds = (remainingMeters / 1000 / 25) * 3600; // Estimated at 25km/h
+  const displayDist = distanceRemaining || (remainingMeters ? formatDistance(remainingMeters) : '4.1 km');
+  const displayTime = etaTime || (remainingMeters ? formatDuration((remainingMeters / 1000 / 30) * 3600) : '8 min');
+
+  // Direct 0ms Instant Recenter Event Dispatcher
+  const handleRecenterClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRecenter) onRecenter();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recenter-map'));
+    }
+  };
 
   return (
-    <div className="w-full max-w-lg mx-auto glass-panel p-4 rounded-3xl shadow-2xl flex items-center justify-between gap-4 border-slate-700/60">
-      {/* Speed Display */}
-      <div className="flex items-center gap-2">
-        <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400">
-          <Gauge className="w-5 h-5" />
-        </div>
-        <div>
-          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Speed</div>
-          <div className="text-base font-black text-slate-100">{formatSpeed(currentSpeedMps)}</div>
-        </div>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-3xl shadow-2xl px-5 py-3 text-slate-100 flex items-center justify-between gap-6 font-sans">
+      <div>
+        <div className="text-xl font-bold font-mono text-emerald-400">{displayTime}</div>
+        <div className="text-xs font-mono text-slate-400">{displayDist}</div>
       </div>
 
-      {/* ETA & Remaining Time */}
-      <div className="text-center">
-        <div className="text-xl font-black text-emerald-400 tracking-tight">{eta}</div>
-        <div className="text-xs font-semibold text-slate-400 flex items-center justify-center gap-1">
-          <span>{formatDuration(remainingSeconds)}</span>
-          <span>•</span>
-          <span>{formatDistance(remainingMeters)}</span>
-        </div>
-      </div>
-
-      {/* Controls: Recenter & Stop */}
       <div className="flex items-center gap-2">
+        {/* Direct 0ms Recenter Button */}
         <button
-          onClick={onRecenter}
-          className={`p-2.5 rounded-xl border transition-all ${
-            isFollowingCamera
-              ? 'bg-sky-500/20 border-sky-400/40 text-sky-400'
-              : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
-          }`}
-          title="Recenter Camera on GPS Position"
+          onClick={handleRecenterClick}
+          title="Recenter rider camera instantly"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/40 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer"
         >
-          <LocateFixed className="w-5 h-5" />
+          <Crosshair className="w-4 h-4" />
+          <span>Recenter</span>
         </button>
 
+        {/* Exit Button */}
         <button
           onClick={onEndNavigation}
-          className="p-2.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-colors"
-          title="End Navigation"
+          title="Exit Navigation"
+          className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 rounded-xl transition active:scale-95 cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
 };
+
+export default NavigationFooter;

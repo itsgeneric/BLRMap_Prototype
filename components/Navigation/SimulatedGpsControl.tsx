@@ -1,4 +1,6 @@
 'use client';
 
-export const SimulatedGpsControl = () => null;
+import React from 'react';
+
+export const SimulatedGpsControl: React.FC<any> = () => null;
 export default SimulatedGpsControl;

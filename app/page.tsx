@@ -23,7 +23,7 @@ import { ModeSelector } from '@/components/Navigation/ModeSelector';
 import { TurnByTurnBanner } from '@/components/Navigation/TurnByTurnBanner';
 import { NavigationFooter } from '@/components/Navigation/NavigationFooter';
 import { SimulatedGpsControl } from '@/components/Navigation/SimulatedGpsControl';
-import { Navigation, Loader2, Bike } from 'lucide-react';
+import { Navigation, Loader2, Bike, Eye } from 'lucide-react';
 
 // Dynamic SSR-disabled import for MapContainer
 const MapContainer = dynamic(
@@ -190,11 +190,22 @@ export default function NavigationApp() {
     voiceGuidance.speak('Starting navigation');
   };
 
+  const handleStartPreview = () => {
+    setIsNavigating(false);
+    setIsFollowingCamera(false);
+    voiceGuidance.speak('Previewing route');
+  };
+
   const handleEndNavigation = () => {
     setIsNavigating(false);
     setIsSimulating(false);
     voiceGuidance.speak('Navigation ended');
   };
+
+  // Google Maps Logic: Check if Origin is "My Location"
+  const isOriginMyLocation =
+    origin?.name?.toLowerCase().includes('my location') ||
+    origin?.address?.toLowerCase().includes('my location');
 
   const currentManeuver = routeData?.maneuvers?.[currentManeuverIndex] || null;
   const nextManeuver = routeData?.maneuvers?.[currentManeuverIndex + 1] || null;
@@ -292,7 +303,7 @@ export default function NavigationApp() {
             />
           </div>
         ) : (
-          /* Route Overview & Start Button Bottom Panel */
+          /* Route Overview Bottom Panel */
           routeData?.path && (
             <div className="pointer-events-auto max-w-xl mx-auto glass-panel p-4 rounded-3xl space-y-3 shadow-2xl">
               <div className="flex items-center justify-between">
@@ -315,13 +326,24 @@ export default function NavigationApp() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleStartNavigation}
-                  className="px-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-sky-500/30 flex items-center gap-2 transition-all transform active:scale-95"
-                >
-                  <Navigation className="w-4 h-4 fill-current" />
-                  <span>Start Navigation</span>
-                </button>
+                {/* Smart Google Maps Action Button: Start Navigation vs Preview Route */}
+                {isOriginMyLocation ? (
+                  <button
+                    onClick={handleStartNavigation}
+                    className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+                  >
+                    <Navigation className="w-4 h-4 fill-current" />
+                    <span>Start Navigation</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartPreview}
+                    className="px-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-sky-500/30 flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Preview Route</span>
+                  </button>
+                )}
               </div>
 
               {/* Simulation Driver Controls */}
@@ -349,4 +371,3 @@ export default function NavigationApp() {
     </div>
   );
 }
-
