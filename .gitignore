@@ -32,6 +32,8 @@ Data Assets/*.graphml
 Data Assets/*.geojson
 *.osm
 *.pbf
+*.graphml
+*.geojson
 
 # ── OSMnx / API Cache ──
 # OSMnx caches map downloads locally to speed up restarts. This should not be tracked.
@@ -61,3 +63,4 @@ route_decisions.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+.next/
