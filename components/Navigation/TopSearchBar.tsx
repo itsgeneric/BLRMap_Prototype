@@ -42,10 +42,12 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
   const [focusedField, setFocusedField] = useState<'source' | 'destination' | null>(null);
 
   const searchTimer = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Sync prop changes
   useEffect(() => {
     if (activeSource) {
-      setFromQuery(activeSource.name || activeSource.address || `${activeSource.lat}, ${activeSource.lng}`);
+      setFromQuery(activeSource.name || activeSource.address || `${activeSource.lat.toFixed(4)}, ${activeSource.lng.toFixed(4)}`);
     } else {
       setFromQuery('');
     }
@@ -53,11 +55,26 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
 
   useEffect(() => {
     if (destination) {
-      setToQuery(destination.name || destination.address || `${destination.lat}, ${destination.lng}`);
+      setToQuery(destination.name || destination.address || `${destination.lat.toFixed(4)}, ${destination.lng.toFixed(4)}`);
     } else {
       setToQuery('');
     }
   }, [destination]);
+
+  // Click outside listener to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocusedField(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   if (isNavigating) return null;
 
@@ -82,7 +99,7 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
       } finally {
         setLoadingSearch(false);
       }
-    }, 300);
+    }, 250);
   };
 
   const handleSelectSuggestion = (item: any, field: 'source' | 'destination') => {
@@ -105,12 +122,17 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
     setFocusedField(null);
   };
 
-  const handleStartFromMyLocation = (e: React.MouseEvent) => {
+  const handleStartFromMyLocation = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      alert('Geolocation is not supported on this device.');
       return;
     }
+
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -123,33 +145,48 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
         };
         if (setSourceFn) setSourceFn(loc);
       },
-      () => {
+      (err) => {
         setGpsLoading(false);
-        alert('Could not fetch location permissions.');
+        console.warn('GPS location fetch failed:', err.message);
+        alert('Could not access device GPS. Please check location permissions.');
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 6000 }
     );
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-2 font-sans relative z-[1000]">
-      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl p-3.5 space-y-2.5">
-        <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-slate-800/80 pb-2">
-          <span className="flex items-center gap-1.5 font-semibold text-sky-400">
-            <Navigation className="w-3.5 h-3.5" /> BLR ROUTER — GMAPS
+    <div ref={containerRef} className="w-full max-w-lg mx-auto font-sans relative z-[1000]">
+      <div className="glass-panel-heavy rounded-3xl p-3 sm:p-4 space-y-2.5 shadow-2xl border border-slate-700/60">
+        {/* Top Header Label & Clear Button */}
+        <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-slate-800 pb-2">
+          <span className="flex items-center gap-1.5 font-bold text-sky-400">
+            <Navigation className="w-3.5 h-3.5 fill-sky-400/20" />
+            <span>BLR NAV ROUTER</span>
           </span>
-          {onClear && (
-            <button onClick={onClear} className="hover:text-red-400 transition cursor-pointer flex items-center gap-1 text-[11px]">
-              <X className="w-3 h-3" /> Clear All
+          {onClear && (activeSource || destination) && (
+            <button
+              onClick={onClear}
+              className="touch-press text-slate-400 hover:text-red-400 active:text-red-400 transition flex items-center gap-1 text-[11px] font-medium cursor-pointer py-0.5 px-2 rounded-lg hover:bg-red-500/10"
+            >
+              <X className="w-3 h-3" />
+              <span>Reset</span>
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex-1 space-y-2 relative">
-            {/* Source Box */}
+        {/* Search Inputs Container */}
+        <div className="flex items-center gap-2 relative">
+          {/* Connector Dots Indicator on the left */}
+          <div className="flex flex-col items-center justify-center self-stretch py-2.5 px-1 shrink-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-sky-400 ring-4 ring-sky-500/20 shadow-sm"></div>
+            <div className="w-0.5 flex-1 my-1 bg-gradient-to-b from-sky-400 via-slate-700 to-orange-500 min-h-[22px]"></div>
+            <div className="w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-orange-500/20 shadow-sm"></div>
+          </div>
+
+          {/* Text Input Stack */}
+          <div className="flex-1 space-y-2 relative min-w-0">
+            {/* Origin / Source Box */}
             <div className="relative flex items-center">
-              <div className="absolute left-3 w-2.5 h-2.5 rounded-full bg-sky-400 ring-4 ring-sky-500/20"></div>
               <input
                 type="text"
                 value={fromQuery}
@@ -158,30 +195,31 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                   setFocusedField('source');
                   if (setActiveInput) setActiveInput('source');
                 }}
-                placeholder="Search or click map for Source..."
-                className={`w-full bg-slate-950/90 border text-xs text-slate-200 pl-8 pr-24 py-2 rounded-xl outline-none transition ${
+                placeholder="Choose starting point or tap map..."
+                className={`w-full bg-slate-950/80 border text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 pl-3 pr-24 py-2 sm:py-2.5 rounded-xl outline-none transition ${
                   activeInput === 'source' || focusedField === 'source'
-                    ? 'border-sky-500 ring-2 ring-sky-500/20'
+                    ? 'border-sky-400 ring-2 ring-sky-500/20 bg-slate-950'
                     : 'border-slate-800 hover:border-slate-700'
                 }`}
               />
+
+              {/* My Location GPS Button */}
               <button
                 onClick={handleStartFromMyLocation}
-                title="Start from my current GPS location"
-                className="absolute right-1.5 px-2 py-0.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/40 rounded-lg text-[10px] font-medium flex items-center gap-1 transition cursor-pointer"
+                title="Use current GPS location"
+                className="absolute right-1.5 px-2.5 py-1 bg-sky-500/15 hover:bg-sky-500/25 active:bg-sky-500/35 text-sky-400 border border-sky-500/30 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition touch-press cursor-pointer shrink-0"
               >
                 {gpsLoading ? (
                   <Loader2 className="w-3 h-3 animate-spin text-sky-400" />
                 ) : (
                   <MapPin className="w-3 h-3" />
                 )}
-                <span>My Location</span>
+                <span>GPS</span>
               </button>
             </div>
 
             {/* Destination Box */}
             <div className="relative flex items-center">
-              <div className="absolute left-3 w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-orange-500/20"></div>
               <input
                 type="text"
                 value={toQuery}
@@ -190,36 +228,52 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                   setFocusedField('destination');
                   if (setActiveInput) setActiveInput('destination');
                 }}
-                placeholder="Search or click map for Destination..."
-                className={`w-full bg-slate-950/90 border text-xs text-slate-200 pl-8 pr-3 py-2 rounded-xl outline-none transition ${
+                placeholder="Choose destination or tap map..."
+                className={`w-full bg-slate-950/80 border text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 pl-3 pr-8 py-2 sm:py-2.5 rounded-xl outline-none transition ${
                   activeInput === 'destination' || focusedField === 'destination'
-                    ? 'border-orange-500 ring-2 ring-orange-500/20'
+                    ? 'border-orange-400 ring-2 ring-orange-500/20 bg-slate-950'
                     : 'border-slate-800 hover:border-slate-700'
                 }`}
               />
+              {toQuery && (
+                <button
+                  onClick={() => {
+                    setToQuery('');
+                    if (onSelectDestination) onSelectDestination(null);
+                  }}
+                  className="absolute right-2 text-slate-400 hover:text-slate-200 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Suggestions Overlay */}
+            {/* Autocomplete Dropdown */}
             {focusedField && (suggestions.length > 0 || loadingSearch) && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl z-[2000] max-h-48 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/98 backdrop-blur-xl border border-slate-700/80 rounded-2xl overflow-hidden shadow-2xl z-[2000] max-h-56 overflow-y-auto">
                 {loadingSearch ? (
-                  <div className="p-3 text-xs text-slate-400 flex items-center justify-center gap-2 font-mono">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" /> Searching places...
+                  <div className="p-3.5 text-xs text-slate-400 flex items-center justify-center gap-2 font-mono">
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                    <span>Searching Bengaluru locations...</span>
                   </div>
                 ) : (
                   suggestions.map((item, idx) => (
                     <div
                       key={idx}
                       onClick={() => handleSelectSuggestion(item, focusedField)}
-                      className="px-3 py-2.5 hover:bg-slate-800 cursor-pointer border-b border-slate-800/50 last:border-0 transition"
+                      className="px-3.5 py-2.5 hover:bg-slate-800/80 active:bg-slate-700/90 cursor-pointer border-b border-slate-800/60 last:border-0 transition flex items-center gap-2.5 touch-press"
                     >
-                      <div className="text-xs font-medium text-slate-100 flex items-center gap-1.5">
-                        <Search className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span className="truncate">{item.name}</span>
+                      <Search className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs sm:text-sm font-semibold text-slate-100 truncate">
+                          {item.name}
+                        </div>
+                        {item.address && (
+                          <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                            {item.address}
+                          </div>
+                        )}
                       </div>
-                      {item.address && (
-                        <div className="text-[10px] text-slate-400 truncate pl-4 mt-0.5">{item.address}</div>
-                      )}
                     </div>
                   ))
                 )}
@@ -227,14 +281,14 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
             )}
           </div>
 
-          {/* Swap Button */}
+          {/* Swap Button on the right */}
           {onSwap && (
             <button
               onClick={onSwap}
               title="Swap Origin & Destination"
-              className="p-2.5 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 shadow transition cursor-pointer shrink-0 self-center"
+              className="p-2.5 sm:p-3 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white rounded-2xl border border-slate-700/80 shadow-md touch-press cursor-pointer shrink-0 self-center active:scale-95 transition"
             >
-              <ArrowUpDown className="w-4 h-4" />
+              <ArrowUpDown className="w-4 h-4 text-sky-400" />
             </button>
           )}
         </div>

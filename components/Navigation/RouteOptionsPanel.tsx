@@ -16,21 +16,24 @@ export const RouteOptionsPanel: React.FC<RouteOptionsPanelProps> = ({
   onClose,
 }) => {
   return (
-    <div className="glass-panel p-4 rounded-2xl w-72 shadow-2xl space-y-4 text-xs font-sans">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-        <div className="flex items-center gap-1.5 font-bold text-sky-400 uppercase tracking-wider">
-          <Sliders className="w-3.5 h-3.5" />
+    <div className="glass-panel-heavy p-4 rounded-3xl w-full max-w-sm sm:w-80 shadow-2xl space-y-4 text-xs font-sans border border-slate-700/80">
+      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div className="flex items-center gap-2 font-bold text-sky-400 uppercase tracking-wider text-xs">
+          <Sliders className="w-4 h-4" />
           <span>2W Routing Penalties</span>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white touch-press cursor-pointer"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {/* Main Road Penalty */}
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium">Main Road Penalty</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-slate-300 font-medium">Main Road Penalty</span>
           <input
             type="number"
             min="1"
@@ -40,13 +43,13 @@ export const RouteOptionsPanel: React.FC<RouteOptionsPanelProps> = ({
             onChange={(e) =>
               onChange({ ...options, mainRoadPenalty: parseFloat(e.target.value) || 1.35 })
             }
-            className="w-16 bg-slate-900 border border-slate-700 text-slate-100 px-2 py-1 rounded text-right font-mono"
+            className="w-20 bg-slate-950 border border-slate-700 text-slate-100 px-2.5 py-1.5 rounded-xl text-right font-mono text-xs outline-none focus:border-sky-400"
           />
         </div>
 
         {/* Inner Road Multiplier */}
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium">Inner Road Preference</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-slate-300 font-medium">Inner Road Preference</span>
           <input
             type="number"
             min="0.5"
@@ -56,13 +59,13 @@ export const RouteOptionsPanel: React.FC<RouteOptionsPanelProps> = ({
             onChange={(e) =>
               onChange({ ...options, innerRoadMultiplier: parseFloat(e.target.value) || 0.95 })
             }
-            className="w-16 bg-slate-900 border border-slate-700 text-slate-100 px-2 py-1 rounded text-right font-mono"
+            className="w-20 bg-slate-950 border border-slate-700 text-slate-100 px-2.5 py-1.5 rounded-xl text-right font-mono text-xs outline-none focus:border-sky-400"
           />
         </div>
 
         {/* Service Road Multiplier */}
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium">Service Road Preference</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-slate-300 font-medium">Service Road Preference</span>
           <input
             type="number"
             min="0.5"
@@ -72,15 +75,15 @@ export const RouteOptionsPanel: React.FC<RouteOptionsPanelProps> = ({
             onChange={(e) =>
               onChange({ ...options, serviceMultiplier: parseFloat(e.target.value) || 1.2 })
             }
-            className="w-16 bg-slate-900 border border-slate-700 text-slate-100 px-2 py-1 rounded text-right font-mono"
+            className="w-20 bg-slate-950 border border-slate-700 text-slate-100 px-2.5 py-1.5 rounded-xl text-right font-mono text-xs outline-none focus:border-sky-400"
           />
         </div>
 
         {/* Segment Split Slider */}
-        <div className="space-y-1 pt-1 border-t border-slate-800">
+        <div className="space-y-1.5 pt-2 border-t border-slate-800">
           <div className="flex items-center justify-between">
-            <span className="text-slate-400 font-medium">Segment Split Distance</span>
-            <span className="font-mono text-sky-400">{options.segmentKm} km</span>
+            <span className="text-slate-300 font-medium">Segment Split</span>
+            <span className="font-mono font-bold text-sky-400">{options.segmentKm} km</span>
           </div>
           <input
             type="range"
@@ -91,10 +94,12 @@ export const RouteOptionsPanel: React.FC<RouteOptionsPanelProps> = ({
             onChange={(e) =>
               onChange({ ...options, segmentKm: parseFloat(e.target.value) || 3.0 })
             }
-            className="w-full accent-sky-400 cursor-pointer"
+            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-400"
           />
         </div>
       </div>
     </div>
   );
 };
+
+export default RouteOptionsPanel;

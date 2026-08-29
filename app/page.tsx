@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Point,
@@ -22,13 +22,21 @@ import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
 import { ModeSelector } from '@/components/Navigation/ModeSelector';
 import { TurnByTurnBanner } from '@/components/Navigation/TurnByTurnBanner';
 import { NavigationFooter } from '@/components/Navigation/NavigationFooter';
-import { SimulatedGpsControl } from '@/components/Navigation/SimulatedGpsControl';
-import { Navigation, Loader2, Bike, Eye } from 'lucide-react';
+import { BottomActionBar } from '@/components/Navigation/BottomActionBar';
+import { Loader2, Bike } from 'lucide-react';
 
 // Dynamic SSR-disabled import for MapContainer
 const MapContainer = dynamic(
   () => import('@/components/Map/MapContainer').then((mod) => mod.MapContainer),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-slate-950 flex items-center justify-center text-sky-400 font-mono text-xs">
+        <Loader2 className="w-6 h-6 animate-spin text-sky-400 mr-2" />
+        Loading Bangalore Map...
+      </div>
+    ),
+  }
 );
 
 export default function NavigationApp() {
@@ -45,11 +53,6 @@ export default function NavigationApp() {
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [currentManeuverIndex, setCurrentManeuverIndex] = useState(0);
-
-  // Simulation State
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simIndex, setSimIndex] = useState(0);
-  const [simSpeedKmh, setSimSpeedKmh] = useState(35);
 
   // Handle Theme Toggle
   const handleThemeToggle = (newTheme: ThemeMode) => {
@@ -71,23 +74,21 @@ export default function NavigationApp() {
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        if (!isSimulating) {
-          setGpsPosition({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            heading: pos.coords.heading || 0,
-            speed: pos.coords.speed || 0,
-            accuracy: pos.coords.accuracy,
-            timestamp: pos.timestamp,
-          });
-        }
+        setGpsPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          heading: pos.coords.heading || 0,
+          speed: pos.coords.speed || 0,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        });
       },
       (err) => console.warn('Geolocation warning:', err.message),
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isSimulating]);
+  }, []);
 
   // Fetch Route when origin, destination, or mode changes
   useEffect(() => {
@@ -96,53 +97,25 @@ export default function NavigationApp() {
       return;
     }
 
+    let isMounted = true;
     const loadRoute = async () => {
       setLoading(true);
-      const res = await fetchRoute(mode, origin, destination);
-      setRouteData(res);
-      setLoading(false);
-      setCurrentManeuverIndex(0);
-      setSimIndex(0);
+      try {
+        const res = await fetchRoute(mode, origin, destination);
+        if (isMounted) {
+          setRouteData(res);
+          setCurrentManeuverIndex(0);
+        }
+      } catch (err) {
+        console.error('Failed to load route:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     loadRoute();
+    return () => { isMounted = false; };
   }, [origin, destination, mode]);
-
-  // Simulated GPS Driver Loop
-  useEffect(() => {
-    if (!isSimulating || !routeData?.path || routeData.path.length < 2) return;
-
-    const intervalMs = 200;
-
-    const timer = setInterval(() => {
-      setSimIndex((prevIdx) => {
-        const path = routeData.path!;
-        if (prevIdx >= path.length - 1) {
-          setIsSimulating(false);
-          voiceGuidance.speak('You have arrived at your destination');
-          return prevIdx;
-        }
-
-        const nextIdx = prevIdx + 1;
-        const currentPt = path[prevIdx];
-        const nextPt = path[nextIdx];
-        const heading = calculateBearing(currentPt[0], currentPt[1], nextPt[0], nextPt[1]);
-
-        setGpsPosition({
-          lat: currentPt[0],
-          lng: currentPt[1],
-          heading: heading,
-          speed: (simSpeedKmh * 1000) / 3600,
-          accuracy: 5,
-          timestamp: Date.now(),
-        });
-
-        return nextIdx;
-      });
-    }, intervalMs);
-
-    return () => clearInterval(timer);
-  }, [isSimulating, routeData, simSpeedKmh]);
 
   // Navigation Logic (Off-route detection, Maneuver updates, Voice Prompts)
   useEffect(() => {
@@ -174,38 +147,41 @@ export default function NavigationApp() {
   }, [isNavigating, gpsPosition, routeData, currentManeuverIndex]);
 
   // Handle map click to place origin / destination
-  const handleMapClick = (latlng: [number, number]) => {
+  const handleMapClick = useCallback((latlng: [number, number]) => {
     if (!origin) {
       setOrigin({ lat: latlng[0], lng: latlng[1], name: `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` });
     } else if (!destination) {
       setDestination({ lat: latlng[0], lng: latlng[1], name: `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` });
     }
-  };
+  }, [origin, destination]);
 
-  const handleStartNavigation = () => {
+  const handleStartNavigation = useCallback(() => {
     if (!routeData?.path) return;
     setIsNavigating(true);
     setIsFollowingCamera(true);
     voiceGuidance.setEnabled(voiceEnabled);
     voiceGuidance.speak('Starting navigation');
-  };
+  }, [routeData, voiceEnabled]);
 
-  const handleStartPreview = () => {
+  const handleStartPreview = useCallback(() => {
     setIsNavigating(false);
     setIsFollowingCamera(false);
     voiceGuidance.speak('Previewing route');
-  };
+  }, []);
 
-  const handleEndNavigation = () => {
+  const handleEndNavigation = useCallback(() => {
     setIsNavigating(false);
-    setIsSimulating(false);
     voiceGuidance.speak('Navigation ended');
-  };
+  }, []);
 
-  // Google Maps Logic: Check if Origin is "My Location"
-  const isOriginMyLocation =
-    origin?.name?.toLowerCase().includes('my location') ||
-    origin?.address?.toLowerCase().includes('my location');
+  // Check if Origin is "My Location"
+  const isOriginMyLocation = useMemo(() => {
+    return (
+      origin?.name?.toLowerCase().includes('my location') ||
+      origin?.address?.toLowerCase().includes('my location') ||
+      false
+    );
+  }, [origin]);
 
   const currentManeuver = routeData?.maneuvers?.[currentManeuverIndex] || null;
   const nextManeuver = routeData?.maneuvers?.[currentManeuverIndex + 1] || null;
@@ -214,7 +190,7 @@ export default function NavigationApp() {
     : (currentManeuver?.distance_m || 0);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col font-sans">
+    <div className="relative w-screen h-screen h-[100dvh] overflow-hidden flex flex-col font-sans select-none">
       {/* Fullscreen Map Canvas */}
       <MapContainer
         origin={origin}
@@ -224,19 +200,21 @@ export default function NavigationApp() {
         theme={theme}
         mode={mode}
         isFollowingCamera={isFollowingCamera}
+        isNavigating={isNavigating}
         onMapClick={handleMapClick}
       />
 
-      {/* Floating Top UI Layer */}
-      <div className="absolute top-4 left-4 right-4 z-20 space-y-3 pointer-events-none">
-        <div className="flex items-center justify-between gap-3 pointer-events-auto max-w-4xl mx-auto">
+      {/* Floating Top UI Layer (Safe-Area Aware) */}
+      <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4 z-20 space-y-2 pointer-events-none safe-top">
+        {/* Top Header Bar with Brand, Mode Selector, and Theme Toggle */}
+        <div className="flex items-center justify-between gap-2 pointer-events-auto max-w-lg mx-auto w-full">
           {/* Brand Logo Pill */}
-          <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-2 text-xs font-mono font-bold tracking-widest text-slate-200">
+          <div className="glass-panel px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-1.5 sm:gap-2 text-xs font-mono font-bold tracking-widest text-slate-200 shadow-lg shrink-0">
             <Bike className="w-4 h-4 text-sky-400" />
             <span>BLR<b className="text-lime-400 font-black">NAV</b></span>
           </div>
 
-          {/* Mode Selector Dropdown Bar */}
+          {/* Mode Selector (When not actively driving/navigating) */}
           {!isNavigating && (
             <ModeSelector
               mode={mode}
@@ -281,8 +259,9 @@ export default function NavigationApp() {
               distanceToManeuverMeters={distToNextManeuver}
               voiceEnabled={voiceEnabled}
               onToggleVoice={() => {
-                setVoiceEnabled(!voiceEnabled);
-                voiceGuidance.setEnabled(!voiceEnabled);
+                const nextVoice = !voiceEnabled;
+                setVoiceEnabled(nextVoice);
+                voiceGuidance.setEnabled(nextVoice);
               }}
             />
           </div>
@@ -290,7 +269,7 @@ export default function NavigationApp() {
       </div>
 
       {/* Floating Bottom Navigation Controls & Drawer */}
-      <div className="absolute bottom-4 left-4 right-4 z-20 pointer-events-none">
+      <div className="pointer-events-none">
         {/* Navigation Footer during active GPS tracking */}
         {isNavigating ? (
           <div className="pointer-events-auto">
@@ -303,56 +282,15 @@ export default function NavigationApp() {
             />
           </div>
         ) : (
-          /* Route Overview Bottom Panel */
+          /* Route Overview Bottom Sheet Card */
           routeData?.path && (
-            <div className="pointer-events-auto max-w-xl mx-auto glass-panel p-4 rounded-3xl space-y-3 shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-sky-500/10 rounded-2xl text-sky-400 border border-sky-500/20">
-                    <Navigation className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xl font-black text-slate-100 flex items-baseline gap-2">
-                      <span>{routeData.distance_km} km</span>
-                      {routeData.google_base_duration_mins && (
-                        <span className="text-sm font-semibold text-pink-400">
-                          {routeData.google_base_duration_mins} min live
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-400 font-medium capitalize">
-                      {mode === 'shortest' ? 'Shortest Path' : 'Dynamic Route'} • {routeData.maneuvers?.length || 0} maneuvers
-                    </div>
-                  </div>
-                </div>
-
-                {/* Smart Google Maps Action Button: Start Navigation vs Preview Route */}
-                {isOriginMyLocation ? (
-                  <button
-                    onClick={handleStartNavigation}
-                    className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
-                  >
-                    <Navigation className="w-4 h-4 fill-current" />
-                    <span>Start Navigation</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleStartPreview}
-                    className="px-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-sky-500/30 flex items-center gap-2 transition-all transform active:scale-95 cursor-pointer"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span>Preview Route</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Simulation Driver Controls */}
-              <SimulatedGpsControl
-                isSimulating={isSimulating}
-                onToggleSimulate={() => setIsSimulating(!isSimulating)}
-                onResetSimulate={() => setSimIndex(0)}
-                speedKmh={simSpeedKmh}
-                onSpeedChange={setSimSpeedKmh}
+            <div className="pointer-events-auto">
+              <BottomActionBar
+                routeData={routeData}
+                mode={mode}
+                isOriginMyLocation={isOriginMyLocation}
+                onStartNavigation={handleStartNavigation}
+                onStartPreview={handleStartPreview}
               />
             </div>
           )
@@ -361,10 +299,10 @@ export default function NavigationApp() {
 
       {/* Loading Spinner Overlay */}
       {loading && (
-        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
-          <div className="glass-panel px-6 py-4 rounded-2xl flex items-center gap-3 text-sky-400 font-bold">
-            <Loader2 className="w-6 h-6 animate-spin" />
-            <span>Calculating route...</span>
+        <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+          <div className="glass-panel-heavy px-5 py-3 sm:px-6 sm:py-4 rounded-3xl flex items-center gap-3 text-sky-400 font-bold text-xs sm:text-sm shadow-2xl border border-slate-700/80">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Calculating fastest route...</span>
           </div>
         </div>
       )}

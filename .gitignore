@@ -1,5 +1,9 @@
 # ── Environment & Secrets ──
 .env
+.env*.local
+.env.local
+.env.production
+.env.development
 .venv/
 venv/
 env/
@@ -17,6 +21,7 @@ downloads/
 eggs/
 .eggs/
 
+Data assets
 parts/
 sdist/
 var/

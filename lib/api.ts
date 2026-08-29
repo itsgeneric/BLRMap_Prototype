@@ -1,11 +1,17 @@
-import { Point, RouteMode, RouteResponse, TwoWheelerOptions, SearchResult } from './types';
+import { Point, RouteMode, RouteResponse, SearchResult } from './types';
 
-const API_BASE = typeof window !== 'undefined' ? '/api/backend' : 'http://127.0.0.1:8000';
+// Dynamic API Base: Automatically uses port 8000 on current host (localhost or 192.168.0.180)
+const getApiBase = () => {
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:8000`;
+  }
+  return 'http://127.0.0.1:8000';
+};
 
 export async function searchPlaces(query: string): Promise<SearchResult[]> {
   if (!query || query.trim().length < 2) return [];
   try {
-    const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`${getApiBase()}/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.results || [];
@@ -28,9 +34,10 @@ export async function fetchRoute(
     to_lng: to.lng.toString(),
   });
 
+  const url = `${getApiBase()}${endpoint}?${params.toString()}`;
 
   try {
-    const res = await fetch(`${API_BASE}${endpoint}?${params.toString()}`);
+    const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
     }

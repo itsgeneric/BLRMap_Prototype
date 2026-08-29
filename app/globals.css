@@ -5,81 +5,125 @@
 
 @layer base {
   :root {
-    --bg-main: #0c0c0e;
-    --bg-surface: #141416;
-    --bg-glass: rgba(20, 20, 22, 0.88);
-    --border-color: #222228;
-    --border-color-hover: #33333e;
-    --text-main: #f1f5f9;
-    --text-muted: #64748b;
+    --bg-main: #090a0f;
+    --bg-surface: #12141c;
+    --bg-surface-elevated: #1a1d29;
+    --bg-glass: rgba(18, 20, 28, 0.88);
+    --bg-glass-heavy: rgba(14, 16, 23, 0.96);
+    --border-color: #232736;
+    --border-color-hover: #373e54;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
     --accent-blue: #38bdf8;
-    --accent-orange: #fb923c;
-    --accent-green: #a3e635;
-    --shadow-color: rgba(0, 0, 0, 0.6);
+    --accent-orange: #f97316;
+    --accent-green: #10b981;
+    --shadow-color: rgba(0, 0, 0, 0.65);
   }
 
   .light {
-    --bg-main: #f8fafc;
+    --bg-main: #f1f5f9;
     --bg-surface: #ffffff;
-    --bg-glass: rgba(255, 255, 255, 0.92);
+    --bg-surface-elevated: #f8fafc;
+    --bg-glass: rgba(255, 255, 255, 0.90);
+    --bg-glass-heavy: rgba(255, 255, 255, 0.98);
     --border-color: #e2e8f0;
     --border-color-hover: #cbd5e1;
     --text-main: #0f172a;
     --text-muted: #64748b;
     --accent-blue: #0284c7;
     --accent-orange: #ea580c;
-    --accent-green: #65a30d;
-    --shadow-color: rgba(0, 0, 0, 0.08);
+    --accent-green: #059669;
+    --shadow-color: rgba(0, 0, 0, 0.12);
   }
 }
 
+html,
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
-  height: 100vh;
+  height: 100%;
+  height: 100dvh;
   width: 100vw;
+  margin: 0;
+  padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism containers */
+/* Glassmorphism containers with hardware acceleration */
 .glass-panel {
   background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-color);
   box-shadow: 0 10px 30px var(--shadow-color);
+  transform: translateZ(0);
 }
 
-/* Custom leaflet popup & controls override */
+.glass-panel-heavy {
+  background: var(--bg-glass-heavy);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 14px 40px var(--shadow-color);
+  transform: translateZ(0);
+}
+
+/* Touch-optimized button scaling */
+.touch-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+  will-change: transform;
+}
+.touch-press:active {
+  transform: scale(0.96);
+}
+
+/* Custom leaflet map fixes for mobile */
 .leaflet-container {
   background: var(--bg-main) !important;
   width: 100%;
   height: 100%;
+  touch-action: pan-x pan-y !important;
 }
 
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 4px 14px var(--shadow-color) !important;
+  box-shadow: 0 4px 16px var(--shadow-color) !important;
+  margin-right: 14px !important;
+  margin-top: 80px !important;
 }
 
 .leaflet-control-zoom a {
   background-color: var(--bg-surface) !important;
   color: var(--text-main) !important;
   border-bottom: 1px solid var(--border-color) !important;
+  width: 38px !important;
+  height: 38px !important;
+  line-height: 38px !important;
+  border-radius: 12px !important;
+  font-size: 16px !important;
 }
 
 .leaflet-control-zoom a:hover {
   background-color: var(--border-color-hover) !important;
 }
 
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 /* GPS Pulsing dot animation */
 @keyframes gps-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.75);
   }
   70% {
-    box-shadow: 0 0 0 16px rgba(56, 189, 248, 0);
+    box-shadow: 0 0 0 18px rgba(56, 189, 248, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
@@ -88,13 +132,30 @@ body {
 
 .gps-marker-pulse {
   border-radius: 50%;
-  animation: gps-pulse 2s infinite;
+  animation: gps-pulse 2s infinite cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Safe area insets for notched phones & gestures */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
 
 /* Custom scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

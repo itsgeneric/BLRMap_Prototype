@@ -55,21 +55,36 @@ def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
 
 @app.get("/dynamic-route")
 async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
-    start = ox.nearest_nodes(graph_manager.G, from_lng, from_lat)
-    end = ox.nearest_nodes(graph_manager.G, to_lng, to_lat)
-    
-    async with httpx.AsyncClient() as client:
-        duration_s, jam_coords = await fetch_traffic_data(client, from_lat, from_lng, to_lat, to_lng)
-    
-    congested_nodes = set()
-    if jam_coords:
-        for lat, lng in jam_coords:
-            congested_nodes.add(ox.nearest_nodes(graph_manager.G, lng, lat))
-            
-    penalties = build_two_wheeler_penalties()
-    
     try:
-        route = two_wheeler_astar(graph_manager.G, start, end, graph_manager, penalties=penalties, congested_nodes=congested_nodes)
+        start = ox.nearest_nodes(graph_manager.G, from_lng, from_lat)
+        end = ox.nearest_nodes(graph_manager.G, to_lng, to_lat)
+        
+        jam_coords = []
+        duration_s = None
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                duration_s, jam_coords = await fetch_traffic_data(client, from_lat, from_lng, to_lat, to_lng)
+        except Exception as e:
+            print(f"Traffic data fetch warning: {e}")
+            jam_coords = []
+            duration_s = None
+        
+        congested_nodes = set()
+        if jam_coords:
+            for lat, lng in jam_coords:
+                try:
+                    congested_nodes.add(ox.nearest_nodes(graph_manager.G, lng, lat))
+                except Exception:
+                    pass
+                
+        penalties = build_two_wheeler_penalties()
+        
+        try:
+            route = two_wheeler_astar(graph_manager.G, start, end, graph_manager, penalties=penalties, congested_nodes=congested_nodes)
+        except (nx.NetworkXNoPath, Exception):
+            # Fallback to standard A* if penalties blocked all paths
+            route = astar_on_graph(graph_manager.G, start, end)
+
         coords = graph_manager.route_nodes_to_coords(route)
         dist = calc_route_distance(graph_manager.G, route)
         maneuvers = extract_maneuvers_from_route(graph_manager.G, route)
@@ -82,8 +97,10 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             "congested_nodes_avoided": len(congested_nodes),
             "maneuvers": maneuvers
         }
-    except nx.NetworkXNoPath:
-        return {"status": "error", "message": "No dynamic path could be found."}
+    except Exception as exc:
+        print(f"Route calculation error: {exc}")
+        return {"status": "error", "message": f"Could not calculate path: {str(exc)}"}
+
 
 @app.get("/two-wheeler-route")
 async def two_wheeler_route(

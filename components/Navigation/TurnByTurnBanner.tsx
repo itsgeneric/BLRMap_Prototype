@@ -34,65 +34,74 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
   if (!currentManeuver) return null;
 
   const renderIcon = (type: TurnManeuver['type']) => {
+    const iconClass = "w-7 h-7 sm:w-8 sm:h-8";
     switch (type) {
       case 'turn_left':
-        return <CornerUpLeft className="w-8 h-8 text-sky-400" />;
+        return <CornerUpLeft className={`${iconClass} text-sky-400`} />;
       case 'slight_left':
-        return <ArrowUpLeft className="w-8 h-8 text-sky-400" />;
+        return <ArrowUpLeft className={`${iconClass} text-sky-400`} />;
       case 'turn_right':
-        return <CornerUpRight className="w-8 h-8 text-sky-400" />;
+        return <CornerUpRight className={`${iconClass} text-sky-400`} />;
       case 'slight_right':
-        return <ArrowUpRight className="w-8 h-8 text-sky-400" />;
+        return <ArrowUpRight className={`${iconClass} text-sky-400`} />;
       case 'u_turn':
-        return <RotateCcw className="w-8 h-8 text-amber-400" />;
+        return <RotateCcw className={`${iconClass} text-amber-400`} />;
       case 'arrive':
-        return <Flag className="w-8 h-8 text-emerald-400" />;
+        return <Flag className={`${iconClass} text-emerald-400`} />;
       case 'straight':
       case 'depart':
       default:
-        return <ArrowUp className="w-8 h-8 text-sky-400" />;
+        return <ArrowUp className={`${iconClass} text-sky-400`} />;
     }
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto glass-panel p-4 rounded-3xl shadow-2xl space-y-2 border-emerald-500/30">
-      <div className="flex items-center justify-between gap-4">
-        {/* Maneuver Icon */}
-        <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-700/60 flex items-center justify-center flex-shrink-0">
-          {renderIcon(currentManeuver.type)}
+    <div className="w-full max-w-lg mx-auto font-sans relative z-[1000]">
+      <div className="glass-panel-heavy p-3.5 sm:p-4 rounded-3xl shadow-2xl border border-emerald-500/40 space-y-2">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          {/* Maneuver Big Icon */}
+          <div className="p-2.5 sm:p-3 bg-slate-950/90 rounded-2xl border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+            {renderIcon(currentManeuver.type)}
+          </div>
+
+          {/* Distance & Main Instruction */}
+          <div className="flex-1 min-w-0">
+            <div className="text-xl sm:text-2xl font-black tracking-tight text-white font-mono flex items-baseline gap-2">
+              <span>{formatDistance(distanceToManeuverMeters)}</span>
+            </div>
+            <div className="text-xs sm:text-sm font-semibold text-sky-300 truncate">
+              {currentManeuver.instruction}
+            </div>
+          </div>
+
+          {/* Voice Toggle Button */}
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8);
+              onToggleVoice();
+            }}
+            className={`p-2.5 sm:p-3 rounded-2xl border transition-all touch-press cursor-pointer shrink-0 ${
+              voiceEnabled
+                ? 'bg-sky-500/20 border-sky-500/40 text-sky-300 shadow-md shadow-sky-500/10'
+                : 'bg-slate-800/60 border-slate-700 text-slate-500'
+            }`}
+            title={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
+            aria-label={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
         </div>
 
-        {/* Distance & Main Instruction */}
-        <div className="flex-1 min-w-0">
-          <div className="text-2xl font-black tracking-tight text-slate-100 flex items-baseline gap-2">
-            <span>{formatDistance(distanceToManeuverMeters)}</span>
+        {/* Upcoming Secondary Maneuver Preview */}
+        {nextManeuver && (
+          <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 text-[11px] sm:text-xs font-medium text-slate-400">
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px] uppercase">Next</span>
+            <span className="font-semibold text-slate-200 truncate">{nextManeuver.instruction}</span>
           </div>
-          <div className="text-sm font-semibold text-sky-300 truncate">
-            {currentManeuver.instruction}
-          </div>
-        </div>
-
-        {/* Voice Toggle Button */}
-        <button
-          onClick={onToggleVoice}
-          className={`p-2.5 rounded-xl border transition-colors ${
-            voiceEnabled
-              ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
-              : 'bg-slate-800/40 border-slate-700 text-slate-500'
-          }`}
-          title={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
-        >
-          {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-        </button>
+        )}
       </div>
-
-      {/* Upcoming Secondary Maneuver Preview */}
-      {nextManeuver && (
-        <div className="pt-2 border-t border-slate-800/60 flex items-center gap-2 text-xs font-medium text-slate-400">
-          <span className="text-slate-500">Then</span>
-          <span className="font-semibold text-slate-300 truncate">{nextManeuver.instruction}</span>
-        </div>
-      )}
     </div>
   );
 };
+
+export default TurnByTurnBanner;
