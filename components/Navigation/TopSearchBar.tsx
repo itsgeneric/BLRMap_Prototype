@@ -128,31 +128,59 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
       navigator.vibrate(10);
     }
 
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported on this device.');
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      alert('Geolocation is not supported on this browser/device.');
       return;
     }
 
     setGpsLoading(true);
+
+    const onSuccess = (pos: GeolocationPosition) => {
+      setGpsLoading(false);
+      const loc = {
+        lat: Number(pos.coords.latitude.toFixed(5)),
+        lng: Number(pos.coords.longitude.toFixed(5)),
+        name: 'My Location',
+        address: 'My Location',
+      };
+      if (setSourceFn) setSourceFn(loc);
+    };
+
+    const onError = (err: GeolocationPositionError) => {
+      console.warn('High-accuracy GPS failed, trying standard accuracy fallback:', err.message);
+      // Fallback to standard (cellular/Wi-Fi) accuracy
+      navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        (fallbackErr) => {
+          setGpsLoading(false);
+          console.error('Final Geolocation Error:', fallbackErr.message);
+
+          if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            alert(
+              '⚠️ Mobile GPS Blocked by Browser Security:\n\n' +
+              'Mobile browsers only permit GPS on HTTPS or localhost.\n\n' +
+              'For Android Chrome over Wi-Fi:\n' +
+              '1. Open chrome://flags/#unsafely-treat-insecure-origin-as-secure\n' +
+              `2. Add "http://${window.location.host}" and tap Enable.\n` +
+              '3. Relaunch Chrome.'
+            );
+          } else if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+            alert('Location permission was denied. Please allow Location access in your browser settings.');
+          } else {
+            alert('Could not acquire GPS position. Please check that Location Services are turned ON.');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    };
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGpsLoading(false);
-        const loc = {
-          lat: Number(pos.coords.latitude.toFixed(5)),
-          lng: Number(pos.coords.longitude.toFixed(5)),
-          name: 'My Location',
-          address: 'My Location',
-        };
-        if (setSourceFn) setSourceFn(loc);
-      },
-      (err) => {
-        setGpsLoading(false);
-        console.warn('GPS location fetch failed:', err.message);
-        alert('Could not access device GPS. Please check location permissions.');
-      },
-      { enableHighAccuracy: true, timeout: 6000 }
+      onSuccess,
+      onError,
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
     );
   };
+
 
   return (
     <div ref={containerRef} className="w-full max-w-lg mx-auto font-sans relative z-[1000]">
