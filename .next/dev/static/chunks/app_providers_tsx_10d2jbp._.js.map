@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/itsge/PycharmProjects/BLRMap_Prototype/app/providers.tsx"],"sourcesContent":["\"use client\";\r\n\r\nimport { APIProvider } from \"@vis.gl/react-google-maps\";\r\n\r\nexport function Providers({ children }: { children: React.ReactNode }) {\r\n    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;\r\n\r\n    if (!apiKey) {\r\n        return (\r\n            <div className=\"flex items-center justify-center h-screen bg-red-50 text-red-600 font-bold\">\r\n                Error: Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env file\r\n            </div>\r\n        );\r\n    }\r\n\r\n    return (\r\n        <APIProvider apiKey={apiKey} version=\"weekly\">\r\n            {children}\r\n        </APIProvider>\r\n    );\r\n}"],"names":["Providers","children","apiKey","version"],"mappings":";;;;AAKmB;;AAHnB;AAFA;;;AAIO,SAASA,UAAU,EAAEC,QAAQ,EAAiC;IACjE,MAAMC;IAEN;;IAQA,qBACI,6LAAC,oMAAW;QAACA,QAAQA;QAAQC,SAAQ;kBAChCF;;;;;;AAGb;KAhBgBD"}}]
+}
