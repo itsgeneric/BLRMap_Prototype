@@ -74,3 +74,6 @@ cache
 
 node_modules
 .next/
+
+# Runtime SQLite databases
+route_decisions.db
