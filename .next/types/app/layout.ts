@@ -1,4 +1,4 @@
-// File: D:\Projects\BLRMap_Prototype_nextjs\app\layout.tsx
+// File: C:\Users\comps\Desktop\Final Year Project\BLRMap_Prototype\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
