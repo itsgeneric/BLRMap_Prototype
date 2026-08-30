@@ -180,3 +180,111 @@ def build_split_route_candidates(graph, graph_mgr, from_lat, from_lng, to_lat, t
 
     candidates.sort(key=lambda item: item['cost'])
     return candidates
+
+def extract_maneuvers_from_route(graph, route_nodes):
+    """Extracts turn-by-turn navigation maneuvers from a list of route node IDs."""
+    if not route_nodes or len(route_nodes) < 2:
+        return []
+
+    def get_edge_data(u, v):
+        if v in graph[u]:
+            return min(graph[u][v].values(), key=lambda d: float(d.get('length', 1.0)))
+        return {}
+
+    def get_road_name(edge_data):
+        name = edge_data.get('name')
+        if isinstance(name, list): name = name[0] if name else None
+        if not name:
+            hw = edge_data.get('highway', 'road')
+            if isinstance(hw, list): hw = hw[0]
+            name = f"Unnamed ({hw.replace('_', ' ').title()})"
+        return name
+
+    steps = []
+    # 1. Start maneuver
+    first_u, first_v = route_nodes[0], route_nodes[1]
+    first_edge = get_edge_data(first_u, first_v)
+    first_name = get_road_name(first_edge)
+    start_lat = graph.nodes[first_u]['y']
+    start_lng = graph.nodes[first_u]['x']
+    
+    steps.append({
+        "type": "depart",
+        "instruction": f"Head on {first_name}",
+        "road_name": first_name,
+        "distance_m": float(first_edge.get('length', 0)),
+        "lat": start_lat,
+        "lng": start_lng
+    })
+
+    current_distance = float(first_edge.get('length', 0))
+
+    for i in range(1, len(route_nodes) - 1):
+        u = route_nodes[i - 1]
+        v = route_nodes[i]
+        w = route_nodes[i + 1]
+
+        edge1 = get_edge_data(u, v)
+        edge2 = get_edge_data(v, w)
+
+        lat1, lng1 = graph.nodes[u]['y'], graph.nodes[u]['x']
+        lat2, lng2 = graph.nodes[v]['y'], graph.nodes[v]['x']
+        lat3, lng3 = graph.nodes[w]['y'], graph.nodes[w]['x']
+
+        b1 = _bearing_deg(lat1, lng1, lat2, lng2)
+        b2 = _bearing_deg(lat2, lng2, lat3, lng3)
+        angle = (b2 - b1 + 180) % 360 - 180
+
+        road1 = get_road_name(edge1)
+        road2 = get_road_name(edge2)
+        seg_len = float(edge2.get('length', 0))
+
+        # Only emit a maneuver if road name changes or turn angle is significant (> 25 deg)
+        is_name_change = (road1 != road2 and not road2.startswith("Unnamed"))
+        is_sharp_turn = abs(angle) > 28.0
+
+        if is_name_change or is_sharp_turn:
+            if angle < -135 or angle > 135:
+                m_type = "u_turn"
+                verb = "Make a U-turn"
+            elif angle < -45:
+                m_type = "turn_left"
+                verb = "Turn left"
+            elif angle < -20:
+                m_type = "slight_left"
+                verb = "Bear left"
+            elif angle > 45:
+                m_type = "turn_right"
+                verb = "Turn right"
+            elif angle > 20:
+                m_type = "slight_right"
+                verb = "Bear right"
+            else:
+                m_type = "straight"
+                verb = "Continue straight"
+
+            instruction = f"{verb} onto {road2}"
+            steps.append({
+                "type": m_type,
+                "instruction": instruction,
+                "road_name": road2,
+                "distance_m": round(seg_len, 1),
+                "lat": lat2,
+                "lng": lng2
+            })
+        else:
+            if steps:
+                steps[-1]["distance_m"] = round(steps[-1]["distance_m"] + seg_len, 1)
+
+    # Destination maneuver
+    last_node = route_nodes[-1]
+    steps.append({
+        "type": "arrive",
+        "instruction": "Arrive at destination",
+        "road_name": "Destination",
+        "distance_m": 0,
+        "lat": graph.nodes[last_node]['y'],
+        "lng": graph.nodes[last_node]['x']
+    })
+
+    return steps
