@@ -1,8 +1,9 @@
 class VoiceGuidance {
   private synth: SpeechSynthesis | null = null;
-  private enabled: boolean = true;
+  private enabled: boolean = false; // Default OFF
   private lastSpokenText: string = '';
   private lastSpokenTime: number = 0;
+  private spokenMilestones: Set<string> = new Set();
 
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -21,26 +22,64 @@ class VoiceGuidance {
     return this.enabled;
   }
 
-  public speak(text: string, force: boolean = false) {
+  public resetMilestones() {
+    this.spokenMilestones.clear();
+    this.lastSpokenText = '';
+    this.lastSpokenTime = 0;
+  }
+
+  /**
+   * Speaks ONLY turn directions when user has explicitly unmuted/enabled the speaker.
+   */
+  public speakManeuver(instruction: string, distanceMeters: number, maneuverIndex: number) {
     if (!this.enabled || !this.synth) return;
 
-    const now = Date.now();
-    // Don't repeat the exact same instruction within 10 seconds unless forced
-    if (!force && text === this.lastSpokenText && now - this.lastSpokenTime < 10000) {
+    let milestoneBucket: string | null = null;
+    let spokenDistance = '';
+
+    if (distanceMeters <= 35) {
+      milestoneBucket = `${maneuverIndex}_now`;
+      spokenDistance = 'Now';
+    } else if (distanceMeters <= 120 && distanceMeters > 70) {
+      milestoneBucket = `${maneuverIndex}_100m`;
+      spokenDistance = `In 100 meters`;
+    } else if (distanceMeters <= 300 && distanceMeters > 220) {
+      milestoneBucket = `${maneuverIndex}_250m`;
+      spokenDistance = `In 250 meters`;
+    }
+
+    if (!milestoneBucket || this.spokenMilestones.has(milestoneBucket)) {
       return;
     }
 
-    this.synth.cancel(); // Stop current speech before speaking new instruction
+    this.spokenMilestones.add(milestoneBucket);
+    const speechText = spokenDistance === 'Now' ? `${instruction} now` : `${spokenDistance}, ${instruction}`;
+    this.speak(speechText);
+  }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-US';
+  public speak(text: string) {
+    if (!this.enabled || !this.synth || !text) return;
 
-    this.lastSpokenText = text;
-    this.lastSpokenTime = now;
+    const now = Date.now();
+    if (text === this.lastSpokenText && now - this.lastSpokenTime < 5000) {
+      return;
+    }
 
-    this.synth.speak(utterance);
+    try {
+      this.synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+
+      this.lastSpokenText = text;
+      this.lastSpokenTime = now;
+
+      this.synth.speak(utterance);
+    } catch (e) {
+      console.warn('Speech synthesis error:', e);
+    }
   }
 }
 

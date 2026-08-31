@@ -6,26 +6,24 @@
 @layer base {
   :root {
     --bg-main: #090a0f;
-    --bg-surface: #12141c;
-    --bg-surface-elevated: #1a1d29;
-    --bg-glass: rgba(18, 20, 28, 0.88);
-    --bg-glass-heavy: rgba(14, 16, 23, 0.96);
-    --border-color: #232736;
-    --border-color-hover: #373e54;
+    --bg-surface: #0f172a;
+    --bg-surface-elevated: #1e293b;
+    --bg-card: #0d131f;
+    --border-color: #334155;
+    --border-color-hover: #475569;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --accent-blue: #38bdf8;
     --accent-orange: #f97316;
     --accent-green: #10b981;
-    --shadow-color: rgba(0, 0, 0, 0.65);
+    --shadow-color: rgba(0, 0, 0, 0.85);
   }
 
   .light {
     --bg-main: #f1f5f9;
     --bg-surface: #ffffff;
     --bg-surface-elevated: #f8fafc;
-    --bg-glass: rgba(255, 255, 255, 0.90);
-    --bg-glass-heavy: rgba(255, 255, 255, 0.98);
+    --bg-card: #ffffff;
     --border-color: #e2e8f0;
     --border-color-hover: #cbd5e1;
     --text-main: #0f172a;
@@ -33,7 +31,7 @@
     --accent-blue: #0284c7;
     --accent-orange: #ea580c;
     --accent-green: #059669;
-    --shadow-color: rgba(0, 0, 0, 0.12);
+    --shadow-color: rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -41,7 +39,7 @@ html,
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
   height: 100%;
   height: 100dvh;
@@ -55,22 +53,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism containers with hardware acceleration */
+/* High-contrast solid surface panels (Zero transparent blur distortion) */
 .glass-panel {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 30px var(--shadow-color);
+  box-shadow: 0 10px 28px var(--shadow-color);
   transform: translateZ(0);
 }
 
 .glass-panel-heavy {
-  background: var(--bg-glass-heavy);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  box-shadow: 0 14px 40px var(--shadow-color);
+  box-shadow: 0 16px 40px var(--shadow-color);
   transform: translateZ(0);
 }
 
@@ -83,12 +77,14 @@ body {
   transform: scale(0.96);
 }
 
-/* Custom leaflet map fixes for mobile */
+/* Custom Leaflet Map Container */
 .leaflet-container {
   background: var(--bg-main) !important;
   width: 100%;
   height: 100%;
   touch-action: pan-x pan-y !important;
+  user-select: none;
+  font-family: var(--font-jakarta), sans-serif !important;
 }
 
 .leaflet-control-zoom {
@@ -117,25 +113,7 @@ body {
   display: none !important;
 }
 
-/* GPS Pulsing dot animation */
-@keyframes gps-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.75);
-  }
-  70% {
-    box-shadow: 0 0 0 18px rgba(56, 189, 248, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
-  }
-}
-
-.gps-marker-pulse {
-  border-radius: 50%;
-  animation: gps-pulse 2s infinite cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* Safe area insets for notched phones & gestures */
+/* Safe area insets for mobile screens */
 .safe-top {
   padding-top: max(env(safe-area-inset-top), 12px);
 }
@@ -144,7 +122,7 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -154,8 +132,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

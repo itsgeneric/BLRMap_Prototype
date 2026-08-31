@@ -21,8 +21,8 @@ module.exports = {
         combined: '#c084fc',
       },
       fontFamily: {
-        mono: ['var(--font-ibm-mono)', 'monospace'],
-        sans: ['var(--font-ibm-sans)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
       },
     },
   },

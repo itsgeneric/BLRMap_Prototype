@@ -9,12 +9,11 @@ import {
   CornerUpRight,
   RotateCcw,
   Flag,
-  Navigation,
   Volume2,
   VolumeX,
 } from 'lucide-react';
 import { TurnManeuver } from '@/lib/types';
-import { formatDistance } from '@/lib/geo';
+import { formatDistance, cleanManeuverText } from '@/lib/geo';
 
 interface TurnByTurnBannerProps {
   currentManeuver: TurnManeuver | null;
@@ -34,7 +33,7 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
   if (!currentManeuver) return null;
 
   const renderIcon = (type: TurnManeuver['type']) => {
-    const iconClass = "w-7 h-7 sm:w-8 sm:h-8";
+    const iconClass = 'w-6 h-6 sm:w-8 sm:h-8';
     switch (type) {
       case 'turn_left':
         return <CornerUpLeft className={`${iconClass} text-sky-400`} />;
@@ -55,32 +54,33 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
     }
   };
 
+  const currentAction = cleanManeuverText(currentManeuver);
+  const nextAction = cleanManeuverText(nextManeuver);
+
   return (
-    <div className="w-full max-w-lg mx-auto font-sans relative z-[1000]">
-      <div className="glass-panel-heavy p-3.5 sm:p-4 rounded-3xl shadow-2xl border border-emerald-500/40 space-y-2">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          {/* Maneuver Big Icon */}
-          <div className="p-2.5 sm:p-3 bg-slate-950/90 rounded-2xl border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+    <div className="w-full max-w-lg mx-auto font-sans relative z-[1000] animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="bg-[#0f172a] p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/90 border border-emerald-500/40 space-y-2 sm:space-y-2.5">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+          {/* Maneuver Icon */}
+          <div className="p-2 sm:p-3 bg-[#060910] rounded-xl sm:rounded-2xl border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
             {renderIcon(currentManeuver.type)}
           </div>
 
-          {/* Distance & Main Instruction */}
+          {/* Distance & Action */}
           <div className="flex-1 min-w-0">
-            <div className="text-xl sm:text-2xl font-black tracking-tight text-white font-mono flex items-baseline gap-2">
+            <div className="text-lg sm:text-2xl font-black tracking-tight text-white font-mono flex items-baseline gap-1.5 sm:gap-2">
               <span>{formatDistance(distanceToManeuverMeters)}</span>
             </div>
-            <div className="text-xs sm:text-sm font-semibold text-sky-300 truncate">
-              {currentManeuver.instruction}
+            <div className="text-xs sm:text-base font-bold text-sky-300 truncate">
+              {currentAction}
             </div>
           </div>
 
           {/* Voice Toggle Button */}
           <button
-            onClick={() => {
-              if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8);
-              onToggleVoice();
-            }}
-            className={`p-2.5 sm:p-3 rounded-2xl border transition-all touch-press cursor-pointer shrink-0 ${
+            type="button"
+            onClick={onToggleVoice}
+            className={`p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer shrink-0 active:scale-95 ${
               voiceEnabled
                 ? 'bg-sky-500/20 border-sky-500/40 text-sky-300 shadow-md shadow-sky-500/10'
                 : 'bg-slate-800/60 border-slate-700 text-slate-500'
@@ -88,15 +88,23 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
             title={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
             aria-label={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
           >
-            {voiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {voiceEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+            )}
           </button>
         </div>
 
         {/* Upcoming Secondary Maneuver Preview */}
         {nextManeuver && (
-          <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2 text-[11px] sm:text-xs font-medium text-slate-400">
-            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px] uppercase">Next</span>
-            <span className="font-semibold text-slate-200 truncate">{nextManeuver.instruction}</span>
+          <div className="pt-1.5 sm:pt-2 border-t border-slate-800 flex items-center gap-2 text-[10px] sm:text-xs font-medium text-slate-400">
+            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[9px] sm:text-[10px] uppercase font-bold">
+              Then
+            </span>
+            <span className="font-semibold text-slate-200 truncate">
+              {nextAction}
+            </span>
           </div>
         )}
       </div>

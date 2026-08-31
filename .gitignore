@@ -20,7 +20,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-
+.next
 Data assets
 parts/
 sdist/
@@ -39,7 +39,7 @@ Data Assets/*.geojson
 *.pbf
 *.graphml
 *.geojson
-
+updates.txt
 # ── OSMnx / API Cache ──
 # OSMnx caches map downloads locally to speed up restarts. This should not be tracked.
 cache/
