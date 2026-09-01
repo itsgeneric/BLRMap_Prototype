@@ -142,8 +142,7 @@ function MapCameraController({
   // Global recenter listener
   useEffect(() => {
     const handleGlobalRecenter = () => {
-      const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
-      const zoomLevel = isMobile ? (isNavigating ? 18 : 17) : (isNavigating ? 16.5 : 15.5);
+      const zoomLevel = isNavigating ? 18.5 : 17.5;
 
       if (gpsPosition && gpsPosition.lat && gpsPosition.lng) {
         map.flyTo([gpsPosition.lat, gpsPosition.lng], zoomLevel, {
@@ -167,6 +166,16 @@ function MapCameraController({
     window.addEventListener('recenter-map', handleGlobalRecenter);
     return () => window.removeEventListener('recenter-map', handleGlobalRecenter);
   }, [gpsPosition, isNavigating, map]);
+
+  // When Start Navigation is activated, auto zoom in close to rider (18.5)
+  useEffect(() => {
+    if (isNavigating && center && center[0] && center[1]) {
+      map.flyTo(center, 18.5, {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+  }, [isNavigating, map]);
 
   // Smooth camera follow during active navigation
   useEffect(() => {
@@ -198,6 +207,9 @@ function MapRecenterControl({
   const [locating, setLocating] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // When actively navigating, NavigationFooter provides the built-in HUD recenter button
+  if (isNavigating) return null;
+
   // Disable all Leaflet click / touch bubbling on this control container
   useEffect(() => {
     if (containerRef.current) {
@@ -207,11 +219,7 @@ function MapRecenterControl({
   }, []);
 
   const getOptimalZoom = useCallback((forNav: boolean = false) => {
-    const isMobile = typeof window !== 'undefined' ? window.innerWidth < 640 : false;
-    if (forNav || isNavigating) {
-      return isMobile ? 18 : 16.5;
-    }
-    return isMobile ? 17 : 15.5;
+    return forNav || isNavigating ? 18.5 : 17.5;
   }, [isNavigating]);
 
   const handleRecenter = useCallback((e: React.MouseEvent | React.TouchEvent) => {
