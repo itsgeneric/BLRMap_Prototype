@@ -7,6 +7,11 @@ from core.config import (
     DEFAULT_ROUTE_SPLIT_FRACTIONS, DETOUR_TOLERANCE
 )
 
+# Lowest possible multiplier any edge can get (bridge=0.8, roundabout default=0.95,
+# congestion makes things worse not better). Heuristic must divide by this floor
+# to stay admissible for A* (never overestimate remaining cost).
+MIN_PENALTY_FLOOR = 0.8
+
 def haversine_m(lat1, lng1, lat2, lng2):
     R = 6371000.0
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -64,9 +69,9 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
     length = float(edge_data.get('length', 1.0))
     hw = edge_data.get('highway', 'unclassified')
     if isinstance(hw, list): hw = hw[0]
-    
+
     penalty_map = penalties or TWO_WHEELER_ROAD_PENALTIES
-    penalty = penalty_map.get(hw, 1.0) # Lowered base main road penalty to let traffic data take control
+    penalty = penalty_map.get(hw, 1.0)  # base per-road-type multiplier
 
     # Flyover Exception
     is_bridge = edge_data.get('bridge')
@@ -77,7 +82,7 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
 
     # Dynamic Congestion Penalty
     if congested_nodes and (u in congested_nodes or v in congested_nodes):
-        penalty *= 25.0  
+        penalty *= 25.0
 
     if edge_data.get('junction') == 'roundabout':
         penalty *= penalty_map.get('_roundabout_multiplier', 0.95)
@@ -95,7 +100,10 @@ def astar_on_graph(graph, start_node, end_node):
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
 def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None):
-    def heuristic(a, b): return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'], graph.nodes[b]['y'], graph.nodes[b]['x'])
+    # FIX: divide by MIN_PENALTY_FLOOR so heuristic never overestimates true
+    # remaining cost (edges can be cheaper than length*1.0, e.g. bridges/roundabouts).
+    def heuristic(a, b):
+        return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'], graph.nodes[b]['y'], graph.nodes[b]['x']) / MIN_PENALTY_FLOOR
     def cost(u, v, edge_data):
         if 'length' in edge_data: return two_wheeler_edge_cost(edge_data, graph_mgr, penalties, u, v, congested_nodes)
         return min(two_wheeler_edge_cost(d, graph_mgr, penalties, u, v, congested_nodes) for d in edge_data.values())
@@ -124,12 +132,6 @@ def _dedupe_nodes(nodes):
         if not deduped or n != deduped[-1]: deduped.append(n)
     return deduped
 
-def _derive_split_fractions(straight_line_km, segment_km):
-    if straight_line_km <= segment_km: return ()
-    segment_km = max(segment_km, 0.5)
-    segment_count = max(2, math.ceil(straight_line_km / segment_km))
-    return tuple(i / segment_count for i in range(1, segment_count))
-
 def _offset_split_points(from_lat, from_lng, to_lat, to_lng, fractions, offsets_m=(150, 300)):
     bearing = _bearing_deg(from_lat, from_lng, to_lat, to_lng)
     points = []
@@ -153,6 +155,10 @@ def build_split_route_candidates(graph, graph_mgr, from_lat, from_lng, to_lat, t
         candidates.append({'strategy': 'direct', 'nodes': [], 'cost': float('inf'), 'error': str(exc)})
 
     direct_length = calc_route_distance(graph, candidates[0]['nodes']) if candidates[0]['nodes'] else None
+    # FIX: if direct route failed, fall back to straight-line distance so the
+    # detour cap still applies instead of silently disabling it.
+    fallback_cap_length = direct_length if direct_length else haversine_m(from_lat, from_lng, to_lat, to_lng)
+
     offset_points = _offset_split_points(from_lat, from_lng, to_lat, to_lng, split_fractions)
     split_nodes = _dedupe_nodes([ox.nearest_nodes(graph, lng, lat) for lat, lng in offset_points])
 
@@ -163,11 +169,11 @@ def build_split_route_candidates(graph, graph_mgr, from_lat, from_lng, to_lat, t
             first_leg = two_wheeler_astar(graph, direct_start, split_node, graph_mgr, penalties=penalties)
             second_leg = two_wheeler_astar(graph, split_node, direct_end, graph_mgr, penalties=penalties)
             stitched = _dedupe_nodes(first_leg + second_leg[1:])
-            
+
             if tuple(stitched) in seen_paths: continue
             seen_paths.add(tuple(stitched))
 
-            if direct_length and calc_route_distance(graph, stitched) > direct_length * DETOUR_TOLERANCE:
+            if calc_route_distance(graph, stitched) > fallback_cap_length * DETOUR_TOLERANCE:
                 continue
 
             candidates.append({
