@@ -10,7 +10,7 @@ import {
   ToastMessage,
   TripSummary,
 } from '@/lib/types';
-import { fetchRoute } from '@/lib/api';
+import { fetchRoute, fetchBothRoutes } from '@/lib/api';
 import { haversineMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
@@ -25,15 +25,15 @@ import { ToastContainer } from '@/components/UI/Toast';
 import { ArrivalModal } from '@/components/Navigation/ArrivalModal';
 import { Loader2, Bike } from 'lucide-react';
 
-// Dynamic SSR-disabled MapContainer
+// Dynamic SSR-disabled GoogleMapContainer
 const MapContainer = dynamic(
-  () => import('@/components/Map/MapContainer').then((mod) => mod.MapContainer),
+  () => import('@/components/Map/GoogleMapContainer').then((mod) => mod.GoogleMapContainer),
   {
     ssr: false,
     loading: () => (
       <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center text-sky-400 font-mono text-xs gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
-        <span>Loading Bengaluru Map Engine...</span>
+        <span>Loading Bengaluru Google Maps Engine...</span>
       </div>
     ),
   }
@@ -46,6 +46,9 @@ export default function NavigationApp() {
   const [activeInput, setActiveInput] = useState<'origin' | 'destination'>('origin');
   const [mode, setMode] = useState<RouteMode>('shortest');
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
+  const [shortestRouteData, setShortestRouteData] = useState<RouteResponse | null>(null);
+  const [dynamicRouteData, setDynamicRouteData] = useState<RouteResponse | null>(null);
+  const [selectedRouteType, setSelectedRouteType] = useState<'shortest' | 'dynamic'>('shortest');
   const [loading, setLoading] = useState(false);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -144,6 +147,8 @@ export default function NavigationApp() {
   const loadRoute = useCallback(async () => {
     if (!origin || !destination) {
       setRouteData(null);
+      setShortestRouteData(null);
+      setDynamicRouteData(null);
       return;
     }
 
@@ -154,12 +159,40 @@ export default function NavigationApp() {
 
     setLoading(true);
     try {
-      const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
-      if (res.status === 'success' && res.path && res.path.length > 0) {
-        setRouteData(res);
+      if (mode === 'fastest') {
+        const both = await fetchBothRoutes(origin, destination, routeAbortControllerRef.current.signal);
+        setShortestRouteData(both.shortest);
+        setDynamicRouteData(both.dynamic);
+
+        const chosenType = both.fastestChoice;
+        setSelectedRouteType(chosenType);
+
+        const activeRes = both[chosenType] || both.shortest || both.dynamic;
+        if (activeRes && activeRes.path && activeRes.path.length > 0) {
+          setRouteData(activeRes);
+        } else {
+          setRouteData(null);
+          addToast('Could not calculate fastest route comparison.', 'error');
+        }
       } else {
-        setRouteData(null);
-        addToast(res.message || 'No viable route found between these locations.', 'error');
+        const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
+        if (res.status === 'success' && res.path && res.path.length > 0) {
+          setRouteData(res);
+          if (mode === 'shortest') {
+            setShortestRouteData(res);
+            setDynamicRouteData(null);
+            setSelectedRouteType('shortest');
+          } else {
+            setDynamicRouteData(res);
+            setShortestRouteData(null);
+            setSelectedRouteType('dynamic');
+          }
+        } else {
+          setRouteData(null);
+          setShortestRouteData(null);
+          setDynamicRouteData(null);
+          addToast(res.message || 'No viable route found between these locations.', 'error');
+        }
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -174,6 +207,18 @@ export default function NavigationApp() {
   useEffect(() => {
     loadRoute();
   }, [loadRoute]);
+
+  // Route Type Switcher (Shortest vs Dynamic)
+  const handleSelectRouteType = useCallback(
+    (type: 'shortest' | 'dynamic') => {
+      setSelectedRouteType(type);
+      const target = type === 'dynamic' ? dynamicRouteData : shortestRouteData;
+      if (target) {
+        setRouteData(target);
+      }
+    },
+    [shortestRouteData, dynamicRouteData]
+  );
 
   // Select Origin Handler
   const handleSelectOrigin = useCallback((loc: Point | null) => {
@@ -207,20 +252,34 @@ export default function NavigationApp() {
   }, [getCurrentLocation, destination, addToast]);
 
   // Start Navigation Handlers
-  const handleStartNavigation = useCallback(() => {
-    if (!routeData?.path) return;
-    tripStartTimeRef.current = Date.now();
-    startNavigation();
-    setIsFollowingCamera(true);
-  }, [routeData, startNavigation]);
+  const handleStartNavigation = useCallback(
+    (chosenRoute?: 'shortest' | 'dynamic') => {
+      const typeToUse = chosenRoute || selectedRouteType;
+      const targetRoute =
+        typeToUse === 'dynamic'
+          ? dynamicRouteData || routeData
+          : shortestRouteData || routeData;
+
+      if (!targetRoute?.path) return;
+      setSelectedRouteType(typeToUse);
+      setRouteData(targetRoute);
+      tripStartTimeRef.current = Date.now();
+      startNavigation();
+      setIsFollowingCamera(true);
+    },
+    [routeData, shortestRouteData, dynamicRouteData, selectedRouteType, startNavigation]
+  );
 
   // Preview Route Handler (Fits bounds to show full route)
-  const handleStartPreview = useCallback(() => {
+  const handleStartPreview = useCallback((chosenRoute?: 'shortest' | 'dynamic') => {
+    if (chosenRoute) {
+      handleSelectRouteType(chosenRoute);
+    }
     setIsFollowingCamera(false);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('fit-route-bounds'));
     }
-  }, []);
+  }, [handleSelectRouteType]);
 
   const handleEndNavigation = useCallback(() => {
     stopNavigation();
@@ -247,6 +306,8 @@ export default function NavigationApp() {
           setOrigin(null);
           setDestination(null);
           setRouteData(null);
+          setShortestRouteData(null);
+          setDynamicRouteData(null);
           setActiveInput('origin');
         }}
       />
@@ -257,6 +318,15 @@ export default function NavigationApp() {
         destination={destination}
         activeInput={activeInput}
         routePath={routeData?.path || null}
+        alternateRoutePath={
+          mode === 'fastest'
+            ? selectedRouteType === 'dynamic'
+              ? shortestRouteData?.path
+              : dynamicRouteData?.path
+            : null
+        }
+        selectedRouteType={selectedRouteType}
+        onSelectRouteType={handleSelectRouteType}
         traveledIndex={nearestSegmentIndex}
         gpsPosition={realGpsPosition}
         theme={theme}
@@ -270,22 +340,36 @@ export default function NavigationApp() {
       {/* Floating Top UI Layer */}
       <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4 z-20 space-y-2 pointer-events-none safe-top">
         {/* Top Header Bar with Brand, Mode Selector, and Theme Toggle */}
-        <div className="flex items-center justify-between gap-2 pointer-events-auto max-w-lg mx-auto w-full">
-          {/* Brand Logo Pill */}
-          <div className="bg-[#0f172a] border border-slate-700/80 px-2 py-1 sm:px-3.5 sm:py-1.5 rounded-xl sm:rounded-2xl flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-mono font-bold tracking-widest text-slate-200 shadow-md shrink-0">
-            <Bike className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
-            <span>
-              BLR<b className="text-lime-400 font-black">NAV</b>
-            </span>
+        <div className="pointer-events-auto max-w-lg mx-auto w-full space-y-1.5 sm:space-y-2">
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Brand Logo Pill */}
+            <div className="bg-[#0f172a]/95 backdrop-blur-md border border-slate-700/80 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl flex items-center gap-1.5 text-[11px] sm:text-xs font-mono font-bold tracking-widest text-slate-200 shadow-md shrink-0">
+              <Bike className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
+              <span>
+                BLR<b className="text-lime-400 font-black">NAV</b>
+              </span>
+            </div>
+
+            {/* Desktop Centered Mode Selector */}
+            {!isNavigating && (
+              <div className="hidden sm:flex flex-1 justify-center">
+                <ModeSelector mode={mode} onSelectMode={setMode} />
+              </div>
+            )}
+
+            {/* Theme Switcher Toggle */}
+            <div className="shrink-0">
+              <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
+            </div>
           </div>
 
-          {/* Mode Selector (When not actively driving) */}
+          {/* Mobile Mode Selector (Centered responsive tabs) */}
           {!isNavigating && (
-            <ModeSelector mode={mode} onSelectMode={setMode} />
+            <div className="flex sm:hidden justify-center w-full">
+              <ModeSelector mode={mode} onSelectMode={setMode} />
+            </div>
           )}
-
-          {/* Theme Switcher Toggle */}
-          <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
         </div>
 
         {/* Search Bar Input (When not navigating) */}
@@ -348,6 +432,10 @@ export default function NavigationApp() {
             <div className="pointer-events-auto">
               <BottomActionBar
                 routeData={routeData}
+                shortestRouteData={shortestRouteData}
+                dynamicRouteData={dynamicRouteData}
+                selectedRouteType={selectedRouteType}
+                onSelectRouteType={handleSelectRouteType}
                 mode={mode}
                 isOriginMyLocation={isOriginMyLocation}
                 onStartNavigation={handleStartNavigation}

@@ -7,7 +7,7 @@ export interface Point {
   address?: string;
 }
 
-export type RouteMode = 'shortest' | 'dynamic';
+export type RouteMode = 'shortest' | 'dynamic' | 'fastest';
 
 export interface TurnManeuver {
   type: 'depart' | 'turn_left' | 'slight_left' | 'straight' | 'slight_right' | 'turn_right' | 'u_turn' | 'arrive';

@@ -1,20 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Navigation, Eye, List, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation, Eye, List, ChevronUp, ChevronDown, Check, Zap, ArrowRight } from 'lucide-react';
 import { RouteResponse, RouteMode } from '@/lib/types';
 import { cleanManeuverText, formatDistance } from '@/lib/geo';
 
 interface BottomActionBarProps {
   routeData: RouteResponse | null;
+  shortestRouteData?: RouteResponse | null;
+  dynamicRouteData?: RouteResponse | null;
+  selectedRouteType?: 'shortest' | 'dynamic';
+  onSelectRouteType?: (type: 'shortest' | 'dynamic') => void;
   mode: RouteMode;
   isOriginMyLocation: boolean;
-  onStartNavigation: () => void;
-  onStartPreview: () => void;
+  onStartNavigation: (chosenRoute?: 'shortest' | 'dynamic') => void;
+  onStartPreview: (chosenRoute?: 'shortest' | 'dynamic') => void;
 }
 
 export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   routeData,
+  shortestRouteData,
+  dynamicRouteData,
+  selectedRouteType = 'shortest',
+  onSelectRouteType,
   mode,
   isOriginMyLocation,
   onStartNavigation,
@@ -22,76 +30,181 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
 }) => {
   const [showSteps, setShowSteps] = useState(false);
 
+  const isFastestMode = mode === 'fastest' && (shortestRouteData || dynamicRouteData);
+
   if (!routeData?.path || routeData.path.length < 2) return null;
 
   const maneuvers = routeData.maneuvers || [];
   const distanceKm = routeData.distance_km || 0;
 
-  const durationMinutes = routeData.google_base_duration_mins
-    ? Math.round(routeData.google_base_duration_mins)
-    : Math.max(2, Math.round((distanceKm / 28) * 60));
-
-  const handlePreviewClick = () => {
-    if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8);
-    setShowSteps(!showSteps);
-    onStartPreview();
+  // Durations
+  const getDurationMins = (r: RouteResponse | null | undefined) => {
+    if (!r) return 0;
+    if (r.google_base_duration_mins) return Math.round(r.google_base_duration_mins);
+    const d = r.distance_km || 0;
+    return Math.max(2, Math.round((d / 28) * 60));
   };
 
-  const handleStartClick = () => {
+  const currentDurationMins = getDurationMins(routeData);
+  const shortestDurationMins = getDurationMins(shortestRouteData);
+  const dynamicDurationMins = getDurationMins(dynamicRouteData);
+
+  const timeDiffMins = Math.abs(shortestDurationMins - dynamicDurationMins);
+  const isDynamicFaster = dynamicDurationMins < shortestDurationMins;
+  const isShortestFaster = shortestDurationMins < dynamicDurationMins;
+
+  const handlePreviewClick = (chosen?: 'shortest' | 'dynamic') => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8);
+    setShowSteps(!showSteps);
+    onStartPreview(chosen);
+  };
+
+  const handleStartClick = (chosen?: 'shortest' | 'dynamic') => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(12);
-    onStartNavigation();
+    if (chosen && onSelectRouteType) onSelectRouteType(chosen);
+    onStartNavigation(chosen);
   };
 
   return (
-    <div className="fixed bottom-2.5 sm:bottom-6 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
+    <div className="fixed bottom-2.5 sm:bottom-6 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
       <div className="bg-[#0f172a] rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-2xl shadow-black/90 border border-slate-700/80 space-y-2 sm:space-y-3">
         {/* Visual Drawer Handle */}
         <div className="flex justify-center -mt-1 sm:hidden">
           <div className="w-8 h-1 rounded-full bg-slate-700"></div>
         </div>
 
-        {/* Route Stats Header */}
-        <div className="flex items-center justify-between gap-2 sm:gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-1.5 sm:gap-2">
-              <span className="text-xl sm:text-3xl font-black text-white font-mono">
-                {durationMinutes} min
+        {/* FASTEST COMPARE MODE: Dual Interactive Route Cards */}
+        {isFastestMode && shortestRouteData && dynamicRouteData ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400">
+              <span className="flex items-center gap-1 text-amber-400">
+                <span>⚡ Comparing Routes</span>
               </span>
-              <span className="text-xs sm:text-base font-bold text-slate-300 font-mono">
-                ({distanceKm.toFixed(1)} km)
+              <span>
+                {timeDiffMins > 0 ? (
+                  <span className={isDynamicFaster ? 'text-pink-400' : 'text-sky-400'}>
+                    {isDynamicFaster ? `Dynamic saves ${timeDiffMins} min` : `Shortest saves ${timeDiffMins} min`}
+                  </span>
+                ) : (
+                  <span className="text-slate-400">Similar travel time</span>
+                )}
               </span>
-              {routeData.google_base_duration_mins && (
-                <span className="text-[9px] sm:text-xs font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-md border border-pink-500/20">
-                  Live Traffic
-                </span>
-              )}
             </div>
-            <div className="text-[11px] sm:text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 truncate">
-              <span className="capitalize text-slate-200 font-semibold">
-                {mode === 'shortest' ? 'Shortest Distance' : 'Dynamic BLR Route'}
-              </span>
-              <span>•</span>
-              <span>{maneuvers.length} maneuvers</span>
+
+            {/* Comparison Cards Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Shortest Route Card */}
+              <button
+                type="button"
+                onClick={() => onSelectRouteType && onSelectRouteType('shortest')}
+                className={`p-2.5 rounded-xl sm:rounded-2xl border text-left transition-all cursor-pointer relative ${
+                  selectedRouteType === 'shortest'
+                    ? 'bg-sky-500/10 border-sky-400 shadow-md shadow-sky-500/15 ring-1 ring-sky-400'
+                    : 'bg-slate-900/80 border-slate-700/80 hover:bg-slate-850 opacity-75 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1 font-mono">
+                    <Navigation className="w-3 h-3 text-sky-400" />
+                    Shortest
+                  </span>
+                  {selectedRouteType === 'shortest' && (
+                    <span className="w-4 h-4 rounded-full bg-sky-400 text-slate-950 flex items-center justify-center text-[10px]">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-lg sm:text-2xl font-black text-white font-mono">
+                    {shortestDurationMins} min
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">
+                    ({shortestRouteData.distance_km?.toFixed(1)} km)
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5 truncate font-medium">
+                  Direct algorithm path
+                </div>
+              </button>
+
+              {/* Dynamic Traffic Route Card */}
+              <button
+                type="button"
+                onClick={() => onSelectRouteType && onSelectRouteType('dynamic')}
+                className={`p-2.5 rounded-xl sm:rounded-2xl border text-left transition-all cursor-pointer relative ${
+                  selectedRouteType === 'dynamic'
+                    ? 'bg-pink-500/10 border-pink-400 shadow-md shadow-pink-500/15 ring-1 ring-pink-400'
+                    : 'bg-slate-900/80 border-slate-700/80 hover:bg-slate-850 opacity-75 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-pink-400 flex items-center gap-1 font-mono">
+                    <Zap className="w-3 h-3 text-pink-400" />
+                    Dynamic (2W)
+                  </span>
+                  {selectedRouteType === 'dynamic' && (
+                    <span className="w-4 h-4 rounded-full bg-pink-400 text-slate-950 flex items-center justify-center text-[10px]">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
+                  )}
+                </div>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-lg sm:text-2xl font-black text-white font-mono">
+                    {dynamicDurationMins} min
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400 font-mono">
+                    ({dynamicRouteData.distance_km?.toFixed(1)} km)
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5 truncate font-medium">
+                  Avoids congested nodes
+                </div>
+              </button>
             </div>
           </div>
+        ) : (
+          /* STANDARD SINGLE ROUTE HEADER */
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                <span className="text-xl sm:text-3xl font-black text-white font-mono">
+                  {currentDurationMins} min
+                </span>
+                <span className="text-xs sm:text-base font-bold text-slate-300 font-mono">
+                  ({distanceKm.toFixed(1)} km)
+                </span>
+                {routeData.google_base_duration_mins && (
+                  <span className="text-[9px] sm:text-xs font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-md border border-pink-500/20">
+                    Live Traffic
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] sm:text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 truncate">
+                <span className="capitalize text-slate-200 font-semibold">
+                  {mode === 'shortest' ? 'Shortest Distance' : 'Dynamic BLR Route'}
+                </span>
+                <span>•</span>
+                <span>{maneuvers.length} maneuvers</span>
+              </div>
+            </div>
 
-          {/* Quick Steps Toggle Button */}
-          {maneuvers.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowSteps(!showSteps)}
-              className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border border-slate-700 cursor-pointer shrink-0 shadow-sm transition"
-            >
-              <List className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" />
-              <span>{showSteps ? 'Hide' : 'Steps'}</span>
-              {showSteps ? (
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              ) : (
-                <ChevronUp className="w-3 h-3 text-slate-400" />
-              )}
-            </button>
-          )}
-        </div>
+            {maneuvers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowSteps(!showSteps)}
+                className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border border-slate-700 cursor-pointer shrink-0 shadow-sm transition"
+              >
+                <List className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" />
+                <span>{showSteps ? 'Hide' : 'Steps'}</span>
+                {showSteps ? (
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                ) : (
+                  <ChevronUp className="w-3 h-3 text-slate-400" />
+                )}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Expandable Step-by-Step Maneuvers Drawer */}
         {showSteps && maneuvers.length > 0 && (
@@ -121,28 +234,52 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
           </div>
         )}
 
-        {/* Dynamic Action Button: Start Navigation vs Preview Route */}
-        <div className="flex items-center gap-2 pt-0.5">
-          {isOriginMyLocation ? (
+        {/* NAVIGATION ACTION BUTTONS */}
+        {isFastestMode && shortestRouteData && dynamicRouteData ? (
+          /* Two explicit buttons: Start Navigation Shortest & Start Navigation Dynamic Route */
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
             <button
               type="button"
-              onClick={handleStartClick}
-              className="flex-1 py-2.5 sm:py-3.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+              onClick={() => handleStartClick('shortest')}
+              className="flex-1 py-2.5 sm:py-3 px-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-sky-300"
             >
-              <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-slate-950" />
-              <span>Start Navigation</span>
+              <Navigation className="w-3.5 h-3.5 fill-slate-950" />
+              <span>Start Navigation (Shortest)</span>
             </button>
-          ) : (
+
             <button
               type="button"
-              onClick={handlePreviewClick}
-              className="flex-1 py-2.5 sm:py-3.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-sky-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+              onClick={() => handleStartClick('dynamic')}
+              className="flex-1 py-2.5 sm:py-3 px-3 bg-pink-500 hover:bg-pink-400 active:bg-pink-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-pink-300"
             >
-              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Preview Route</span>
+              <Zap className="w-3.5 h-3.5 fill-slate-950" />
+              <span>Start Navigation (Dynamic)</span>
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* Single start button */
+          <div className="flex items-center gap-2 pt-0.5">
+            {isOriginMyLocation ? (
+              <button
+                type="button"
+                onClick={() => handleStartClick()}
+                className="flex-1 py-2.5 sm:py-3.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+              >
+                <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-slate-950" />
+                <span>Start Navigation</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handlePreviewClick()}
+                className="flex-1 py-2.5 sm:py-3.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-sky-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+              >
+                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Preview Route</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
