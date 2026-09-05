@@ -15,7 +15,6 @@ import { haversineMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
 
-import { ThemeToggle } from '@/components/UI/ThemeToggle';
 import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
 import { ModeSelector } from '@/components/Navigation/ModeSelector';
 import { TurnByTurnBanner } from '@/components/Navigation/TurnByTurnBanner';
@@ -40,7 +39,7 @@ const MapContainer = dynamic(
 );
 
 export default function NavigationApp() {
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [theme] = useState<ThemeMode>('light');
   const [origin, setOrigin] = useState<Point | null>(null);
   const [destination, setDestination] = useState<Point | null>(null);
   const [activeInput, setActiveInput] = useState<'origin' | 'destination'>('origin');
@@ -71,9 +70,14 @@ export default function NavigationApp() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  // hasConfirmedRoute: user has explicitly clicked a route card in compare mode
+  // When true, the alternate ghost polyline is hidden from the map.
+  const [hasConfirmedRoute, setHasConfirmedRoute] = useState(false);
+
   // Single Centralized GPS & Compass Hook
   const {
     gpsPosition: realGpsPosition,
+    deviceHeading,
     isLocating,
     getCurrentLocation,
   } = useGPS();
@@ -129,20 +133,6 @@ export default function NavigationApp() {
     },
   });
 
-  // Handle Theme Toggle
-  const handleThemeToggle = (newTheme: ThemeMode) => {
-    setTheme(newTheme);
-    if (typeof document !== 'undefined') {
-      if (newTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-      } else {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  };
-
   // Route Fetch Function
   const loadRoute = useCallback(async () => {
     if (!origin || !destination) {
@@ -156,6 +146,8 @@ export default function NavigationApp() {
       routeAbortControllerRef.current.abort();
     }
     routeAbortControllerRef.current = new AbortController();
+    // Reset confirmation on every new fetch — show both routes again
+    setHasConfirmedRoute(false);
 
     setLoading(true);
     try {
@@ -209,9 +201,11 @@ export default function NavigationApp() {
   }, [loadRoute]);
 
   // Route Type Switcher (Shortest vs Dynamic)
+  // Also marks the selection as confirmed — removes alternate ghost line.
   const handleSelectRouteType = useCallback(
-    (type: 'shortest' | 'dynamic') => {
+    (type: 'shortest' | 'dynamic', confirmed = false) => {
       setSelectedRouteType(type);
+      if (confirmed) setHasConfirmedRoute(true);
       const target = type === 'dynamic' ? dynamicRouteData : shortestRouteData;
       if (target) {
         setRouteData(target);
@@ -319,7 +313,10 @@ export default function NavigationApp() {
         activeInput={activeInput}
         routePath={routeData?.path || null}
         alternateRoutePath={
-          mode === 'fastest'
+          // Only show the ghost alternate route while both routes are loaded
+          // AND the user has NOT yet confirmed/selected one of them.
+          // Once user taps a route card => hasConfirmedRoute=true => ghost disappears.
+          mode === 'fastest' && shortestRouteData && dynamicRouteData && !hasConfirmedRoute
             ? selectedRouteType === 'dynamic'
               ? shortestRouteData?.path
               : dynamicRouteData?.path
@@ -329,6 +326,7 @@ export default function NavigationApp() {
         onSelectRouteType={handleSelectRouteType}
         traveledIndex={nearestSegmentIndex}
         gpsPosition={realGpsPosition}
+        deviceHeading={deviceHeading}
         theme={theme}
         mode={mode}
         isFollowingCamera={isFollowingCamera}
@@ -339,29 +337,24 @@ export default function NavigationApp() {
 
       {/* Floating Top UI Layer */}
       <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4 z-20 space-y-2 pointer-events-none safe-top">
-        {/* Top Header Bar with Brand, Mode Selector, and Theme Toggle */}
+        {/* Top Header Bar with Brand and Mode Selector */}
         <div className="pointer-events-auto max-w-lg mx-auto w-full space-y-1.5 sm:space-y-2">
           {/* Header Row */}
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
             {/* Brand Logo Pill */}
-            <div className="bg-[#0f172a]/95 backdrop-blur-md border border-slate-700/80 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl flex items-center gap-1.5 text-[11px] sm:text-xs font-mono font-bold tracking-widest text-slate-200 shadow-md shrink-0">
-              <Bike className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
+            <div className="bg-[#0f172a]/95 backdrop-blur-md border border-slate-700/80 px-2.5 py-1.5 sm:px-2.5 sm:py-1 rounded-xl sm:rounded-xl flex items-center gap-1.5 text-[11px] sm:text-[11px] font-mono font-bold tracking-widest text-slate-200 shadow-md shrink-0">
+              <Bike className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 text-sky-400" />
               <span>
                 BLR<b className="text-lime-400 font-black">NAV</b>
               </span>
             </div>
 
-            {/* Desktop Centered Mode Selector */}
+            {/* Desktop Mode Selector */}
             {!isNavigating && (
-              <div className="hidden sm:flex flex-1 justify-center">
+              <div className="hidden sm:flex flex-1 justify-end">
                 <ModeSelector mode={mode} onSelectMode={setMode} />
               </div>
             )}
-
-            {/* Theme Switcher Toggle */}
-            <div className="shrink-0">
-              <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
-            </div>
           </div>
 
           {/* Mobile Mode Selector (Centered responsive tabs) */}
@@ -435,7 +428,7 @@ export default function NavigationApp() {
                 shortestRouteData={shortestRouteData}
                 dynamicRouteData={dynamicRouteData}
                 selectedRouteType={selectedRouteType}
-                onSelectRouteType={handleSelectRouteType}
+                onSelectRouteType={(type) => handleSelectRouteType(type, true)}
                 mode={mode}
                 isOriginMyLocation={isOriginMyLocation}
                 onStartNavigation={handleStartNavigation}
@@ -449,8 +442,8 @@ export default function NavigationApp() {
       {/* Loading Spinner Overlay */}
       {loading && (
         <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center pointer-events-none">
-          <div className="glass-panel-heavy px-5 py-3 sm:px-6 sm:py-4 rounded-3xl flex items-center gap-3 text-sky-400 font-bold text-xs sm:text-sm shadow-2xl border border-slate-700/80">
-            <Loader2 className="w-5 h-5 animate-spin text-sky-400" />
+          <div className="glass-panel-heavy px-5 py-3 sm:px-5 sm:py-3 rounded-2xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 text-sky-400 font-bold text-xs sm:text-xs shadow-2xl border border-slate-700/80">
+            <Loader2 className="w-4 h-4 sm:w-4 sm:h-4 animate-spin text-sky-400" />
             <span>Finding optimal Bangalore route...</span>
           </div>
         </div>

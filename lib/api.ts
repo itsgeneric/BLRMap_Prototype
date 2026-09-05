@@ -165,16 +165,25 @@ export async function fetchBothRoutes(
       : null;
 
   const shortestKm = shortest?.distance_km || 0;
-  const shortestEstMins = shortest ? Math.max(2, Math.round((shortestKm / 28) * 60)) : Infinity;
+  const dynamicKm = dynamic?.distance_km || 0;
 
-  const dynamicEstMins = dynamic?.google_base_duration_mins
-    ? Math.round(dynamic.google_base_duration_mins)
-    : dynamic
-    ? Math.max(2, Math.round(((dynamic.distance_km || 0) / 28) * 60))
+  // Real-world city timing calculation:
+  // Shortest route (main arterial roads): subject to Bangalore traffic & signals (~22 km/h)
+  // If Google live traffic duration is available, that is the main road congested duration
+  const googleTrafficMins = dynamic?.google_base_duration_mins;
+  const shortestEstMins = googleTrafficMins
+    ? Math.round(googleTrafficMins)
+    : shortest
+    ? Math.max(2, Math.round((shortestKm / 22) * 60))
+    : Infinity;
+
+  // Dynamic route (two-wheeler inner road bypass): avoids jammed bottlenecks (~27.5 km/h)
+  const dynamicEstMins = dynamic
+    ? Math.max(2, Math.round((dynamicKm / 27.5) * 60))
     : Infinity;
 
   const fastestChoice: 'shortest' | 'dynamic' =
-    dynamicEstMins <= shortestEstMins && dynamic ? 'dynamic' : 'shortest';
+    dynamicEstMins < shortestEstMins && dynamic ? 'dynamic' : 'shortest';
 
   const timeDiffMins = Math.abs(shortestEstMins - dynamicEstMins);
 

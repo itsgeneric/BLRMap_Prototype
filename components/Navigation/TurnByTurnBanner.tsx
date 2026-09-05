@@ -33,7 +33,7 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
   if (!currentManeuver) return null;
 
   const renderIcon = (type: TurnManeuver['type']) => {
-    const iconClass = 'w-6 h-6 sm:w-8 sm:h-8';
+    const iconClass = 'w-6 h-6 sm:w-6 sm:h-6';
     switch (type) {
       case 'turn_left':
         return <CornerUpLeft className={`${iconClass} text-sky-400`} />;
@@ -59,19 +59,19 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
 
   return (
     <div className="w-full max-w-lg mx-auto font-sans relative z-[1000] animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="bg-[#0f172a] p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/90 border border-emerald-500/40 space-y-2 sm:space-y-2.5">
-        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+      <div className="bg-[#0f172a] p-2.5 sm:p-3 rounded-2xl sm:rounded-2xl shadow-2xl shadow-black/90 border border-emerald-500/40 space-y-2 sm:space-y-2">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-3">
           {/* Maneuver Icon */}
-          <div className="p-2 sm:p-3 bg-[#060910] rounded-xl sm:rounded-2xl border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+          <div className="p-2 sm:p-2 bg-[#060910] rounded-xl sm:rounded-xl border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
             {renderIcon(currentManeuver.type)}
           </div>
 
           {/* Distance & Action */}
           <div className="flex-1 min-w-0">
-            <div className="text-lg sm:text-2xl font-black tracking-tight text-white font-mono flex items-baseline gap-1.5 sm:gap-2">
+            <div className="text-lg sm:text-xl font-black tracking-tight text-white font-mono flex items-baseline gap-1.5 sm:gap-2">
               <span>{formatDistance(distanceToManeuverMeters)}</span>
             </div>
-            <div className="text-xs sm:text-base font-bold text-sky-300 truncate">
+            <div className="text-xs sm:text-sm font-bold text-sky-300 truncate">
               {currentAction}
             </div>
           </div>
@@ -80,7 +80,7 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
           <button
             type="button"
             onClick={onToggleVoice}
-            className={`p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer shrink-0 active:scale-95 ${
+            className={`p-2 sm:p-2 rounded-xl sm:rounded-xl border transition-all cursor-pointer shrink-0 active:scale-95 ${
               voiceEnabled
                 ? 'bg-sky-500/20 border-sky-500/40 text-sky-300 shadow-md shadow-sky-500/10'
                 : 'bg-slate-800/60 border-slate-700 text-slate-500'
@@ -89,9 +89,9 @@ export const TurnByTurnBanner: React.FC<TurnByTurnBannerProps> = ({
             aria-label={voiceEnabled ? 'Mute Voice Guidance' : 'Enable Voice Guidance'}
           >
             {voiceEnabled ? (
-              <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             ) : (
-              <VolumeX className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+              <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
           </button>
         </div>

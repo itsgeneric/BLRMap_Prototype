@@ -37,17 +37,27 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const maneuvers = routeData.maneuvers || [];
   const distanceKm = routeData.distance_km || 0;
 
-  // Durations
-  const getDurationMins = (r: RouteResponse | null | undefined) => {
-    if (!r) return 0;
-    if (r.google_base_duration_mins) return Math.round(r.google_base_duration_mins);
-    const d = r.distance_km || 0;
-    return Math.max(2, Math.round((d / 28) * 60));
-  };
+  // Accurate Durations
+  const liveTrafficBase = dynamicRouteData?.google_base_duration_mins;
 
-  const currentDurationMins = getDurationMins(routeData);
-  const shortestDurationMins = getDurationMins(shortestRouteData);
-  const dynamicDurationMins = getDurationMins(dynamicRouteData);
+  const shortestDurationMins = shortestRouteData
+    ? liveTrafficBase
+      ? Math.round(liveTrafficBase)
+      : Math.max(2, Math.round(((shortestRouteData.distance_km || 0) / 22) * 60))
+    : 0;
+
+  const dynamicDurationMins = dynamicRouteData
+    ? Math.max(2, Math.round(((dynamicRouteData.distance_km || 0) / 27.5) * 60))
+    : 0;
+
+  const currentDurationMins =
+    isFastestMode
+      ? selectedRouteType === 'dynamic'
+        ? dynamicDurationMins
+        : shortestDurationMins
+      : routeData.google_base_duration_mins
+      ? Math.round(routeData.google_base_duration_mins)
+      : Math.max(2, Math.round(((distanceKm || 0) / 24) * 60));
 
   const timeDiffMins = Math.abs(shortestDurationMins - dynamicDurationMins);
   const isDynamicFaster = dynamicDurationMins < shortestDurationMins;
@@ -56,18 +66,21 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const handlePreviewClick = (chosen?: 'shortest' | 'dynamic') => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(8);
     setShowSteps(!showSteps);
+    // Selecting a route for preview confirms the choice → hides the ghost line
+    if (chosen && onSelectRouteType) onSelectRouteType(chosen);
     onStartPreview(chosen);
   };
 
   const handleStartClick = (chosen?: 'shortest' | 'dynamic') => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(12);
+    // Starting navigation confirms the route choice → hides the ghost line
     if (chosen && onSelectRouteType) onSelectRouteType(chosen);
     onStartNavigation(chosen);
   };
 
   return (
-    <div className="fixed bottom-2.5 sm:bottom-6 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
-      <div className="bg-[#0f172a] rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-2xl shadow-black/90 border border-slate-700/80 space-y-2 sm:space-y-3">
+    <div className="fixed bottom-2.5 sm:bottom-5 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
+      <div className="bg-[#0f172a] rounded-2xl sm:rounded-2xl p-3 sm:p-3.5 shadow-2xl shadow-black/90 border border-slate-700/80 space-y-2 sm:space-y-2.5">
         {/* Visual Drawer Handle */}
         <div className="flex justify-center -mt-1 sm:hidden">
           <div className="w-8 h-1 rounded-full bg-slate-700"></div>
@@ -97,7 +110,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectRouteType && onSelectRouteType('shortest')}
-                className={`p-2.5 rounded-xl sm:rounded-2xl border text-left transition-all cursor-pointer relative ${
+                className={`p-2.5 sm:p-2.5 rounded-xl sm:rounded-xl border text-left transition-all cursor-pointer relative ${
                   selectedRouteType === 'shortest'
                     ? 'bg-sky-500/10 border-sky-400 shadow-md shadow-sky-500/15 ring-1 ring-sky-400'
                     : 'bg-slate-900/80 border-slate-700/80 hover:bg-slate-850 opacity-75 hover:opacity-100'
@@ -115,7 +128,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
                   )}
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-lg sm:text-2xl font-black text-white font-mono">
+                  <span className="text-lg sm:text-xl font-black text-white font-mono">
                     {shortestDurationMins} min
                   </span>
                   <span className="text-[11px] font-bold text-slate-400 font-mono">
@@ -131,7 +144,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectRouteType && onSelectRouteType('dynamic')}
-                className={`p-2.5 rounded-xl sm:rounded-2xl border text-left transition-all cursor-pointer relative ${
+                className={`p-2.5 sm:p-2.5 rounded-xl sm:rounded-xl border text-left transition-all cursor-pointer relative ${
                   selectedRouteType === 'dynamic'
                     ? 'bg-pink-500/10 border-pink-400 shadow-md shadow-pink-500/15 ring-1 ring-pink-400'
                     : 'bg-slate-900/80 border-slate-700/80 hover:bg-slate-850 opacity-75 hover:opacity-100'
@@ -149,7 +162,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
                   )}
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-lg sm:text-2xl font-black text-white font-mono">
+                  <span className="text-lg sm:text-xl font-black text-white font-mono">
                     {dynamicDurationMins} min
                   </span>
                   <span className="text-[11px] font-bold text-slate-400 font-mono">
@@ -164,17 +177,17 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
           </div>
         ) : (
           /* STANDARD SINGLE ROUTE HEADER */
-          <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center justify-between gap-2 sm:gap-2.5">
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1.5 sm:gap-2">
-                <span className="text-xl sm:text-3xl font-black text-white font-mono">
+                <span className="text-xl sm:text-2xl font-black text-white font-mono">
                   {currentDurationMins} min
                 </span>
-                <span className="text-xs sm:text-base font-bold text-slate-300 font-mono">
+                <span className="text-xs sm:text-sm font-bold text-slate-300 font-mono">
                   ({distanceKm.toFixed(1)} km)
                 </span>
                 {routeData.google_base_duration_mins && (
-                  <span className="text-[9px] sm:text-xs font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-md border border-pink-500/20">
+                  <span className="text-[9px] sm:text-[11px] font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-md border border-pink-500/20">
                     Live Traffic
                   </span>
                 )}
@@ -192,7 +205,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSteps(!showSteps)}
-                className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border border-slate-700 cursor-pointer shrink-0 shadow-sm transition"
+                className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-slate-200 rounded-xl sm:rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 border border-slate-700 cursor-pointer shrink-0 shadow-sm transition"
               >
                 <List className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" />
                 <span>{showSteps ? 'Hide' : 'Steps'}</span>
@@ -208,7 +221,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
 
         {/* Expandable Step-by-Step Maneuvers Drawer */}
         {showSteps && maneuvers.length > 0 && (
-          <div className="bg-[#090d16] rounded-xl sm:rounded-2xl p-2 sm:p-3 border border-slate-800 max-h-40 sm:max-h-52 overflow-y-auto space-y-1.5 no-scrollbar animate-in fade-in">
+          <div className="bg-[#090d16] rounded-xl sm:rounded-xl p-2 sm:p-2.5 border border-slate-800 max-h-40 sm:max-h-48 overflow-y-auto space-y-1.5 no-scrollbar animate-in fade-in">
             <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-mono text-sky-400 font-bold border-b border-slate-800 pb-1 flex items-center justify-between">
               <span>Turn Instructions</span>
               <span>{maneuvers.length} Total</span>
@@ -241,7 +254,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <button
               type="button"
               onClick={() => handleStartClick('shortest')}
-              className="flex-1 py-2.5 sm:py-3 px-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-sky-300"
+              className="flex-1 py-2.5 sm:py-2.5 px-3 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-xs rounded-xl sm:rounded-xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-sky-300"
             >
               <Navigation className="w-3.5 h-3.5 fill-slate-950" />
               <span>Start Navigation (Shortest)</span>
@@ -250,7 +263,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <button
               type="button"
               onClick={() => handleStartClick('dynamic')}
-              className="flex-1 py-2.5 sm:py-3 px-3 bg-pink-500 hover:bg-pink-400 active:bg-pink-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-pink-300"
+              className="flex-1 py-2.5 sm:py-2.5 px-3 bg-pink-500 hover:bg-pink-400 active:bg-pink-600 text-slate-950 font-black text-xs sm:text-xs rounded-xl sm:rounded-xl shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-pink-300"
             >
               <Zap className="w-3.5 h-3.5 fill-slate-950" />
               <span>Start Navigation (Dynamic)</span>
@@ -263,18 +276,18 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
               <button
                 type="button"
                 onClick={() => handleStartClick()}
-                className="flex-1 py-2.5 sm:py-3.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+                className="flex-1 py-2.5 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-xs rounded-xl sm:rounded-xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-1.5 cursor-pointer active:scale-95"
               >
-                <Navigation className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-slate-950" />
+                <Navigation className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 fill-slate-950" />
                 <span>Start Navigation</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handlePreviewClick()}
-                className="flex-1 py-2.5 sm:py-3.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-sky-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer active:scale-95"
+                className="flex-1 py-2.5 sm:py-2.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-xs rounded-xl sm:rounded-xl shadow-xl shadow-sky-500/25 transition-all flex items-center justify-center gap-1.5 sm:gap-1.5 cursor-pointer active:scale-95"
               >
-                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Eye className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
                 <span>Preview Route</span>
               </button>
             )}

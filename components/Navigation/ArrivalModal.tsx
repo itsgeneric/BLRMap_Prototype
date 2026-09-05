@@ -45,17 +45,17 @@ export const ArrivalModal: React.FC<ArrivalModalProps> = ({ summary, onClose, on
         </div>
 
         {/* Actions */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-1">
           <button
             onClick={onNewRoute}
-            className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer touch-press"
+            className="w-full py-2.5 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-black text-xs sm:text-xs rounded-xl sm:rounded-xl shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer touch-press"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
             <span>Plan Another Route</span>
           </button>
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-slate-800/80 hover:bg-slate-700 active:bg-slate-800 text-slate-300 font-bold text-xs rounded-2xl border border-slate-700 transition cursor-pointer"
+            className="w-full py-2 sm:py-2 bg-slate-800/80 hover:bg-slate-700 active:bg-slate-800 text-slate-300 font-bold text-xs rounded-xl sm:rounded-xl border border-slate-700 transition cursor-pointer"
           >
             Close Summary
           </button>
