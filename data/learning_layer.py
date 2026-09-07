@@ -61,3 +61,45 @@ def should_skip_live_check(strategy: str, lat: float, lng: float) -> bool:
     if total < MIN_SAMPLES_TO_TRUST:
         return False
     return (win_count / total) < SKIP_THRESHOLD
+
+# ---------------------------------------------------------------------------
+# Async MongoDB equivalents (used when MongoDB Atlas is connected)
+# ---------------------------------------------------------------------------
+
+async def log_route_decision_async(lat: float, lng: float, strategy: str):
+    """Logs route decision to MongoDB if connected, otherwise falls back to SQLite."""
+    try:
+        from database.mongo_client import is_connected
+        from database.operations import log_route_decision_mongo
+        if is_connected():
+            hour_bucket, grid_lat, grid_lng = _context_key(lat, lng)
+            await log_route_decision_mongo(hour_bucket, grid_lat, grid_lng, strategy)
+            return
+    except Exception as exc:
+        print(f"  [MongoDB] Could not log route decision: {exc}")
+    # Fallback to SQLite
+    log_route_decision(lat, lng, strategy)
+
+async def strategy_win_rates_async(lat: float, lng: float) -> dict:
+    """Gets strategy win rates from MongoDB if connected, otherwise falls back to SQLite."""
+    try:
+        from database.mongo_client import is_connected
+        from database.operations import get_strategy_rates_mongo
+        if is_connected():
+            hour_bucket, grid_lat, grid_lng = _context_key(lat, lng)
+            counts = await get_strategy_rates_mongo(hour_bucket, grid_lat, grid_lng)
+            total = sum(counts.values())
+            return {strat: (count, total) for strat, count in counts.items()}
+    except Exception as exc:
+        print(f"  [MongoDB] Could not read route decisions: {exc}")
+    # Fallback to SQLite
+    return strategy_win_rates(lat, lng)
+
+async def should_skip_live_check_async(strategy: str, lat: float, lng: float) -> bool:
+    rates = await strategy_win_rates_async(lat, lng)
+    if strategy not in rates:
+        return False
+    win_count, total = rates[strategy]
+    if total < MIN_SAMPLES_TO_TRUST:
+        return False
+    return (win_count / total) < SKIP_THRESHOLD

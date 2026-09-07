@@ -10,6 +10,8 @@ GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 ROUTES_KEY = os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_KEY
 ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
+MONGODB_URI = os.getenv("MONGODB_URI")  # mongodb+srv://... from Atlas
+
 # Correctly mapped to your Data Assets folder
 GRAPH_FILE_PATH = os.getenv("GRAPH_FILE_PATH", os.path.join(BASE_DIR, "Data Assets", "bengaluru_roads_extended.graphml"))
 EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", os.path.join(BASE_DIR, "Data Assets", "bengaluru_exclude_polys.geojson"))

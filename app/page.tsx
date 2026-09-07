@@ -14,6 +14,7 @@ import { fetchRoute, fetchBothRoutes } from '@/lib/api';
 import { haversineMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
+import { startTrip, completeTrip, reportReroute } from '@/lib/tripTracker';
 
 import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
 import { ModeSelector } from '@/components/Navigation/ModeSelector';
@@ -56,6 +57,7 @@ export default function NavigationApp() {
 
   const routeAbortControllerRef = useRef<AbortController | null>(null);
   const tripStartTimeRef = useRef<number>(0);
+  const activeJourneyIdRef = useRef<string | null>(null);
 
   // Toast Helpers (Reserved only for genuine errors)
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'error', duration = 4000) => {
@@ -117,19 +119,35 @@ export default function NavigationApp() {
     routeData,
     gpsPosition: realGpsPosition,
     voiceEnabled,
-    onRerouteNeeded: () => {
+    onRerouteNeeded: (info) => {
+      if (info && activeJourneyIdRef.current) {
+        const timeSinceStart = tripStartTimeRef.current > 0
+          ? Math.round((Date.now() - tripStartTimeRef.current) / 1000)
+          : 0;
+        reportReroute(
+          activeJourneyIdRef.current,
+          info.lat,
+          info.lng,
+          info.distanceOffRouteM,
+          timeSinceStart
+        );
+      }
       loadRoute();
     },
     onArrival: () => {
       const timeTakenSec = Math.max(1, Math.round((Date.now() - tripStartTimeRef.current) / 1000));
       const distKm = routeData?.distance_km || 0;
-      setTripSummary({
+      const summary: TripSummary = {
         distanceKm: distKm,
         timeTakenSec,
         avgSpeedKmh: distKm > 0 ? distKm / (timeTakenSec / 3600) : 0,
         originName: origin?.name || 'Start Point',
         destinationName: destination?.name || 'Destination',
-      });
+      };
+      setTripSummary(summary);
+      if (activeJourneyIdRef.current) {
+        completeTrip(activeJourneyIdRef.current, summary);
+      }
     },
   });
 
@@ -258,6 +276,10 @@ export default function NavigationApp() {
       setSelectedRouteType(typeToUse);
       setRouteData(targetRoute);
       tripStartTimeRef.current = Date.now();
+      activeJourneyIdRef.current = targetRoute.journey_id || null;
+      if (activeJourneyIdRef.current) {
+        startTrip(activeJourneyIdRef.current, origin, destination);
+      }
       startNavigation();
       setIsFollowingCamera(true);
     },

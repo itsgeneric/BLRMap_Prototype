@@ -30,6 +30,7 @@ export interface CandidateRoute {
 export interface RouteResponse {
   status: 'success' | 'error';
   message?: string;
+  journey_id?: string;
   path?: LatLng[];
   distance_km?: number;
   weighted_cost?: number;
@@ -80,3 +81,29 @@ export interface TripSummary {
   originName: string;
   destinationName: string;
 }
+
+export interface JourneyPlaceInfo {
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+}
+
+export interface JourneyStartPayload {
+  session_id: string;
+  origin: JourneyPlaceInfo;
+  destination: JourneyPlaceInfo;
+}
+
+export interface JourneyCompletePayload {
+  actual_duration_secs: number;
+  actual_avg_speed_kmh: number;
+}
+
+export interface ReroutePayload {
+  lat: number;
+  lng: number;
+  distance_off_route_m: number;
+  time_since_start_secs: number;
+}
+

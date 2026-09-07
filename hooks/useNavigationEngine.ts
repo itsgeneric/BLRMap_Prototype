@@ -10,11 +10,17 @@ import {
 } from '@/lib/geo';
 import { voiceGuidance } from '@/lib/speech';
 
+export interface RerouteEventInfo {
+  lat: number;
+  lng: number;
+  distanceOffRouteM: number;
+}
+
 interface UseNavigationEngineProps {
   routeData: RouteResponse | null;
   gpsPosition: GPSPosition | null;
   voiceEnabled: boolean;
-  onRerouteNeeded?: () => void;
+  onRerouteNeeded?: (info?: RerouteEventInfo) => void;
   onArrival?: () => void;
 }
 
@@ -95,7 +101,13 @@ export function useNavigationEngine({
         if (!isOffRoute && now - lastRerouteTimeRef.current > 12000) {
           setIsOffRoute(true);
           lastRerouteTimeRef.current = now;
-          if (onRerouteNeeded) onRerouteNeeded();
+          if (onRerouteNeeded) {
+            onRerouteNeeded({
+              lat,
+              lng,
+              distanceOffRouteM: distToRoute,
+            });
+          }
         }
       }
     } else {
