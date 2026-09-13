@@ -1,21 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Point,
   RouteMode,
   RouteResponse,
-  GPSPosition,
   ThemeMode,
+  ToastMessage,
+  TripSummary,
 } from '@/lib/types';
 import { fetchRoute } from '@/lib/api';
-import {
-  haversineMeters,
-  calculateBearing,
-  findDistanceToPolyline,
-} from '@/lib/geo';
-import { voiceGuidance } from '@/lib/speech';
+import { haversineMeters } from '@/lib/geo';
+import { useGPS } from '@/hooks/useGPS';
+import { useNavigationEngine } from '@/hooks/useNavigationEngine';
 
 import { ThemeToggle } from '@/components/UI/ThemeToggle';
 import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
@@ -23,17 +21,19 @@ import { ModeSelector } from '@/components/Navigation/ModeSelector';
 import { TurnByTurnBanner } from '@/components/Navigation/TurnByTurnBanner';
 import { NavigationFooter } from '@/components/Navigation/NavigationFooter';
 import { BottomActionBar } from '@/components/Navigation/BottomActionBar';
+import { ToastContainer } from '@/components/UI/Toast';
+import { ArrivalModal } from '@/components/Navigation/ArrivalModal';
 import { Loader2, Bike } from 'lucide-react';
 
-// Dynamic SSR-disabled import for MapContainer
+// Dynamic SSR-disabled MapContainer
 const MapContainer = dynamic(
   () => import('@/components/Map/MapContainer').then((mod) => mod.MapContainer),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-950 flex items-center justify-center text-sky-400 font-mono text-xs">
-        <Loader2 className="w-6 h-6 animate-spin text-sky-400 mr-2" />
-        Loading Bangalore Map...
+      <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center text-sky-400 font-mono text-xs gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
+        <span>Loading Bengaluru Map Engine...</span>
       </div>
     ),
   }
@@ -43,16 +43,88 @@ export default function NavigationApp() {
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [origin, setOrigin] = useState<Point | null>(null);
   const [destination, setDestination] = useState<Point | null>(null);
+  const [activeInput, setActiveInput] = useState<'origin' | 'destination'>('origin');
   const [mode, setMode] = useState<RouteMode>('shortest');
   const [routeData, setRouteData] = useState<RouteResponse | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Navigation State
-  const [isNavigating, setIsNavigating] = useState(false);
-  const [gpsPosition, setGpsPosition] = useState<GPSPosition | null>(null);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [currentManeuverIndex, setCurrentManeuverIndex] = useState(0);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [tripSummary, setTripSummary] = useState<TripSummary | null>(null);
+
+  const routeAbortControllerRef = useRef<AbortController | null>(null);
+  const tripStartTimeRef = useRef<number>(0);
+
+  // Toast Helpers (Reserved only for genuine errors)
+  const addToast = useCallback((text: string, type: ToastMessage['type'] = 'error', duration = 4000) => {
+    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    setToasts((prev) => [...prev, { id, text, type, duration }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, duration);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Single Centralized GPS & Compass Hook
+  const {
+    gpsPosition: realGpsPosition,
+    isLocating,
+    getCurrentLocation,
+  } = useGPS();
+
+  // Check if Origin is user's current live location
+  const isOriginMyLocation = useMemo(() => {
+    if (!origin) return false;
+    const name = (origin.name || '').toLowerCase();
+    const addr = (origin.address || '').toLowerCase();
+    if (
+      name.includes('my location') ||
+      addr.includes('my location') ||
+      name.includes('current location') ||
+      addr.includes('current location')
+    ) {
+      return true;
+    }
+    // Check if within 80m of current GPS fix
+    if (realGpsPosition && realGpsPosition.lat && realGpsPosition.lng) {
+      const dist = haversineMeters(origin.lat, origin.lng, realGpsPosition.lat, realGpsPosition.lng);
+      if (dist < 80) return true;
+    }
+    return false;
+  }, [origin, realGpsPosition]);
+
+  // Turn-by-Turn Navigation Engine Hook
+  const {
+    isNavigating,
+    nearestSegmentIndex,
+    distanceToManeuverMeters,
+    remainingMeters,
+    currentManeuver,
+    nextManeuver,
+    startNavigation,
+    stopNavigation,
+  } = useNavigationEngine({
+    routeData,
+    gpsPosition: realGpsPosition,
+    voiceEnabled,
+    onRerouteNeeded: () => {
+      loadRoute();
+    },
+    onArrival: () => {
+      const timeTakenSec = Math.max(1, Math.round((Date.now() - tripStartTimeRef.current) / 1000));
+      const distKm = routeData?.distance_km || 0;
+      setTripSummary({
+        distanceKm: distKm,
+        timeTakenSec,
+        avgSpeedKmh: distKm > 0 ? distKm / (timeTakenSec / 3600) : 0,
+        originName: origin?.name || 'Start Point',
+        destinationName: destination?.name || 'Destination',
+      });
+    },
+  });
 
   // Handle Theme Toggle
   const handleThemeToggle = (newTheme: ThemeMode) => {
@@ -68,158 +140,148 @@ export default function NavigationApp() {
     }
   };
 
-  // Real Hardware GPS Watcher
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
-
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        setGpsPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          heading: pos.coords.heading || 0,
-          speed: pos.coords.speed || 0,
-          accuracy: pos.coords.accuracy,
-          timestamp: pos.timestamp,
-        });
-      },
-      (err) => console.warn('Geolocation warning:', err.message),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
-
-  // Fetch Route when origin, destination, or mode changes
-  useEffect(() => {
+  // Route Fetch Function
+  const loadRoute = useCallback(async () => {
     if (!origin || !destination) {
       setRouteData(null);
       return;
     }
 
-    let isMounted = true;
-    const loadRoute = async () => {
-      setLoading(true);
-      try {
-        const res = await fetchRoute(mode, origin, destination);
-        if (isMounted) {
-          setRouteData(res);
-          setCurrentManeuverIndex(0);
-        }
-      } catch (err) {
-        console.error('Failed to load route:', err);
-      } finally {
-        if (isMounted) setLoading(false);
+    if (routeAbortControllerRef.current) {
+      routeAbortControllerRef.current.abort();
+    }
+    routeAbortControllerRef.current = new AbortController();
+
+    setLoading(true);
+    try {
+      const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
+      if (res.status === 'success' && res.path && res.path.length > 0) {
+        setRouteData(res);
+      } else {
+        setRouteData(null);
+        addToast(res.message || 'No viable route found between these locations.', 'error');
       }
-    };
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        addToast('Failed to calculate route. Check backend connection.', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [origin, destination, mode, addToast]);
 
-    loadRoute();
-    return () => { isMounted = false; };
-  }, [origin, destination, mode]);
-
-  // Navigation Logic (Off-route detection, Maneuver updates, Voice Prompts)
+  // Fetch Route whenever origin, destination, or mode updates
   useEffect(() => {
-    if (!isNavigating || !routeData?.maneuvers || !gpsPosition) return;
+    loadRoute();
+  }, [loadRoute]);
 
-    const maneuvers = routeData.maneuvers;
-    if (currentManeuverIndex >= maneuvers.length) return;
-
-    const currentM = maneuvers[currentManeuverIndex];
-    const distToTurn = haversineMeters(gpsPosition.lat, gpsPosition.lng, currentM.lat, currentM.lng);
-
-    // Speak turn instruction when within 120m
-    if (distToTurn < 120) {
-      voiceGuidance.speak(`In ${Math.round(distToTurn)} meters, ${currentM.instruction}`);
+  // Select Origin Handler
+  const handleSelectOrigin = useCallback((loc: Point | null) => {
+    setOrigin(loc);
+    if (loc && !destination) {
+      setActiveInput('destination');
     }
+  }, [destination]);
 
-    // Advance to next maneuver when passed
-    if (distToTurn < 25 && currentManeuverIndex < maneuvers.length - 1) {
-      setCurrentManeuverIndex((prev) => prev + 1);
-    }
+  // Select Destination Handler
+  const handleSelectDestination = useCallback((loc: Point | null) => {
+    setDestination(loc);
+  }, []);
 
-    // Off-route detection (> 45m from polyline)
-    if (routeData.path) {
-      const { distanceMeters } = findDistanceToPolyline(gpsPosition.lat, gpsPosition.lng, routeData.path);
-      if (distanceMeters > 45) {
-        voiceGuidance.speak('Recalculating route');
+  // Use Current GPS as Origin
+  const handleUseGpsOrigin = useCallback(async () => {
+    try {
+      const pos = await getCurrentLocation();
+      setOrigin({
+        lat: pos.lat,
+        lng: pos.lng,
+        name: 'My Location',
+        address: 'Current GPS Location',
+      });
+      if (!destination) {
+        setActiveInput('destination');
       }
+    } catch (err: any) {
+      addToast('Could not acquire GPS position. Ensure location services are enabled.', 'error');
     }
-  }, [isNavigating, gpsPosition, routeData, currentManeuverIndex]);
+  }, [getCurrentLocation, destination, addToast]);
 
-  // Handle map click to place origin / destination
-  const handleMapClick = useCallback((latlng: [number, number]) => {
-    if (!origin) {
-      setOrigin({ lat: latlng[0], lng: latlng[1], name: `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` });
-    } else if (!destination) {
-      setDestination({ lat: latlng[0], lng: latlng[1], name: `${latlng[0].toFixed(4)}, ${latlng[1].toFixed(4)}` });
-    }
-  }, [origin, destination]);
-
+  // Start Navigation Handlers
   const handleStartNavigation = useCallback(() => {
     if (!routeData?.path) return;
-    setIsNavigating(true);
+    tripStartTimeRef.current = Date.now();
+    startNavigation();
     setIsFollowingCamera(true);
-    voiceGuidance.setEnabled(voiceEnabled);
-    voiceGuidance.speak('Starting navigation');
-  }, [routeData, voiceEnabled]);
+  }, [routeData, startNavigation]);
 
+  // Preview Route Handler (Fits bounds to show full route)
   const handleStartPreview = useCallback(() => {
-    setIsNavigating(false);
     setIsFollowingCamera(false);
-    voiceGuidance.speak('Previewing route');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fit-route-bounds'));
+    }
   }, []);
 
   const handleEndNavigation = useCallback(() => {
-    setIsNavigating(false);
-    voiceGuidance.speak('Navigation ended');
+    stopNavigation();
+  }, [stopNavigation]);
+
+  const handleRecenter = useCallback(() => {
+    setIsFollowingCamera(true);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recenter-map'));
+    }
   }, []);
 
-  // Check if Origin is "My Location"
-  const isOriginMyLocation = useMemo(() => {
-    return (
-      origin?.name?.toLowerCase().includes('my location') ||
-      origin?.address?.toLowerCase().includes('my location') ||
-      false
-    );
-  }, [origin]);
-
-  const currentManeuver = routeData?.maneuvers?.[currentManeuverIndex] || null;
-  const nextManeuver = routeData?.maneuvers?.[currentManeuverIndex + 1] || null;
-  const distToNextManeuver = (currentManeuver && gpsPosition)
-    ? haversineMeters(gpsPosition.lat, gpsPosition.lng, currentManeuver.lat, currentManeuver.lng)
-    : (currentManeuver?.distance_m || 0);
-
   return (
-    <div className="relative w-screen h-screen h-[100dvh] overflow-hidden flex flex-col font-sans select-none">
+    <div className="relative w-screen h-screen h-[100dvh] overflow-hidden flex flex-col font-sans select-none bg-slate-950">
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
+
+      {/* Arrival Completion Summary Modal */}
+      <ArrivalModal
+        summary={tripSummary}
+        onClose={() => setTripSummary(null)}
+        onNewRoute={() => {
+          setTripSummary(null);
+          setOrigin(null);
+          setDestination(null);
+          setRouteData(null);
+          setActiveInput('origin');
+        }}
+      />
+
       {/* Fullscreen Map Canvas */}
       <MapContainer
         origin={origin}
         destination={destination}
+        activeInput={activeInput}
         routePath={routeData?.path || null}
-        gpsPosition={gpsPosition}
+        traveledIndex={nearestSegmentIndex}
+        gpsPosition={realGpsPosition}
         theme={theme}
         mode={mode}
         isFollowingCamera={isFollowingCamera}
         isNavigating={isNavigating}
-        onMapClick={handleMapClick}
+        onSelectOrigin={handleSelectOrigin}
+        onSelectDestination={handleSelectDestination}
       />
 
-      {/* Floating Top UI Layer (Safe-Area Aware) */}
+      {/* Floating Top UI Layer */}
       <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4 z-20 space-y-2 pointer-events-none safe-top">
         {/* Top Header Bar with Brand, Mode Selector, and Theme Toggle */}
         <div className="flex items-center justify-between gap-2 pointer-events-auto max-w-lg mx-auto w-full">
           {/* Brand Logo Pill */}
-          <div className="glass-panel px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-1.5 sm:gap-2 text-xs font-mono font-bold tracking-widest text-slate-200 shadow-lg shrink-0">
-            <Bike className="w-4 h-4 text-sky-400" />
-            <span>BLR<b className="text-lime-400 font-black">NAV</b></span>
+          <div className="bg-[#0f172a] border border-slate-700/80 px-2 py-1 sm:px-3.5 sm:py-1.5 rounded-xl sm:rounded-2xl flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-mono font-bold tracking-widest text-slate-200 shadow-md shrink-0">
+            <Bike className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
+            <span>
+              BLR<b className="text-lime-400 font-black">NAV</b>
+            </span>
           </div>
 
-          {/* Mode Selector (When not actively driving/navigating) */}
+          {/* Mode Selector (When not actively driving) */}
           {!isNavigating && (
-            <ModeSelector
-              mode={mode}
-              onSelectMode={setMode}
-            />
+            <ModeSelector mode={mode} onSelectMode={setMode} />
           )}
 
           {/* Theme Switcher Toggle */}
@@ -232,8 +294,12 @@ export default function NavigationApp() {
             <TopSearchBar
               origin={origin}
               destination={destination}
-              onSelectOrigin={setOrigin}
-              onSelectDestination={setDestination}
+              activeInput={activeInput}
+              setActiveInput={setActiveInput}
+              onSelectOrigin={handleSelectOrigin}
+              onSelectDestination={handleSelectDestination}
+              onUseGpsOrigin={handleUseGpsOrigin}
+              gpsLoading={isLocating}
               onSwap={() => {
                 const temp = origin;
                 setOrigin(destination);
@@ -243,7 +309,8 @@ export default function NavigationApp() {
                 setOrigin(null);
                 setDestination(null);
                 setRouteData(null);
-                setIsNavigating(false);
+                setActiveInput('origin');
+                handleEndNavigation();
               }}
               isNavigating={isNavigating}
             />
@@ -256,13 +323,9 @@ export default function NavigationApp() {
             <TurnByTurnBanner
               currentManeuver={currentManeuver}
               nextManeuver={nextManeuver}
-              distanceToManeuverMeters={distToNextManeuver}
+              distanceToManeuverMeters={distanceToManeuverMeters}
               voiceEnabled={voiceEnabled}
-              onToggleVoice={() => {
-                const nextVoice = !voiceEnabled;
-                setVoiceEnabled(nextVoice);
-                voiceGuidance.setEnabled(nextVoice);
-              }}
+              onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
             />
           </div>
         )}
@@ -270,19 +333,17 @@ export default function NavigationApp() {
 
       {/* Floating Bottom Navigation Controls & Drawer */}
       <div className="pointer-events-none">
-        {/* Navigation Footer during active GPS tracking */}
         {isNavigating ? (
           <div className="pointer-events-auto">
             <NavigationFooter
-              currentSpeedMps={gpsPosition?.speed || 0}
-              remainingMeters={(routeData?.distance_km || 0) * 1000}
+              currentSpeedMps={realGpsPosition?.speed || 0}
+              remainingMeters={remainingMeters || ((routeData?.distance_km || 0) * 1000)}
               isFollowingCamera={isFollowingCamera}
-              onRecenter={() => setIsFollowingCamera(true)}
+              onRecenter={handleRecenter}
               onEndNavigation={handleEndNavigation}
             />
           </div>
         ) : (
-          /* Route Overview Bottom Sheet Card */
           routeData?.path && (
             <div className="pointer-events-auto">
               <BottomActionBar
@@ -299,10 +360,10 @@ export default function NavigationApp() {
 
       {/* Loading Spinner Overlay */}
       {loading && (
-        <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center pointer-events-none">
           <div className="glass-panel-heavy px-5 py-3 sm:px-6 sm:py-4 rounded-3xl flex items-center gap-3 text-sky-400 font-bold text-xs sm:text-sm shadow-2xl border border-slate-700/80">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Calculating fastest route...</span>
+            <Loader2 className="w-5 h-5 animate-spin text-sky-400" />
+            <span>Finding optimal Bangalore route...</span>
           </div>
         </div>
       )}

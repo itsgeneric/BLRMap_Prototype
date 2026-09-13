@@ -9,7 +9,6 @@ export interface Point {
 
 export type RouteMode = 'shortest' | 'dynamic';
 
-
 export interface TurnManeuver {
   type: 'depart' | 'turn_left' | 'slight_left' | 'straight' | 'slight_right' | 'turn_right' | 'u_turn' | 'arrive';
   instruction: string;
@@ -47,7 +46,7 @@ export interface GPSPosition {
   lng: number;
   heading: number | null; // 0-360 degrees
   speed: number | null;   // meters per second
-  accuracy: number;       // meters
+  accuracy?: number;      // meters
   timestamp: number;
 }
 
@@ -66,3 +65,18 @@ export interface TwoWheelerOptions {
 }
 
 export type ThemeMode = 'dark' | 'light';
+
+export interface ToastMessage {
+  id: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  text: string;
+  duration?: number;
+}
+
+export interface TripSummary {
+  distanceKm: number;
+  timeTakenSec: number;
+  avgSpeedKmh: number;
+  originName: string;
+  destinationName: string;
+}
