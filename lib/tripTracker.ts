@@ -1,6 +1,6 @@
 import { Point, TripSummary, JourneyStartPayload, JourneyCompletePayload, ReroutePayload } from './types';
 
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = 'http://4.193.145.212:8000';
 const SESSION_STORAGE_KEY = 'blrnav_session_id';
 
 /**

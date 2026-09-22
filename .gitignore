@@ -59,7 +59,7 @@ route_decisions.db
 .idea/
 *.swp
 *.swo
-
+azure.txt
 # ── OS Generated Files ──
 .DS_Store
 .DS_Store?

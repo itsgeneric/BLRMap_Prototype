@@ -2,8 +2,9 @@ import { Point, RouteMode, RouteResponse, SearchResult } from './types';
 
 // Explicit IPv4 API Base to prevent IPv6/IPv4 localhost connection mismatch
 const getApiBase = () => {
-  return 'http://127.0.0.1:8000';
+  return 'http://4.193.145.212:8000';
 };
+
 
 /**
  * Searches places using Google Places Autocomplete (client-side)

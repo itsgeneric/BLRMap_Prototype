@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 import osmnx as ox
 import networkx as nx
 from core.config import GRAPH_FILE_PATH, SURFACE_QUALITY_FILE, INNER_ROAD_TYPES
@@ -31,6 +32,19 @@ class GraphManager:
         return self.surface_penalties.get(key_fwd, self.surface_penalties.get(key_rev, 1.0))
 
     def load_graph(self):
+        pkl_path = os.path.join(os.path.dirname(GRAPH_FILE_PATH), 'bengaluru_graph.pkl')
+        if os.path.exists(pkl_path):
+            print(f"Loading pre-compiled road network from {pkl_path} (lightning fast)...")
+            with open(pkl_path, 'rb') as f:
+                cache = pickle.load(f)
+                self.G = cache['G']
+                self.G_inner = cache['G_inner']
+                self.bounds = cache['bounds']
+                self.center = cache['center']
+            self.load_surface_penalties()
+            print("Road network loaded successfully in 2 seconds!")
+            return
+
         print(f"Loading road network from {GRAPH_FILE_PATH}...")
         self.G = ox.load_graphml(GRAPH_FILE_PATH)
         
