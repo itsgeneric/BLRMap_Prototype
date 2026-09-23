@@ -19,107 +19,128 @@ much bigger — don't interrupt it.
 """
 
 import osmnx as ox
+import networkx as nx
+import pickle
 import os
 import time
 
-print("=" * 55)
-print("  Greater Bengaluru Full Road Network Downloader")
-print("=" * 55)
+print("=" * 60)
+print("  Greater Bengaluru Fresh Live Road Network Downloader")
+print("  Date: 22-09-2026")
+print("=" * 60)
 print()
 
-# ── Step 1: Configure OSMnx ──────────────────────────────
+# ── Step 1: Configure OSMnx for Fresh Download ─────────────
 ox.settings.log_console = True
-ox.settings.use_cache   = True
+ox.settings.use_cache   = False        # Forces fresh download from OpenStreetMap today
 
-# ADD THESE TWO LINES:
-ox.settings.timeout = 600             # Increase server timeout to 10 minutes
-ox.settings.max_query_area_size = 5e7 # Force chunks to be 50 sq km (default is 2500 sq km)
-# ox.settings.overpass_endpoint = "https://overpass-api.de/api"             # 1. Default (Germany - usually busiest)
-# ox.settings.overpass_endpoint = "https://z.overpass-api.de/api"           # 2. Main Fallback (Germany)
-# ox.settings.overpass_endpoint = "https://lz4.overpass-api.de/api"         # 3. Secondary Fallback (Germany)
-ox.settings.overpass_endpoint = "https://overpass.kumi.systems/api"       # 4. Kumi Systems (Taiwan - very fast)
-# ox.settings.overpass_endpoint = "https://overpass.openstreetmap.fr/api"   # 5. OSM France
-# ox.settings.overpass_endpoint = "https://overpass.openstreetmap.ru/api"   # 6. OSM Russia
-# ── Step 2: Define what roads to include ─────────────────
-# This includes EVERY road type:
-# motorway, trunk, primary    → big highways
-# secondary, tertiary         → medium roads
-# residential, living_street  → inner roads, layouts
-# unclassified                → unnamed roads, cross-roads
-# service                     → service lanes, parking access
-# road                        → generic/unknown roads
-ROAD_FILTER = (
-    '["highway"~"motorway|trunk|primary|secondary|tertiary'
-    '|residential|living_street|unclassified|service|road"]'
-)
+# Configure requests timeout across all osmnx versions (prevents the 180s read timeout error)
+for attr in ["requests_timeout", "request_timeout", "timeout"]:
+    if hasattr(ox.settings, attr):
+        setattr(ox.settings, attr, 600)
 
-# ── Bounding box (replaces the old "Bengaluru, India" place lookup) ──
-# Covers Devanahalli (N), Attibele (S), Seegehalli (E), Honnaganahatti (W)
-# with a small buffer on each side so roads AT these towns are included,
-# not just cut off at the edge.
-NORTH, SOUTH, EAST, WEST = 13.28, 12.74, 77.80, 77.38
+if hasattr(ox.settings, "overpass_rate_limit"):
+    ox.settings.overpass_rate_limit = True
 
-OUTPUT_FILE = "bengaluru_roads_extended.graphml"
+# Candidate Overpass API endpoints in order of preference
+OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter"
+]
 
-# ── Step 3: Download ──────────────────────────────────────
-print("Step 1/4 — Connecting to OpenStreetMap...")
-print("         This downloads ALL road types including inner roads,")
-print(f"         across bbox N={NORTH} S={SOUTH} E={EAST} W={WEST}")
+# Greater Bengaluru Bounding Box:
+# Covers Airport & Devanahalli (North), Electronic City & Attibele (South),
+# Whitefield & Sarjapur (East), Kengeri & NICE Road (West)
+# (West, South, East, North)
+WEST, SOUTH, EAST, NORTH = 77.44, 12.78, 77.78, 13.22
+
+OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Data Assets"))
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+OUTPUT_GRAPHML = os.path.join(OUTPUT_DIR, "bengaluru_roads_extended.graphml")
+OUTPUT_PKL = os.path.join(OUTPUT_DIR, "bengaluru_graph.pkl")
+
+print(f"Greater Bengaluru Boundary:")
+print(f"  North: {NORTH} (Kempegowda Int'l Airport / Devanahalli)")
+print(f"  South: {SOUTH} (Electronic City / Jigani / Attibele)")
+print(f"  West : {WEST}  (Kengeri / RR Nagar / Magadi Rd)")
+print(f"  East : {EAST}  (Whitefield / Kadugodi / Sarjapur)")
 print()
 
+G = None
 start = time.time()
 
-try:
-    G = ox.graph_from_bbox(
-        bbox=(WEST, SOUTH, EAST, NORTH),
-        custom_filter=ROAD_FILTER,
-        retain_all=False,   # keep only the largest connected component
-        simplify=True,      # merge straight road segments (smaller file)
-    )
+for endpoint in OVERPASS_ENDPOINTS:
+    print(f"Connecting to Overpass server: {endpoint} ...")
+    if hasattr(ox.settings, "overpass_url"):
+        ox.settings.overpass_url = endpoint
+    if hasattr(ox.settings, "overpass_endpoint"):
+        ox.settings.overpass_endpoint = endpoint
 
-    elapsed = round(time.time() - start, 1)
-    print(f"\nStep 2/4 — Downloaded in {elapsed}s")
-    print(f"          Nodes : {len(G.nodes):,}")
-    print(f"          Edges : {len(G.edges):,}")
-    print()
+    try:
+        # Strict filter: public drivable roads only
+        # Excludes private driveways, parking aisles, gated compound roads,
+        # and roads with access=private that cause phantom lines through buildings on Google Maps
+        ROAD_FILTER = (
+            '["highway"]["area"!~"yes"]'
+            '["access"!~"private|no|customers|delivery"]'
+            '["highway"!~"abandoned|bridleway|bus_guideway|construction|cycleway|'
+            'footway|path|pedestrian|planned|platform|proposed|raceway|razed|steps|track"]'
+            '["service"!~"parking_aisle|driveway|emergency_access|alley"]'
+        )
+        G = ox.graph_from_bbox(
+            bbox=(WEST, SOUTH, EAST, NORTH),
+            custom_filter=ROAD_FILTER,
+            retain_all=False,   # Drop disconnected dead-end layout road fragments
+            simplify=True,
+        )
+        if G is not None and len(G.nodes) > 0:
+            print(f"Successfully downloaded from {endpoint}!")
+            break
+    except Exception as err:
+        print(f"Endpoint {endpoint} failed: {err}")
+        print("Trying next mirror...")
 
-    # ── Step 4: Set all edge weights to length only ───────
-    print("Step 3/4 — Setting edge weights to length only...")
-    print("          (no highway bias — all roads treated equally)")
+if G is None or len(G.nodes) == 0:
+    print("\nERROR: Failed to download graph from all Overpass endpoints.")
+    print("Please check your internet connection or try again in a few minutes.")
+    exit(1)
 
-    for u, v, k, data in G.edges(data=True, keys=True):
-        # weight = physical length in metres, nothing else
-        if 'length' not in data:
-            data['length'] = 1.0   # fallback for edges with no length
+elapsed = round(time.time() - start, 1)
+print(f"\nDownloaded fresh map in {elapsed}s")
+print(f"Nodes : {len(G.nodes):,}")
+print(f"Edges : {len(G.edges):,}")
+print()
 
-    print("          Done.")
-    print()
+# Ensure length attribute exists on every road edge
+for u, v, k, data in G.edges(data=True, keys=True):
+    data['length'] = float(data.get('length', 1.0))
 
-    # ── Step 5: Save ──────────────────────────────────────
-    print(f"Step 4/4 — Saving to {OUTPUT_FILE}...")
-    ox.save_graphml(G, OUTPUT_FILE)
+# Calculate dynamic bounds and center
+lats = [data['y'] for _, data in G.nodes(data=True)]
+lngs = [data['x'] for _, data in G.nodes(data=True)]
+bounds = {
+    "min_lat": min(lats), "max_lat": max(lats),
+    "min_lng": min(lngs), "max_lng": max(lngs)
+}
+center = {"lat": sum(lats) / len(lats), "lng": sum(lngs) / len(lngs)}
 
-    size_mb = round(os.path.getsize(OUTPUT_FILE) / 1024 / 1024, 1)
-    print(f"          Saved. File size: {size_mb} MB")
-    print()
-    print("=" * 55)
-    print("  Done! Graph saved.")
-    print(f"  File : {OUTPUT_FILE}")
-    print(f"  Nodes: {len(G.nodes):,}  |  Edges: {len(G.edges):,}")
-    print()
-    print("  Next step:")
-    print("  Point api_server.py's ox.load_graphml(...) at")
-    print(f"  {OUTPUT_FILE} to test coverage before replacing")
-    print("  your current bengaluru_roads_full.graphml")
-    print("=" * 55)
+# Save fresh GraphML
+print(f"Saving GraphML to {OUTPUT_GRAPHML}...")
+ox.save_graphml(G, OUTPUT_GRAPHML)
+size_mb = round(os.path.getsize(OUTPUT_GRAPHML) / (1024 * 1024), 1)
+print(f"Saved GraphML: {size_mb} MB")
 
-except Exception as e:
-    print(f"\n ERROR: {e}")
-    print()
-    print("  Common causes:")
-    print("  - No internet connection")
-    print("  - OSM servers temporarily down (try again in a few minutes)")
-    print("  - osmnx not installed: pip install osmnx")
-    print("  - bbox parameter order changed between osmnx versions —")
-    print("    check that graph_from_bbox expects (west, south, east, north)")
-    print("    for your installed osmnx version")
+# Save fresh instant-loading PKL
+print(f"Saving compiled binary PKL to {OUTPUT_PKL}...")
+cache = {'G': G, 'G_inner': G, 'bounds': bounds, 'center': center}
+with open(OUTPUT_PKL, 'wb') as f:
+    pickle.dump(cache, f)
+pkl_size_mb = round(os.path.getsize(OUTPUT_PKL) / (1024 * 1024), 1)
+print(f"Saved PKL: {pkl_size_mb} MB (Ready to upload to Azure!)")
+
+print()
+print("=" * 60)
+print("  ALL DONE! Fresh Bengaluru map is ready in Data Assets.")
+print("=" * 60)

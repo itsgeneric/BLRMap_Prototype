@@ -32,24 +32,71 @@ class GraphManager:
         return self.surface_penalties.get(key_fwd, self.surface_penalties.get(key_rev, 1.0))
 
     def load_graph(self):
-        pkl_path = os.path.join(os.path.dirname(GRAPH_FILE_PATH), 'bengaluru_graph.pkl')
-        if os.path.exists(pkl_path):
-            print(f"Loading pre-compiled road network from {pkl_path} (lightning fast)...")
-            with open(pkl_path, 'rb') as f:
-                cache = pickle.load(f)
-                self.G = cache['G']
-                self.G_inner = cache['G_inner']
-                self.bounds = cache['bounds']
-                self.center = cache['center']
-            self.load_surface_penalties()
-            print("Road network loaded successfully in 2 seconds!")
-            return
-
-        print(f"Loading road network from {GRAPH_FILE_PATH}...")
+        print(f"Loading full road network directly from GraphML file: {GRAPH_FILE_PATH}...")
         self.G = ox.load_graphml(GRAPH_FILE_PATH)
-        
+        print(f"GraphML loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
+
         for u, v, key, data in self.G.edges(keys=True, data=True):
             data['length'] = float(data.get('length', 1.0))
+
+        # ── Strip private, service, and non-public drivable roads ───────────
+        # In OpenStreetMap, compound alleys, driveways, parking lanes, and paths
+        # are tagged highway=service, track, path, footway, etc. Google Maps deliberately
+        # hides these because they are not public drivable thoroughfares.
+        # Routing through them makes the polyline cut through buildings or private plots.
+        EXCLUDED_HIGHWAYS = {
+            'service', 'track', 'path', 'footway', 'pedestrian',
+            'steps', 'cycleway', 'corridor', 'bridleway', 'proposed',
+            'construction', 'abandoned', 'platform', 'raceway', 'escape'
+        }
+        RESTRICTED_ACCESS = {
+            'private', 'no', 'customers', 'delivery', 'permissive', 'destination'
+        }
+        RESTRICTED_SERVICE = {
+            'parking_aisle', 'driveway', 'emergency_access', 'alley',
+            'parking', 'drive-through', 'ground'
+        }
+
+        edges_to_remove = []
+        for u, v, k, data in self.G.edges(keys=True, data=True):
+            hw = data.get('highway', '')
+            access = data.get('access', '')
+            service = data.get('service', '')
+            mv = data.get('motor_vehicle', '')
+            mc = data.get('motorcycle', '')
+
+            if isinstance(hw, list): hw = hw[0] if hw else ''
+            if isinstance(access, list): access = access[0] if access else ''
+            if isinstance(service, list): service = service[0] if service else ''
+            if isinstance(mv, list): mv = mv[0] if mv else ''
+            if isinstance(mc, list): mc = mc[0] if mc else ''
+
+            hw_str = str(hw).lower()
+            access_str = str(access).lower()
+            service_str = str(service).lower()
+            mv_str = str(mv).lower()
+            mc_str = str(mc).lower()
+
+            if hw_str in EXCLUDED_HIGHWAYS:
+                edges_to_remove.append((u, v, k))
+            elif access_str in RESTRICTED_ACCESS:
+                edges_to_remove.append((u, v, k))
+            elif service_str in RESTRICTED_SERVICE:
+                edges_to_remove.append((u, v, k))
+            elif mv_str in {'no', 'private', 'destination'}:
+                edges_to_remove.append((u, v, k))
+            elif mc_str in {'no', 'private'}:
+                edges_to_remove.append((u, v, k))
+
+        self.G.remove_edges_from(edges_to_remove)
+        print(f"Removed {len(edges_to_remove):,} non-public/restricted road segments (service alleys, driveways, tracks, compound paths)")
+
+        # ── Keep only the largest strongly connected component ──────────────
+        # This removes any disconnected fragments or dead-end paper layout roads
+        largest_scc = max(nx.strongly_connected_components(self.G), key=len)
+        self.G = self.G.subgraph(largest_scc).copy()
+        print(f"After cleanup: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (verified public drivable roads only)")
+        # ───────────────────────────────────────────────────────────────────
 
         # Dynamically calculate map bounds & center point
         lats = [data['y'] for _, data in self.G.nodes(data=True)]
@@ -60,21 +107,6 @@ class GraphManager:
         }
         self.center = {"lat": sum(lats) / len(lats), "lng": sum(lngs) / len(lngs)}
 
-        # Filter out invalid long edges
-        max_lengths = {'residential': 250, 'living_street': 200, 'service': 200, 'unclassified': 400, 'tertiary': 600}
-        edges_to_remove = []
-        for u, v, k, data in self.G.edges(keys=True, data=True):
-            hw = data.get('highway', '')
-            if isinstance(hw, list): hw = hw[0]
-            if hw in max_lengths and float(data.get('length', 0)) > max_lengths[hw]:
-                edges_to_remove.append((u, v, k))
-        self.G.remove_edges_from(edges_to_remove)
-
-        # Retain largest strongly connected component
-        largest_cc = max(nx.strongly_connected_components(self.G), key=len)
-        self.G = self.G.subgraph(largest_cc).copy()
-
-        # Extract inner roads
         self.G_inner = self.G.edge_subgraph(
             [(u, v, k) for u, v, k, d in self.G.edges(keys=True, data=True) if self._is_inner(d)]
         ).copy()

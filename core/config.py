@@ -21,7 +21,7 @@ SURFACE_QUALITY_FILE = os.getenv("SURFACE_QUALITY_FILE", os.path.join(BASE_DIR, 
 DECISIONS_DB = os.getenv("DECISIONS_DB", os.path.join(BASE_DIR, "route_decisions.db"))
 
 INNER_ROAD_TYPES = {
-    'residential', 'living_street', 'unclassified', 'service',
+    'residential', 'living_street', 'unclassified',
     'tertiary', 'tertiary_link'
 }
 
@@ -32,7 +32,7 @@ MAIN_ROAD_TYPES = {
 
 INNER_ROAD_BIASED_TYPES = {
     'tertiary', 'tertiary_link', 'residential', 'living_street',
-    'unclassified', 'service', 'road'
+    'unclassified', 'road'
 }
 
 TWO_WHEELER_ROAD_PENALTIES = {
