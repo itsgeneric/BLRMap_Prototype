@@ -8,7 +8,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 ROUTES_KEY = os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_KEY
+ROADS_KEY = os.getenv("GOOGLE_ROADS_API_KEY") or os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_KEY
 ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+ROADS_SNAP_API_URL = "https://roads.googleapis.com/v1/snapToRoads"
 
 MONGODB_URI = os.getenv("MONGODB_URI")  # mongodb+srv://... from Atlas
 
@@ -18,7 +20,11 @@ EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", os.path.join(BASE_DIR, "Dat
 
 # These remain in your root folder
 SURFACE_QUALITY_FILE = os.getenv("SURFACE_QUALITY_FILE", os.path.join(BASE_DIR, "bad_surface_segments.json"))
+EDGE_BLACKLIST_FILE = os.getenv("EDGE_BLACKLIST_FILE", os.path.join(BASE_DIR, "edge_blacklist.json"))
 DECISIONS_DB = os.getenv("DECISIONS_DB", os.path.join(BASE_DIR, "route_decisions.db"))
+
+SNAP_DEVIATION_THRESHOLD_M = float(os.getenv("SNAP_DEVIATION_THRESHOLD_M", "65.0"))
+BLACKLIST_PENALTY_MULTIPLIER = float(os.getenv("BLACKLIST_PENALTY_MULTIPLIER", "10000.0"))
 
 INNER_ROAD_TYPES = {
     'residential', 'living_street', 'unclassified',

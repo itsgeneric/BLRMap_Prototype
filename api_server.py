@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routing.graph_manager import graph_manager
 from routing.algorithms import astar_on_graph, two_wheeler_astar, build_two_wheeler_penalties, calc_route_distance
-from services.external_api import search_places, fetch_traffic_data
+from routing.edge_blacklist import edge_blacklist
+from services.external_api import search_places, fetch_traffic_data, snap_and_verify_route
 from database.mongo_client import connect_db, close_db
 from database.models import RouteSnapshotIn, JourneyStartPayload, JourneyCompletePayload, ReroutePayload
 import database.operations as db
@@ -53,6 +54,17 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
 
     try:
         route  = astar_on_graph(graph_manager.G, start, end)
+
+        # GMaps verification loop: iteratively eliminate any ghost/private roads
+        for _ in range(3):
+            flagged = await snap_and_verify_route(route, graph_manager.G)
+            if not flagged:
+                break
+            try:
+                route = astar_on_graph(graph_manager.G, start, end)
+            except Exception:
+                break
+
         coords = graph_manager.route_nodes_to_coords(route)
         dist   = calc_route_distance(graph_manager.G, route)
         dist_km = round(dist / 1000, 2)
@@ -104,6 +116,20 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             graph_manager.G, start, end, graph_manager,
             penalties=penalties, congested_nodes=congested_nodes,
         )
+
+        # GMaps verification loop: iteratively eliminate any ghost/private roads
+        for _ in range(3):
+            flagged = await snap_and_verify_route(route, graph_manager.G)
+            if not flagged:
+                break
+            try:
+                route = two_wheeler_astar(
+                    graph_manager.G, start, end, graph_manager,
+                    penalties=penalties, congested_nodes=congested_nodes,
+                )
+            except Exception:
+                break
+
         coords  = graph_manager.route_nodes_to_coords(route)
         dist    = calc_route_distance(graph_manager.G, route)
         dist_km = round(dist / 1000, 2)
@@ -136,6 +162,7 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
 
     except nx.NetworkXNoPath:
         return {"status": "error", "message": "No dynamic path could be found."}
+
 
 
 # ---------------------------------------------------------------------------
@@ -179,8 +206,59 @@ async def journey_reroute(journey_id: str, payload: ReroutePayload):
     return {"status": "ok"}
 
 
+# ---------------------------------------------------------------------------
+# Blacklist inspection & reset
+# ---------------------------------------------------------------------------
+
+@app.get("/blacklist")
+def get_blacklist():
+    """Returns the list of Google Maps-verified blacklisted ghost roads."""
+    return {
+        "status": "ok",
+        "count": edge_blacklist.count(),
+        "edges": edge_blacklist.records,
+    }
+
+
+@app.post("/blacklist/clear")
+def clear_blacklist():
+    """Clears the edge blacklist."""
+    edge_blacklist.clear()
+    return {"status": "ok", "message": "Edge blacklist cleared"}
+
+
+from pydantic import BaseModel
+
+class BlacklistEdgeRequest(BaseModel):
+    u: int | None = None
+    v: int | None = None
+    lat: float | None = None
+    lng: float | None = None
+    reason: str = "manual_report"
+
+@app.post("/blacklist/add")
+def add_to_blacklist(req: BlacklistEdgeRequest):
+    u, v = req.u, req.v
+    if (u is None or v is None) and req.lat is not None and req.lng is not None:
+        target_node = ox.nearest_nodes(graph_manager.G, req.lng, req.lat)
+        neighbors = list(graph_manager.G.neighbors(target_node))
+        if neighbors:
+            u, v = target_node, neighbors[0]
+    if u is not None and v is not None:
+        edge_blacklist.mark_edge_bad(u, v, penalty=10000.0, deviation_m=999.0, reason=req.reason)
+        return {"status": "ok", "message": f"Blacklisted edge {u}_{v}", "count": edge_blacklist.count()}
+    return {"status": "error", "message": "Could not identify edge to blacklist"}
+
+
+@app.get("/blacklist/reload")
+def reload_blacklist():
+    """Reloads the edge blacklist from disk."""
+    edge_blacklist.load()
+    return {"status": "ok", "count": edge_blacklist.count()}
+
+
 if __name__ == "__main__":
     import uvicorn
     import sys
-    reload_flag = "--reload" in sys.argv
+    reload_flag = "--no-reload" not in sys.argv
     uvicorn.run("api_server:app", host="0.0.0.0", port=8000, reload=reload_flag)

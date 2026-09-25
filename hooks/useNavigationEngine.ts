@@ -20,6 +20,7 @@ interface UseNavigationEngineProps {
   routeData: RouteResponse | null;
   gpsPosition: GPSPosition | null;
   voiceEnabled: boolean;
+  isRerouting?: boolean; // passed from page.tsx — suppresses double-reroute while request is in flight
   onRerouteNeeded?: (info?: RerouteEventInfo) => void;
   onArrival?: () => void;
 }
@@ -28,6 +29,7 @@ export function useNavigationEngine({
   routeData,
   gpsPosition,
   voiceEnabled,
+  isRerouting = false,
   onRerouteNeeded,
   onArrival,
 }: UseNavigationEngineProps) {
@@ -93,12 +95,15 @@ export function useNavigationEngine({
     setRemainingMeters(remDist);
 
     // 4. Off-Route Detection
+    // 80m threshold: GPS accuracy is ±10-30m in urban Bangalore, so 80m is a safe margin.
+    // Requires 8 consecutive seconds off-route before triggering (avoids false positives at intersections).
     const now = Date.now();
-    if (distToRoute > 55) {
+    if (distToRoute > 80) {
       if (!offRouteSinceRef.current) {
         offRouteSinceRef.current = now;
-      } else if (now - offRouteSinceRef.current > 6000) {
-        if (!isOffRoute && now - lastRerouteTimeRef.current > 12000) {
+      } else if (now - offRouteSinceRef.current > 8000) {
+        // Don't fire if a reroute is already in flight or cooldown hasn't elapsed
+        if (!isOffRoute && !isRerouting && now - lastRerouteTimeRef.current > 20000) {
           setIsOffRoute(true);
           lastRerouteTimeRef.current = now;
           if (onRerouteNeeded) {
@@ -156,6 +161,12 @@ export function useNavigationEngine({
 
   const stopNavigation = useCallback(() => {
     setIsNavigating(false);
+    // Reset traveled index so the grayed polyline disappears immediately
+    setNearestSegmentIndex(0);
+    setCurrentManeuverIndex(0);
+    setRemainingMeters(0);
+    setDistanceToManeuverMeters(0);
+    offRouteSinceRef.current = null;
   }, []);
 
   const currentManeuver: TurnManeuver | null =

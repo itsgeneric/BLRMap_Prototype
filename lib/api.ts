@@ -103,7 +103,7 @@ export async function fetchRoute(
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
 
     const res = await fetch(url, { signal: signal || controller.signal });
     clearTimeout(timeoutId);

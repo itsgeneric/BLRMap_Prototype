@@ -50,6 +50,7 @@ export default function NavigationApp() {
   const [dynamicRouteData, setDynamicRouteData] = useState<RouteResponse | null>(null);
   const [selectedRouteType, setSelectedRouteType] = useState<'shortest' | 'dynamic'>('shortest');
   const [loading, setLoading] = useState(false);
+  const [isRerouting, setIsRerouting] = useState(false);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -58,6 +59,8 @@ export default function NavigationApp() {
   const routeAbortControllerRef = useRef<AbortController | null>(null);
   const tripStartTimeRef = useRef<number>(0);
   const activeJourneyIdRef = useRef<string | null>(null);
+  // Stable ref so onRerouteNeeded can call rerouteFromPosition even before it's defined
+  const rerouteFromPositionRef = useRef<((lat: number, lng: number) => void) | null>(null);
 
   // Toast Helpers (Reserved only for genuine errors)
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'error', duration = 4000) => {
@@ -119,7 +122,9 @@ export default function NavigationApp() {
     routeData,
     gpsPosition: realGpsPosition,
     voiceEnabled,
+    isRerouting,
     onRerouteNeeded: (info) => {
+      // Log the off-route event to the backend for analytics
       if (info && activeJourneyIdRef.current) {
         const timeSinceStart = tripStartTimeRef.current > 0
           ? Math.round((Date.now() - tripStartTimeRef.current) / 1000)
@@ -132,7 +137,10 @@ export default function NavigationApp() {
           timeSinceStart
         );
       }
-      loadRoute();
+      // Reroute FROM the current GPS position, not from the original origin
+      if (info && destination) {
+        rerouteFromPositionRef.current?.(info.lat, info.lng);
+      }
     },
     onArrival: () => {
       const timeTakenSec = Math.max(1, Math.round((Date.now() - tripStartTimeRef.current) / 1000));
@@ -151,7 +159,7 @@ export default function NavigationApp() {
     },
   });
 
-  // Route Fetch Function
+  // Route Fetch Function (for initial + mode change loads)
   const loadRoute = useCallback(async () => {
     if (!origin || !destination) {
       setRouteData(null);
@@ -212,6 +220,65 @@ export default function NavigationApp() {
       setLoading(false);
     }
   }, [origin, destination, mode, addToast]);
+
+  /**
+   * Reroute from an arbitrary GPS position to the destination.
+   * Called ONLY by the navigation engine when the user goes off-route.
+   * Uses the current GPS coordinates as the new origin — NOT the original start point.
+   */
+  const rerouteFromPosition = useCallback(async (fromLat: number, fromLng: number) => {
+    if (!destination) return;
+
+    // Abort any in-flight route request
+    if (routeAbortControllerRef.current) {
+      routeAbortControllerRef.current.abort();
+    }
+    routeAbortControllerRef.current = new AbortController();
+
+    setIsRerouting(true);
+
+    const rerouteOrigin: Point = {
+      lat: fromLat,
+      lng: fromLng,
+      name: 'Current Position',
+      address: 'GPS Reroute Point',
+    };
+
+    // Use the same mode as the active route (prefer 'shortest' or 'dynamic', not 'fastest')
+    const rerouteMode: RouteMode = mode === 'fastest' ? selectedRouteType : mode;
+
+    try {
+      const res = await fetchRoute(
+        rerouteMode,
+        rerouteOrigin,
+        destination,
+        routeAbortControllerRef.current.signal
+      );
+
+      if (res.status === 'success' && res.path && res.path.length > 0) {
+        // Replace active routeData with the new rerouted path.
+        // Keep origin/destination state unchanged so UI labels stay correct.
+        setRouteData(res);
+        if (rerouteMode === 'dynamic') {
+          setDynamicRouteData(res);
+        } else {
+          setShortestRouteData(res);
+        }
+      } else {
+        addToast('Could not reroute from your position. Stay on course.', 'warning');
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        addToast('Rerouting failed. Check backend connection.', 'error');
+      }
+    } finally {
+      setIsRerouting(false);
+    }
+  }, [destination, mode, selectedRouteType, addToast]);
+
+  // Keep the ref always pointing to the latest version of rerouteFromPosition
+  // so the navigation engine can call it via a stable ref without stale closures
+  rerouteFromPositionRef.current = rerouteFromPosition;
 
   // Fetch Route whenever origin, destination, or mode updates
   useEffect(() => {
@@ -460,6 +527,16 @@ export default function NavigationApp() {
           )
         )}
       </div>
+
+      {/* Rerouting Banner — shown briefly while new route is being calculated */}
+      {isRerouting && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+          <div className="glass-panel-heavy px-5 py-3 rounded-2xl flex items-center gap-3 text-amber-400 font-bold text-xs shadow-2xl border border-amber-500/40 animate-in fade-in zoom-in-95 duration-200">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+            <span>Rerouting from your position...</span>
+          </div>
+        </div>
+      )}
 
       {/* Loading Spinner Overlay */}
       {loading && (

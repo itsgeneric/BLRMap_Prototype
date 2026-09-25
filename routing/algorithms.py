@@ -7,10 +7,10 @@ from core.config import (
     DEFAULT_ROUTE_SPLIT_FRACTIONS, DETOUR_TOLERANCE
 )
 
-# Lowest possible multiplier any edge can get (bridge=0.8, roundabout default=0.95,
+# Lowest possible multiplier any edge can get (roundabout default=0.95,
 # congestion makes things worse not better). Heuristic must divide by this floor
 # to stay admissible for A* (never overestimate remaining cost).
-MIN_PENALTY_FLOOR = 0.8
+MIN_PENALTY_FLOOR = 0.85
 
 def haversine_m(lat1, lng1, lat2, lng2):
     R = 6371000.0
@@ -73,14 +73,7 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
     penalty_map = penalties or TWO_WHEELER_ROAD_PENALTIES
     penalty = penalty_map.get(hw, 1.0)  # base per-road-type multiplier
 
-    # Flyover Exception
-    is_bridge = edge_data.get('bridge')
-    if isinstance(is_bridge, list): is_bridge = is_bridge[0]
-    if is_bridge and is_bridge not in ['no', 'false', '0']:
-        if hw in MAIN_ROAD_TYPES:
-            penalty = 0.8  # Slight reward for taking elevated bypasses
-
-    # Dynamic Congestion Penalty
+    # Dynamic Congestion Penalty (avoid Google Maps traffic jams)
     if congested_nodes and (u in congested_nodes or v in congested_nodes):
         penalty *= 25.0
 
@@ -90,13 +83,19 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
     if u is not None and v is not None and graph_mgr is not None:
         penalty *= graph_mgr.get_surface_penalty(u, v)
 
+    if u is not None and v is not None:
+        from routing.edge_blacklist import edge_blacklist
+        penalty *= edge_blacklist.get_edge_penalty(u, v)
+
     return length * penalty
 
 def astar_on_graph(graph, start_node, end_node):
+    from routing.edge_blacklist import edge_blacklist
     def heuristic(a, b): return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'], graph.nodes[b]['y'], graph.nodes[b]['x'])
     def cost(u, v, edge_data):
-        if 'length' in edge_data: return float(edge_data['length'])
-        return min(float(d.get('length', 1.0)) for d in edge_data.values())
+        bl_penalty = edge_blacklist.get_edge_penalty(u, v)
+        if 'length' in edge_data: return float(edge_data['length']) * bl_penalty
+        return min(float(d.get('length', 1.0)) for d in edge_data.values()) * bl_penalty
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
 def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None):

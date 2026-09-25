@@ -3,7 +3,7 @@ import json
 import pickle
 import osmnx as ox
 import networkx as nx
-from core.config import GRAPH_FILE_PATH, SURFACE_QUALITY_FILE, INNER_ROAD_TYPES
+from core.config import GRAPH_FILE_PATH, SURFACE_QUALITY_FILE, INNER_ROAD_TYPES, MAIN_ROAD_TYPES
 from routing.algorithms import haversine_m
 
 class GraphManager:
@@ -13,6 +13,7 @@ class GraphManager:
         self.surface_penalties = {}
         self.bounds = {}
         self.center = {}
+        self.major_nodes = set()
 
     def load_surface_penalties(self, path=SURFACE_QUALITY_FILE):
         if not os.path.exists(path):
@@ -112,6 +113,8 @@ class GraphManager:
         ).copy()
 
         self.load_surface_penalties()
+        from routing.edge_blacklist import edge_blacklist
+        edge_blacklist.load()
 
     def _is_inner(self, data):
         hw = data.get('highway', 'unclassified')
