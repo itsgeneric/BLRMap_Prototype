@@ -13,7 +13,7 @@ async def connect_db() -> None:
     """Call once at app startup (inside FastAPI lifespan)."""
     global _client, _db
     if not MONGODB_URI:
-        print("⚠️  MONGODB_URI not set — MongoDB storage disabled.")
+        print("[WARN] MONGODB_URI not set -- MongoDB storage disabled.")
         return
     try:
         _client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
@@ -22,9 +22,9 @@ async def connect_db() -> None:
         await _client.admin.command("ping")
         # Ensure indexes exist (idempotent)
         await _ensure_indexes()
-        print("✅ Connected to MongoDB Atlas → blrnav")
+        print("[OK] Connected to MongoDB Atlas -> blrnav")
     except Exception as exc:
-        print(f"❌ MongoDB connection failed: {exc}")
+        print(f"[ERR] MongoDB connection failed: {exc}")
         _client = None
         _db = None
 

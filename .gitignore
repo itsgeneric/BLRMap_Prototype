@@ -1,17 +1,20 @@
 # ── Environment & Secrets ──
 .env
-.env*.local
 .env.local
+.env.*.local
 .env.production
 .env.development
+
+# ── Python Virtual Environments ──
 .venv/
 venv/
 env/
-bengaluru_roads_extended.graphml
-# ── Python Internals ──
+
+# ── Python Internals & Bytecode ──
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 *.so
 .Python
 build/
@@ -20,8 +23,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-.next
-Data assets
 parts/
 sdist/
 var/
@@ -29,23 +30,26 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-node_modules
-# ── Spatial Data & Assets (Heavy Files) ──
-# You generally do not want to push 100MB+ graphml or geojson files to GitHub.
-# If you need to track specific small files, you can force them with `git add -f`
-Data Assets/*.graphml
-Data Assets/*.geojson
-*.osm
-*.pbf
+
+# ── Node / Frontend Dependencies & Build Outputs ──
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+
+# ── Spatial Data & Heavy Assets (>100MB, cannot be committed to GitHub) ──
+*.pkl
 *.graphml
 *.geojson
-updates.txt
-# ── OSMnx / API Cache ──
-# OSMnx caches map downloads locally to speed up restarts. This should not be tracked.
+*.osm
+*.pbf
+*.zip
+Data Assets/
+
+# ── OSMnx & API Cache ──
 cache/
 
 # ── Databases & Logs ──
-# Ignores your SQLite DB and the Write-Ahead Logging temporary files we enabled
 *.db
 *.sqlite
 *.sqlite3
@@ -54,12 +58,17 @@ cache/
 route_decisions.db
 *.log
 
+# ── Debug, Diagnostics & Project Structure Dumps ──
+diagnostics/
+debug_*.txt
+project_*.txt
+
 # ── IDEs & Tooling ──
 .vscode/
 .idea/
 *.swp
 *.swo
-azure.txt
+
 # ── OS Generated Files ──
 .DS_Store
 .DS_Store?
@@ -68,4 +77,3 @@ azure.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
-.next/

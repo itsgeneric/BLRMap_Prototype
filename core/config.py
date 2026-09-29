@@ -1,10 +1,26 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# This dynamically finds the BLRMAP_Prototype root folder
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# This dynamically finds the BLRMap_Prototype root folder without any hardcoded username/path.
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+
+def _resolve_existing_file(filename: str, *candidate_dirs: Path) -> str:
+    """Return the first existing file in the project tree, with a safe fallback."""
+    candidates = [
+        BASE_DIR / filename,
+        *[directory / filename for directory in candidate_dirs],
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    return str(BASE_DIR / filename)
+
 
 GOOGLE_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 ROUTES_KEY = os.getenv("GOOGLE_MAPS_API_KEY") or GOOGLE_KEY
@@ -12,13 +28,20 @@ ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
 MONGODB_URI = os.getenv("MONGODB_URI")  # mongodb+srv://... from Atlas
 
-# Correctly mapped to your Data Assets folder
-GRAPH_FILE_PATH = os.getenv("GRAPH_FILE_PATH", os.path.join(BASE_DIR, "Data Assets", "bengaluru_roads_extended.graphml"))
-EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", os.path.join(BASE_DIR, "Data Assets", "bengaluru_exclude_polys.geojson"))
+# Resolve the GraphML file from the project layout instead of assuming a single fixed directory.
+GRAPH_FILE_PATH = os.getenv(
+    "GRAPH_FILE_PATH",
+    _resolve_existing_file(
+        "bengaluru_roads_extended.graphml",
+        BASE_DIR / "Data Assets",
+        BASE_DIR / "Data Assets" / "Data Assets",
+    ),
+)
+EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", str(BASE_DIR / "Data Assets" / "bengaluru_exclude_polys.geojson"))
 
 # These remain in your root folder
-SURFACE_QUALITY_FILE = os.getenv("SURFACE_QUALITY_FILE", os.path.join(BASE_DIR, "bad_surface_segments.json"))
-DECISIONS_DB = os.getenv("DECISIONS_DB", os.path.join(BASE_DIR, "route_decisions.db"))
+SURFACE_QUALITY_FILE = os.getenv("SURFACE_QUALITY_FILE", str(BASE_DIR / "bad_surface_segments.json"))
+DECISIONS_DB = os.getenv("DECISIONS_DB", str(BASE_DIR / "route_decisions.db"))
 
 INNER_ROAD_TYPES = {
     'residential', 'living_street', 'unclassified', 'service',
