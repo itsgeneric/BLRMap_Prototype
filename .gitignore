@@ -77,3 +77,4 @@ project_*.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
+out/

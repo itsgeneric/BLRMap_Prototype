@@ -1,4 +1,5 @@
 import os
+import ast
 import json
 import pickle
 from pathlib import Path
@@ -14,6 +15,59 @@ class GraphManager:
         self.surface_penalties = {}
         self.bounds = {}
         self.center = {}
+
+    @staticmethod
+    def _is_restricted_or_non_motorized(data) -> bool:
+        """
+        Check if an edge is restricted or non-motorized based on generic OSM tags:
+        - access=no/private
+        - vehicle=no/private
+        - motor_vehicle=no/private
+        - motorcar=no/private
+        - highway in non-motorized types (footway, path, pedestrian, steps, bridleway, cycleway)
+          unless explicit vehicle/motor-vehicle access permits them.
+        """
+        def get_vals(key):
+            val = data.get(key)
+            if val is None:
+                return set()
+            if isinstance(val, list):
+                return {str(x).lower().strip() for x in val}
+            s = str(val).lower().strip()
+            if s.startswith('[') and s.endswith(']'):
+                try:
+                    parsed = ast.literal_eval(s)
+                    if isinstance(parsed, list):
+                        return {str(x).lower().strip() for x in parsed}
+                except Exception:
+                    pass
+            return {s}
+
+        access = get_vals('access')
+        vehicle = get_vals('vehicle')
+        motor_vehicle = get_vals('motor_vehicle')
+        motorcar = get_vals('motorcar')
+        highway = get_vals('highway')
+
+        perm_vals = {'yes', 'permissive', 'designated'}
+        has_motor_perm = bool((motor_vehicle & perm_vals) or (vehicle & perm_vals) or (motorcar & perm_vals))
+
+        # Explicit motor vehicle restrictions
+        if motor_vehicle & {'no', 'private'}:
+            return True
+        if (motorcar & {'no', 'private'}) and not (motor_vehicle & perm_vals):
+            return True
+        if (vehicle & {'no', 'private'}) and not (motor_vehicle & perm_vals):
+            return True
+        if (access & {'no', 'private'}) and not has_motor_perm:
+            return True
+
+        # Non-motorized highway types unless explicit vehicle access permits them
+        non_motorized = {'footway', 'path', 'pedestrian', 'steps', 'bridleway', 'cycleway'}
+        if (highway & non_motorized) and not has_motor_perm:
+            return True
+
+        return False
 
     def load_surface_penalties(self, path=SURFACE_QUALITY_FILE):
         if not os.path.exists(path):
@@ -50,6 +104,29 @@ class GraphManager:
                 self.G_inner = cache['G_inner']
                 self.bounds = cache['bounds']
                 self.center = cache['center']
+
+            # Purge any restricted edges if present in cached graph
+            cached_restricted = [
+                (u, v, k) for u, v, k, data in self.G.edges(keys=True, data=True)
+                if self._is_restricted_or_non_motorized(data)
+            ]
+            if cached_restricted:
+                print(f"  Removing {len(cached_restricted):,} restricted/non-motorized edges from cache...")
+                self.G.remove_edges_from(cached_restricted)
+                largest_cc = max(nx.strongly_connected_components(self.G), key=len)
+                self.G = self.G.subgraph(largest_cc).copy()
+                self.G_inner = self.G.edge_subgraph(
+                    [(u, v, k) for u, v, k, d in self.G.edges(keys=True, data=True) if self._is_inner(d)]
+                ).copy()
+                with open(pkl_path, 'wb') as f:
+                    pickle.dump({
+                        'G': self.G,
+                        'G_inner': self.G_inner,
+                        'bounds': self.bounds,
+                        'center': self.center,
+                    }, f, protocol=pickle.HIGHEST_PROTOCOL)
+                print("  Refreshed graph cache saved.")
+
             self.load_surface_penalties()
             print("Road network loaded successfully in 2 seconds!")
             return
@@ -91,13 +168,15 @@ class GraphManager:
         }
         self.center = {"lat": sum(lats) / len(lats), "lng": sum(lngs) / len(lngs)}
 
-        # Filter out invalid long edges
+        # Filter out invalid long edges and restricted/non-motorized edges
         max_lengths = {'residential': 250, 'living_street': 200, 'service': 200, 'unclassified': 400, 'tertiary': 600}
         edges_to_remove = []
         for u, v, k, data in self.G.edges(keys=True, data=True):
             hw = data.get('highway', '')
             if isinstance(hw, list): hw = hw[0]
             if hw in max_lengths and float(data.get('length', 0)) > max_lengths[hw]:
+                edges_to_remove.append((u, v, k))
+            elif self._is_restricted_or_non_motorized(data):
                 edges_to_remove.append((u, v, k))
         self.G.remove_edges_from(edges_to_remove)
 

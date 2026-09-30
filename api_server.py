@@ -6,8 +6,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from routing.graph_manager import graph_manager
-from routing.algorithms import astar_on_graph, two_wheeler_astar, build_two_wheeler_penalties, calc_route_distance
-from services.external_api import search_places, fetch_traffic_data
+from routing.algorithms import (
+    astar_on_graph,
+    two_wheeler_astar,
+    build_two_wheeler_penalties,
+    calc_route_distance,
+    generate_route_maneuvers,
+)
+from services.external_api import search_places, fetch_traffic_data, fetch_route_duration
 from database.mongo_client import connect_db, close_db
 from database.models import RouteSnapshotIn, JourneyStartPayload, JourneyCompletePayload, ReroutePayload
 import database.operations as db
@@ -57,19 +63,30 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         dist   = calc_route_distance(graph_manager.G, route)
         dist_km = round(dist / 1000, 2)
 
+        async with httpx.AsyncClient() as client:
+            duration_mins = await fetch_route_duration(client, coords, dist_km=dist_km)
+
         # ── Save route snapshot to MongoDB ──────────────────────────────
         snapshot = RouteSnapshotIn(
             mode="shortest",
             strategy="direct",
             path=coords,
             distance_km=dist_km,
+            estimated_duration_mins=duration_mins,
         )
         journey_id = await db.create_journey_from_route(
             snapshot, from_lat, from_lng, to_lat, to_lng
         )
         # ────────────────────────────────────────────────────────────────
 
-        response = {"status": "success", "path": coords, "distance_km": dist_km}
+        maneuvers = generate_route_maneuvers(graph_manager.G, route)
+        response = {
+            "status": "success",
+            "path": coords,
+            "distance_km": dist_km,
+            "duration_mins": duration_mins,
+            "maneuvers": maneuvers,
+        }
         if journey_id:
             response["journey_id"] = journey_id
         return response
@@ -109,6 +126,9 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
         dist_km = round(dist / 1000, 2)
         google_mins = round(duration_s / 60, 1) if duration_s else None
 
+        async with httpx.AsyncClient() as client:
+            duration_mins = await fetch_route_duration(client, coords, dist_km=dist_km)
+
         # ── Save route snapshot to MongoDB ──────────────────────────────
         snapshot = RouteSnapshotIn(
             mode="dynamic",
@@ -117,18 +137,22 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             distance_km=dist_km,
             congested_nodes_avoided=len(congested_nodes),
             google_base_duration_mins=google_mins,
+            estimated_duration_mins=duration_mins,
         )
         journey_id = await db.create_journey_from_route(
             snapshot, from_lat, from_lng, to_lat, to_lng
         )
         # ────────────────────────────────────────────────────────────────
 
+        maneuvers = generate_route_maneuvers(graph_manager.G, route)
         response = {
             "status": "success",
             "path": coords,
             "distance_km": dist_km,
+            "duration_mins": duration_mins,
             "google_base_duration_mins": google_mins,
             "congested_nodes_avoided": len(congested_nodes),
+            "maneuvers": maneuvers,
         }
         if journey_id:
             response["journey_id"] = journey_id

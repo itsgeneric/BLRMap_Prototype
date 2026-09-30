@@ -37,27 +37,20 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const maneuvers = routeData.maneuvers || [];
   const distanceKm = routeData.distance_km || 0;
 
-  // Accurate Durations
-  const liveTrafficBase = dynamicRouteData?.google_base_duration_mins;
-
-  const shortestDurationMins = shortestRouteData
-    ? liveTrafficBase
-      ? Math.round(liveTrafficBase)
-      : Math.max(2, Math.round(((shortestRouteData.distance_km || 0) / 22) * 60))
+  // Accurate Durations from Google Routes API via backend duration_mins
+  const shortestDurationMins = shortestRouteData?.duration_mins != null
+    ? Math.round(shortestRouteData.duration_mins)
     : 0;
 
-  const dynamicDurationMins = dynamicRouteData
-    ? Math.max(2, Math.round(((dynamicRouteData.distance_km || 0) / 27.5) * 60))
+  const dynamicDurationMins = dynamicRouteData?.duration_mins != null
+    ? Math.round(dynamicRouteData.duration_mins)
     : 0;
 
-  const currentDurationMins =
-    isFastestMode
-      ? selectedRouteType === 'dynamic'
-        ? dynamicDurationMins
-        : shortestDurationMins
-      : routeData.google_base_duration_mins
-      ? Math.round(routeData.google_base_duration_mins)
-      : Math.max(2, Math.round(((distanceKm || 0) / 24) * 60));
+  const currentDurationMins = routeData?.duration_mins != null
+    ? Math.round(routeData.duration_mins)
+    : (isFastestMode
+        ? (selectedRouteType === 'dynamic' ? dynamicDurationMins : shortestDurationMins)
+        : 0);
 
   const timeDiffMins = Math.abs(shortestDurationMins - dynamicDurationMins);
   const isDynamicFaster = dynamicDurationMins < shortestDurationMins;
@@ -186,7 +179,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
                 <span className="text-xs sm:text-sm font-bold text-slate-300 font-mono">
                   ({distanceKm.toFixed(1)} km)
                 </span>
-                {routeData.google_base_duration_mins && (
+                {(routeData.duration_mins != null || routeData.google_base_duration_mins != null) && (
                   <span className="text-[9px] sm:text-[11px] font-bold text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-md border border-pink-500/20">
                     Live Traffic
                   </span>

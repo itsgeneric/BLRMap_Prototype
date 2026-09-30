@@ -77,7 +77,93 @@ async def fetch_traffic_data(client: httpx.AsyncClient, from_lat, from_lng, to_l
     except Exception as exc:
         print(f"Routes API traffic fetch failed: {type(exc).__name__} - {exc}")
         return None, []
-    
+
+
+async def fetch_route_duration(client: httpx.AsyncClient, coords: list, dist_km: float = None) -> float:
+    """
+    Calculates the real Google Routes API duration for a selected route path,
+    using TWO_WHEELER + TRAFFIC_AWARE routing and via waypoints to follow the route.
+    Falls back to a consistent distance-based estimate (25 km/h) if Google API fails or is unavailable.
+    """
+    # Consistent backend fallback: 25 km/h urban speed
+    if dist_km is None:
+        if coords and len(coords) >= 2:
+            from routing.algorithms import haversine_m
+            total_m = sum(
+                haversine_m(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1])
+                for i in range(len(coords) - 1)
+            )
+            dist_km = total_m / 1000.0
+        else:
+            dist_km = 0.0
+
+    fallback_duration_mins = max(1.0, round((dist_km / 25.0) * 60.0, 1))
+
+    if not ROUTES_KEY or not coords or len(coords) < 2:
+        return fallback_duration_mins
+
+    origin = {"location": {"latLng": {"latitude": coords[0][0], "longitude": coords[0][1]}}}
+    destination = {"location": {"latLng": {"latitude": coords[-1][0], "longitude": coords[-1][1]}}}
+
+    # Pass-through waypoints ("via": True) to preserve our selected route
+    # Google Routes API allows up to 25 intermediates. We sample up to 20.
+    intermediates = []
+    n_pts = len(coords)
+    if n_pts > 2:
+        if n_pts <= 22:
+            sampled_indices = list(range(1, n_pts - 1))
+        else:
+            step = (n_pts - 1) / 21.0
+            sampled_indices = [int(round(i * step)) for i in range(1, 21)]
+
+        last_pt = coords[0]
+        for idx in sampled_indices:
+            pt = coords[idx]
+            if pt != last_pt and pt != coords[-1]:
+                intermediates.append({
+                    "location": {
+                        "latLng": {
+                            "latitude": pt[0],
+                            "longitude": pt[1]
+                        }
+                    },
+                    "via": True
+                })
+                last_pt = pt
+
+    body = {
+        "origin": origin,
+        "destination": destination,
+        "travelMode": "TWO_WHEELER",
+        "routingPreference": "TRAFFIC_AWARE"
+    }
+    if intermediates:
+        body["intermediates"] = intermediates
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": ROUTES_KEY,
+        "X-Goog-FieldMask": "routes.duration"
+    }
+
+    try:
+        res = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=8.0)
+        res.raise_for_status()
+        routes = res.json().get("routes")
+        if not routes:
+            return fallback_duration_mins
+
+        raw_dur = routes[0].get("duration", "").rstrip("s")
+        if raw_dur:
+            duration_s = float(raw_dur)
+            return max(1.0, round(duration_s / 60.0, 1))
+        return fallback_duration_mins
+
+    except Exception as exc:
+        print(f"Routes API duration fetch failed: {type(exc).__name__} - {exc}")
+        return fallback_duration_mins
+
+
 async def search_places(q: str):
     if not GOOGLE_KEY: return await _search_nominatim(q)
     params = {"input": q, "key": GOOGLE_KEY, "components": "country:in", "radius": 50000, "language": "en"}

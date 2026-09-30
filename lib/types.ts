@@ -33,6 +33,7 @@ export interface RouteResponse {
   journey_id?: string;
   path?: LatLng[];
   distance_km?: number;
+  duration_mins?: number;
   weighted_cost?: number;
   best_strategy?: string;
   google_base_duration_mins?: number | null;

@@ -989,3 +989,158 @@ def build_split_route_candidates(
     )
 
     return candidates
+
+
+# ============================================================
+# MANEUVER GENERATION
+# ============================================================
+
+def generate_route_maneuvers(graph, route):
+    """
+    Convert a sequence of routed OSM node IDs into a list of TurnManeuver objects:
+    - depart, turn_left, slight_left, straight, slight_right, turn_right, u_turn, arrive
+    Each maneuver object contains:
+    - type: str
+    - instruction: str
+    - road_name: str
+    - distance_m: float
+    - lat: float
+    - lng: float
+    """
+    if not route:
+        return []
+
+    if len(route) == 1:
+        node_data = graph.nodes[route[0]]
+        return [{
+            "type": "arrive",
+            "instruction": "Arrive at destination",
+            "road_name": "Destination",
+            "distance_m": 0.0,
+            "lat": float(node_data["y"]),
+            "lng": float(node_data["x"]),
+        }]
+
+    def get_edge_data(u, v):
+        if v in graph[u]:
+            best_key = min(graph[u][v], key=lambda k: float(graph[u][v][k].get("length", 1.0)))
+            return graph[u][v][best_key]
+        return {}
+
+    def get_road_name(edge_data):
+        name = edge_data.get("name")
+        if not name or name == "None":
+            return "Unnamed Road"
+        if isinstance(name, list):
+            return str(name[0]) if name else "Unnamed Road"
+        return str(name)
+
+    def get_edge_length(edge_data):
+        try:
+            return float(edge_data.get("length", 0.0))
+        except (ValueError, TypeError):
+            return 0.0
+
+    def format_instruction(maneuver_type, road_name):
+        has_name = road_name and road_name != "Unnamed Road"
+        if maneuver_type == 'depart':
+            return f"Depart on {road_name}" if has_name else "Depart on route"
+        elif maneuver_type == 'turn_left':
+            return f"Turn left onto {road_name}" if has_name else "Turn left"
+        elif maneuver_type == 'slight_left':
+            return f"Bear left onto {road_name}" if has_name else "Bear left"
+        elif maneuver_type == 'straight':
+            return f"Continue straight onto {road_name}" if has_name else "Continue straight"
+        elif maneuver_type == 'slight_right':
+            return f"Bear right onto {road_name}" if has_name else "Bear right"
+        elif maneuver_type == 'turn_right':
+            return f"Turn right onto {road_name}" if has_name else "Turn right"
+        elif maneuver_type == 'u_turn':
+            return f"Make a U-turn onto {road_name}" if has_name else "Make a U-turn"
+        elif maneuver_type == 'arrive':
+            return f"Arrive at destination on {road_name}" if has_name else "Arrive at destination"
+        return "Continue"
+
+    num_steps = len(route) - 1
+    steps = []
+    for i in range(num_steps):
+        u, v = route[i], route[i + 1]
+        ed = get_edge_data(u, v)
+        steps.append({
+            "u": u,
+            "v": v,
+            "length": get_edge_length(ed),
+            "road_name": get_road_name(ed),
+        })
+
+    start_node = route[0]
+    first_road = steps[0]["road_name"]
+    maneuvers = [{
+        "type": "depart",
+        "instruction": format_instruction("depart", first_road),
+        "road_name": first_road,
+        "distance_m": 0.0,
+        "lat": float(graph.nodes[start_node]["y"]),
+        "lng": float(graph.nodes[start_node]["x"]),
+    }]
+
+    for i in range(num_steps):
+        if i > 0:
+            prev_node = route[i - 1]
+            curr_node = route[i]
+            next_node = route[i + 1]
+
+            angle = _turn_angle(graph, prev_node, curr_node, next_node)
+
+            prev_data = graph.nodes[prev_node]
+            curr_data = graph.nodes[curr_node]
+            next_data = graph.nodes[next_node]
+
+            incoming = _bearing_deg(prev_data["y"], prev_data["x"], curr_data["y"], curr_data["x"])
+            outgoing = _bearing_deg(curr_data["y"], curr_data["x"], next_data["y"], next_data["x"])
+            signed_diff = (outgoing - incoming + 180.0) % 360.0 - 180.0
+
+            prev_road = steps[i - 1]["road_name"]
+            next_road = steps[i]["road_name"]
+
+            if angle >= 140.0:
+                m_type = 'u_turn'
+            elif angle >= 45.0:
+                m_type = 'turn_right' if signed_diff > 0 else 'turn_left'
+            elif angle >= 20.0:
+                m_type = 'slight_right' if signed_diff > 0 else 'slight_left'
+            else:
+                m_type = 'straight'
+
+            is_turn = m_type != 'straight'
+            is_new_road = (m_type == 'straight' and prev_road != next_road and next_road != "Unnamed Road")
+
+            if is_turn or is_new_road:
+                maneuvers.append({
+                    "type": m_type,
+                    "instruction": format_instruction(m_type, next_road),
+                    "road_name": next_road,
+                    "distance_m": 0.0,
+                    "lat": float(curr_data["y"]),
+                    "lng": float(curr_data["x"]),
+                })
+
+        maneuvers[-1]["distance_m"] += steps[i]["length"]
+
+    dest_node = route[-1]
+    dest_data = graph.nodes[dest_node]
+    last_road = steps[-1]["road_name"]
+
+    maneuvers.append({
+        "type": "arrive",
+        "instruction": format_instruction("arrive", last_road),
+        "road_name": last_road,
+        "distance_m": 0.0,
+        "lat": float(dest_data["y"]),
+        "lng": float(dest_data["x"]),
+    })
+
+    for m in maneuvers:
+        m["distance_m"] = round(m["distance_m"], 1)
+
+    return maneuvers
