@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Navigation, Eye, List, ChevronUp, ChevronDown, Check, Zap, ArrowRight } from 'lucide-react';
+import { Navigation, Eye, List, ChevronUp, ChevronDown, Check, Zap } from 'lucide-react';
 import { RouteResponse, RouteMode } from '@/lib/types';
 import { cleanManeuverText, formatDistance } from '@/lib/geo';
 

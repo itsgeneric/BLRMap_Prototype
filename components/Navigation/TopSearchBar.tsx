@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowUpDown,
-  Navigation,
   MapPin,
   Loader2,
   X,

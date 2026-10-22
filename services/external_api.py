@@ -1,5 +1,6 @@
 import httpx
 from core.config import GOOGLE_KEY, ROUTES_KEY, ROUTES_API_URL
+from routing.algorithms import haversine_m
 
 def decode_polyline(encoded: str):
     coords = []
@@ -88,7 +89,6 @@ async def fetch_route_duration(client: httpx.AsyncClient, coords: list, dist_km:
     # Consistent backend fallback: 25 km/h urban speed
     if dist_km is None:
         if coords and len(coords) >= 2:
-            from routing.algorithms import haversine_m
             total_m = sum(
                 haversine_m(coords[i][0], coords[i][1], coords[i + 1][0], coords[i + 1][1])
                 for i in range(len(coords) - 1)

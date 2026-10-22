@@ -59,12 +59,6 @@ export interface SearchResult {
   lng: number;
 }
 
-export interface TwoWheelerOptions {
-  mainRoadPenalty: number;
-  innerRoadMultiplier: number;
-  serviceMultiplier: number;
-  segmentKm: number;
-}
 
 export type ThemeMode = 'dark' | 'light';
 

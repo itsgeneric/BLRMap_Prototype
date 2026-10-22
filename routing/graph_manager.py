@@ -5,6 +5,7 @@ import pickle
 from pathlib import Path
 import osmnx as ox
 import networkx as nx
+from shapely.geometry import LineString
 from core.config import GRAPH_FILE_PATH, SURFACE_QUALITY_FILE, INNER_ROAD_TYPES
 from routing.algorithms import haversine_m
 
@@ -145,7 +146,6 @@ class GraphManager:
         # We synthesise a two-point LineString from the u/v node coordinates so
         # that route_nodes_to_coords() can always use the geometry path, giving
         # consistent, predictable rendering for every edge in the graph.
-        from shapely.geometry import LineString
         filled = 0
         for u, v, key, data in self.G.edges(keys=True, data=True):
             if data.get('geometry') is None:

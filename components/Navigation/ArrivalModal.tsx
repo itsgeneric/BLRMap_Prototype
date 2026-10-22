@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Flag, CheckCircle2, Navigation, RotateCcw } from 'lucide-react';
+import { Flag, RotateCcw } from 'lucide-react';
 import { TripSummary } from '@/lib/types';
 import { formatDuration } from '@/lib/geo';
 

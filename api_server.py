@@ -24,7 +24,8 @@ async def lifespan(app: FastAPI):
     graph_manager.load_graph()
     await connect_db()
     yield
-    graph_manager.G.clear()
+    if graph_manager.G is not None:
+        graph_manager.G.clear()
     await close_db()
 
 
