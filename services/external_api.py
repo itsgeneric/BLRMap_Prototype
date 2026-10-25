@@ -118,6 +118,69 @@ async def _search_nominatim(q: str):
     return {"results": results}
 
 
+async def snap_route_to_roads(coords: list) -> list:
+    """
+    Snaps a list of [lat, lng] route coordinates to actual road centerlines
+    using the Google Roads API with interpolate=true.
+
+    With interpolation enabled, the Roads API fills in all intermediate road
+    geometry between the supplied sample points, so the returned coordinates
+    literally lie on road centerlines — no more phantom lines through buildings.
+
+    The Roads API allows max 100 points per request with interpolation.
+    We evenly sample up to 100 waypoints from the full coordinate list.
+
+    Returns the snapped+interpolated coordinate list, or the original list
+    if the API is unavailable or returns an error.
+    """
+    if not ROADS_KEY or not coords or len(coords) < 2:
+        return coords
+
+    # Sample up to 100 evenly-spaced points (Roads API limit with interpolate=true)
+    MAX_SNAP_POINTS = 100
+    if len(coords) <= MAX_SNAP_POINTS:
+        sampled = coords
+    else:
+        step = (len(coords) - 1) / (MAX_SNAP_POINTS - 1)
+        sampled = [coords[round(i * step)] for i in range(MAX_SNAP_POINTS - 1)] + [coords[-1]]
+
+    path_str = "|".join(f"{lat:.6f},{lng:.6f}" for lat, lng in sampled)
+    params = {
+        "path": path_str,
+        "interpolate": "true",
+        "key": ROADS_KEY,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.get(ROADS_SNAP_API_URL, params=params)
+
+        if res.status_code != 200:
+            print(f"[SnapToRoads] Snap failed: HTTP {res.status_code} - {res.text[:200]}")
+            return coords
+
+        data = res.json()
+        snapped_points = data.get("snappedPoints", [])
+        if not snapped_points:
+            return coords
+
+        snapped_coords = [
+            [sp["location"]["latitude"], sp["location"]["longitude"]]
+            for sp in snapped_points
+            if "location" in sp
+        ]
+
+        if len(snapped_coords) < 2:
+            return coords
+
+        print(f"[SnapToRoads] Snapped route: {len(coords)} -> {len(snapped_coords)} points (road-hugging)")
+        return snapped_coords
+
+    except Exception as exc:
+        print(f"[SnapToRoads] snap_route_to_roads failed: {type(exc).__name__} - {exc}")
+        return coords
+
+
 async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = SNAP_DEVIATION_THRESHOLD_M):
     """
     Sends route coordinates to Google Roads Snap to Roads API.

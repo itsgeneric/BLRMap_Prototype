@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Dead end road near Modi Layout",
+    "lat": 12.912890357900503,
+    "lng": 77.539816976394,
+    "radius_m": 60,
+    "reason": "dead_end_compound_wall"
+  }
+]

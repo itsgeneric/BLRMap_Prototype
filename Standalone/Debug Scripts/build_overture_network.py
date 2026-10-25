@@ -21,6 +21,8 @@ import networkx as nx
 import pyarrow.fs as pafs
 import pyarrow.dataset as pads
 import osmnx as ox
+import json
+import urllib.request
 
 # Greater Bengaluru Bounding Box:
 # (West, South, East, North)
@@ -28,8 +30,20 @@ WEST, SOUTH, EAST, NORTH = 77.44, 12.78, 77.78, 13.22
 
 OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Data Assets"))
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-OUTPUT_GRAPHML = os.path.join(OUTPUT_DIR, "bengaluru_roads_extended.graphml")
-OUTPUT_PKL = os.path.join(OUTPUT_DIR, "bengaluru_graph.pkl")
+# Save as a distinct file so your existing graph is never destroyed or overwritten
+OUTPUT_GRAPHML = os.path.join(OUTPUT_DIR, "bengaluru_overture.graphml")
+OUTPUT_PKL = os.path.join(OUTPUT_DIR, "bengaluru_overture.pkl")
+
+def get_latest_overture_release():
+    try:
+        with urllib.request.urlopen("https://stac.overturemaps.org/catalog.json", timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+            rel = data.get("latest")
+            if rel:
+                return rel
+    except Exception:
+        pass
+    return "2026-10-21.0"
 
 def haversine_m(lat1, lng1, lat2, lng2):
     R = 6371000.0
@@ -47,19 +61,21 @@ def build_graph_from_overture():
     print(f"Bounding Box: West={WEST}, South={SOUTH}, East={EAST}, North={NORTH}\n")
 
     t0 = time.time()
+    release = get_latest_overture_release()
+    print(f"Using Overture release: {release}")
     print("Connecting directly to Overture S3 public bucket (us-west-2)...")
 
     # Connect using anonymous S3 credentials (no AWS account needed)
     s3 = pafs.S3FileSystem(anonymous=True, region="us-west-2")
-    s3_path = "overturemaps-us-west-2/release/2026-08-19.0/theme=transportation/type=segment/"
+    s3_path = f"overturemaps-us-west-2/release/{release}/theme=transportation/type=segment/"
 
     dataset = pads.dataset(s3_path, filesystem=s3, format="parquet")
 
     # Valid drivable public road classes in Overture schema
-    # Excludes pedestrian paths, cycle tracks, and non-drivable categories
+    # Excludes pedestrian paths, cycle tracks, private layout lines, and living_street
     DRIVABLE_CLASSES = {
         'motorway', 'primary', 'secondary', 'tertiary',
-        'residential', 'living_street', 'unclassified'
+        'residential', 'unclassified'
     }
 
     # Pushdown filter for bounding box and road subtype at Parquet metadata level

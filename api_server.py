@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routing.graph_manager import graph_manager
 from routing.algorithms import astar_on_graph, two_wheeler_astar, build_two_wheeler_penalties, calc_route_distance
 from routing.edge_blacklist import edge_blacklist
-from services.external_api import search_places, fetch_traffic_data, snap_and_verify_route
+from services.external_api import search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads
 from database.mongo_client import connect_db, close_db
 from database.models import RouteSnapshotIn, JourneyStartPayload, JourneyCompletePayload, ReroutePayload
 import database.operations as db
@@ -68,6 +68,10 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         coords = graph_manager.route_nodes_to_coords(route)
         dist   = calc_route_distance(graph_manager.G, route)
         dist_km = round(dist / 1000, 2)
+
+        # ── Snap polyline to real road centerlines (Roads API) ───────────
+        coords = await snap_route_to_roads(coords)
+        # ────────────────────────────────────────────────────────────────
 
         # ── Save route snapshot to MongoDB ──────────────────────────────
         snapshot = RouteSnapshotIn(
@@ -134,6 +138,10 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
         dist    = calc_route_distance(graph_manager.G, route)
         dist_km = round(dist / 1000, 2)
         google_mins = round(duration_s / 60, 1) if duration_s else None
+
+        # ── Snap polyline to real road centerlines (Roads API) ───────────
+        coords = await snap_route_to_roads(coords)
+        # ────────────────────────────────────────────────────────────────
 
         # ── Save route snapshot to MongoDB ──────────────────────────────
         snapshot = RouteSnapshotIn(
@@ -248,6 +256,8 @@ def add_to_blacklist(req: BlacklistEdgeRequest):
         edge_blacklist.mark_edge_bad(u, v, penalty=10000.0, deviation_m=999.0, reason=req.reason)
         return {"status": "ok", "message": f"Blacklisted edge {u}_{v}", "count": edge_blacklist.count()}
     return {"status": "error", "message": "Could not identify edge to blacklist"}
+
+
 
 
 @app.get("/blacklist/reload")
