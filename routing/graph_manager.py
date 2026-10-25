@@ -3,7 +3,10 @@ import json
 import pickle
 import osmnx as ox
 import networkx as nx
-from core.config import GRAPH_FILE_PATH, SURFACE_QUALITY_FILE, INNER_ROAD_TYPES, MAIN_ROAD_TYPES
+from core.config import (
+    BASE_DIR, GRAPH_FILE_PATH, SURFACE_QUALITY_FILE,
+    INNER_ROAD_TYPES, MAIN_ROAD_TYPES
+)
 from routing.algorithms import haversine_m
 
 class GraphManager:
@@ -33,9 +36,17 @@ class GraphManager:
         return self.surface_penalties.get(key_fwd, self.surface_penalties.get(key_rev, 1.0))
 
     def load_graph(self):
-        print(f"Loading full road network directly from GraphML file: {GRAPH_FILE_PATH}...")
-        self.G = ox.load_graphml(GRAPH_FILE_PATH)
-        print(f"GraphML loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
+        pkl_path = os.path.join(BASE_DIR, "Data Assets", "bengaluru_graph.pkl")
+        if os.path.exists(pkl_path):
+            print(f"Loading compiled road network directly from binary PKL: {pkl_path}...")
+            with open(pkl_path, 'rb') as f:
+                data = pickle.load(f)
+            self.G = data['G'] if isinstance(data, dict) else data
+            print(f"PKL loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
+        else:
+            print(f"Loading full road network directly from GraphML file: {GRAPH_FILE_PATH}...")
+            self.G = ox.load_graphml(GRAPH_FILE_PATH)
+            print(f"GraphML loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
 
         for u, v, key, data in self.G.edges(keys=True, data=True):
             data['length'] = float(data.get('length', 1.0))
