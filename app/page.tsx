@@ -132,7 +132,7 @@ export default function NavigationApp() {
           timeSinceStart
         );
       }
-      loadRoute();
+      if (info) loadRoute({ lat: info.lat, lng: info.lng });
     },
     onArrival: () => {
       const timeTakenSec = Math.max(1, Math.round((Date.now() - tripStartTimeRef.current) / 1000));
@@ -152,7 +152,7 @@ export default function NavigationApp() {
   });
 
   // Route Fetch Function
-  const loadRoute = useCallback(async () => {
+  const loadRoute = useCallback(async (startPoint?: { lat: number; lng: number }) => {
     if (!origin || !destination) {
       setRouteData(null);
       setShortestRouteData(null);
@@ -170,7 +170,7 @@ export default function NavigationApp() {
     setLoading(true);
     try {
       if (mode === 'fastest') {
-        const both = await fetchBothRoutes(origin, destination, routeAbortControllerRef.current.signal);
+        const both = await fetchBothRoutes(startPoint || origin, destination, routeAbortControllerRef.current.signal);
         setShortestRouteData(both.shortest);
         setDynamicRouteData(both.dynamic);
 
@@ -181,11 +181,11 @@ export default function NavigationApp() {
         if (activeRes && activeRes.path && activeRes.path.length > 0) {
           setRouteData(activeRes);
         } else {
-          setRouteData(null);
+          if (!startPoint) setRouteData(null);
           addToast('Could not calculate fastest route comparison.', 'error');
         }
       } else {
-        const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
+        const res = await fetchRoute(mode, startPoint || origin, destination, routeAbortControllerRef.current.signal);
         if (res.status === 'success' && res.path && res.path.length > 0) {
           setRouteData(res);
           if (mode === 'shortest') {
@@ -198,9 +198,11 @@ export default function NavigationApp() {
             setSelectedRouteType('dynamic');
           }
         } else {
-          setRouteData(null);
-          setShortestRouteData(null);
-          setDynamicRouteData(null);
+          if (!startPoint) {
+            setRouteData(null);
+            setShortestRouteData(null);
+            setDynamicRouteData(null);
+          }
           addToast(res.message || 'No viable route found between these locations.', 'error');
         }
       }
