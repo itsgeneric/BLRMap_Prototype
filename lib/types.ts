@@ -107,3 +107,32 @@ export interface ReroutePayload {
   time_since_start_secs: number;
 }
 
+// ---------------------------------------------------------------------------
+// Incident Reporting Types
+// ---------------------------------------------------------------------------
+
+export type IncidentType =
+  | 'crash'
+  | 'slowdown'
+  | 'construction'
+  | 'lane_closure'
+  | 'hazard'
+  | 'flooded'
+  | 'visibility';
+
+export interface RoadIncident {
+  id: string;
+  type: IncidentType;
+  title: string;
+  lat: number;
+  lng: number;
+  heading?: number;
+  road_name?: string;
+  created_at: string;
+  expires_at: string;
+  status: 'active' | 'resolved' | 'expired';
+  upvotes: number;
+  downvotes: number;
+}
+
+

@@ -60,3 +60,10 @@ async def _ensure_indexes() -> None:
     await db["route_decisions"].create_index(
         [("hour_bucket", 1), ("grid_lat", 1), ("grid_lng", 1)]
     )
+    # incidents: 2dsphere index for geo-queries + TTL auto-expiry index
+    try:
+        await db["incidents"].create_index([("location", "2dsphere")])
+        await db["incidents"].create_index("expires_at", expireAfterSeconds=0)
+        await db["incidents"].create_index("status")
+    except Exception as e:
+        print(f"⚠️ Failed to ensure incidents indexes: {e}")

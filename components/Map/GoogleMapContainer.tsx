@@ -9,7 +9,7 @@ import {
   Pin,
 } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
-import { LatLng as LatLngType, Point, GPSPosition, RouteMode } from '@/lib/types';
+import { LatLng as LatLngType, Point, GPSPosition, RouteMode, RoadIncident } from '@/lib/types';
 import { haversineMeters } from '@/lib/geo';
 import { darkMapStyle, lightMapStyle } from './googleMapStyles';
 
@@ -28,6 +28,7 @@ export interface MapContainerProps {
   mode?: RouteMode;
   isFollowingCamera?: boolean;
   isNavigating?: boolean;
+  activeIncidents?: RoadIncident[];
   onSelectOrigin?: (location: Point) => void;
   onSelectDestination?: (location: Point) => void;
   onMapClick?: (latlng: [number, number]) => void;
@@ -63,36 +64,39 @@ function RiderMarkerIcon({
   isNavigating?: boolean;
 }) {
   if (isNavigating) {
-    // ── Google Maps Navigation 3D Chevron Arrow ──
+    // ── Google Maps Navigation 3D Chevron Arrow with Ground Halo ──
     return (
       <div
-        className="relative w-14 h-14 flex items-center justify-center pointer-events-none select-none"
+        className="relative w-16 h-16 flex items-center justify-center pointer-events-none select-none"
         style={{
           transform: `rotate(${heading}deg)`,
           transition: 'transform 0.25s cubic-bezier(0.2, 0.8, 0.4, 1)',
         }}
       >
+        {/* Soft Ground Radar Halo */}
+        <div className="absolute inset-2 rounded-full bg-blue-500/20 animate-ping opacity-75" />
+
         <svg
-          width="44"
-          height="44"
+          width="48"
+          height="48"
           viewBox="0 0 48 48"
           fill="none"
-          className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.65)]"
+          className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
         >
           {/* White outer stroke casing */}
           <path
             d="M24 3 L43 43 L24 33 L5 43 Z"
             fill="#FFFFFF"
           />
-          {/* Left Wing (vibrant bright cyan) */}
+          {/* Left Wing (Google Blue #4285F4) */}
           <path
             d="M24 6.5 L8.5 40 L24 31.5 Z"
-            fill="#38bdf8"
+            fill="#4285F4"
           />
-          {/* Right Wing (deep cobalt blue for 3D bevel lighting) */}
+          {/* Right Wing (Google Deep Blue #1A73E8 for 3D bevel lighting) */}
           <path
             d="M24 6.5 L39.5 40 L24 31.5 Z"
-            fill="#0284c7"
+            fill="#1A73E8"
           />
           {/* Center spine highlight */}
           <line
@@ -100,7 +104,7 @@ function RiderMarkerIcon({
             y1="7"
             x2="24"
             y2="31"
-            stroke="#bae6fd"
+            stroke="#FFFFFF"
             strokeWidth="1.2"
             strokeLinecap="round"
           />
@@ -140,6 +144,77 @@ function RiderMarkerIcon({
 
       {/* Center Blue Dot */}
       <div className="relative z-10 w-5 h-5 bg-sky-500 rounded-full border-[2.5px] border-white shadow-[0_0_12px_rgba(56,189,248,0.9)]" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Incident Marker on Map (Google Maps badge style)
+// ─────────────────────────────────────────────────────────────────
+function IncidentMarkerIcon({ incident }: { incident: RoadIncident }) {
+  const isRed = incident.type === 'crash' || incident.type === 'slowdown';
+  const bg = isRed ? '#d93025' : '#fbbc04';
+  const color = isRed ? '#ffffff' : '#451a03';
+
+  return (
+    <div
+      className="flex flex-col items-center cursor-pointer group"
+      title={`${incident.title} (${incident.upvotes} verified)`}
+    >
+      <div
+        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white transition-transform hover:scale-115 active:scale-95"
+        style={{ backgroundColor: bg, color }}
+      >
+        {incident.type === 'crash' && (
+          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+            <circle cx="7" cy="17" r="2" />
+            <circle cx="17" cy="17" r="2" />
+          </svg>
+        )}
+        {incident.type === 'slowdown' && (
+          <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+            <circle cx="7" cy="17" r="2" />
+            <circle cx="17" cy="17" r="2" />
+          </svg>
+        )}
+        {incident.type === 'flooded' && (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12c1.5 1.5 3 2 4.5 2s3-.5 4.5-2 3-2 4.5-2 3 .5 4.5 2" />
+            <path d="M2 18c1.5 1.5 3 2 4.5 2s3-.5 4.5-2 3-2 4.5-2 3 .5 4.5 2" />
+          </svg>
+        )}
+        {incident.type === 'construction' && (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 18h20" />
+            <path d="M5 18v-4a7 7 0 0 1 14 0v4" />
+          </svg>
+        )}
+        {incident.type === 'lane_closure' && (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+            <line x1="4" y1="22" x2="4" y2="15" />
+          </svg>
+        )}
+        {incident.type === 'hazard' && (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="6" y1="3" x2="4" y2="21" />
+            <line x1="18" y1="3" x2="20" y2="21" />
+            <path d="M12 8v5" />
+            <path d="M12 16h.01" />
+          </svg>
+        )}
+        {incident.type === 'visibility' && (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+            <path d="M8 19h8" />
+          </svg>
+        )}
+      </div>
+      <div className="hidden group-hover:block px-2 py-0.5 mt-1 bg-slate-900/95 text-white text-[10px] font-bold rounded-md whitespace-nowrap shadow-md border border-slate-700/80">
+        {incident.title} ({incident.upvotes}✓)
+      </div>
     </div>
   );
 }
@@ -240,6 +315,7 @@ function GoogleMapInner({
   mode = 'shortest',
   isFollowingCamera = true,
   isNavigating = false,
+  activeIncidents = [],
   onSelectOrigin,
   onSelectDestination,
   onMapClick,
@@ -385,9 +461,9 @@ function GoogleMapInner({
     const riderHeading = gpsPosition?.heading ?? deviceHeading ?? 0;
 
     if (isNavigating && isFollowingCamera && compassMode === 'heading_up' && riderHeading !== null) {
-      // Smoothly rotate map to rider heading + slight tilt for perspective
+      // Smoothly rotate map to rider heading + 45-deg perspective tilt for 3D buildings
       map.setHeading(riderHeading);
-      map.setTilt(30);
+      map.setTilt(45);
     } else if (compassMode === 'north_up') {
       map.setHeading(0);
       map.setTilt(0);
@@ -421,15 +497,15 @@ function GoogleMapInner({
 
     let clickListener: google.maps.MapsEventListener | null = null;
 
-    // 1. Alternate Route Polyline (ghost line, clickable to switch)
+    // 1. Alternate Route Polyline (Google Maps Muted Slate Gray)
     const alternateType = selectedRouteType === 'shortest' ? 'dynamic' : 'shortest';
-    const altColor = alternateType === 'dynamic' ? '#f472b6' : '#38bdf8';
+    const altColor = '#80868B'; // Official Google Alternate Gray
 
     if (alternateLatLngs.length > 1 && !isNavigating) {
       if (!polylineAlternateRef.current) {
         polylineAlternateRef.current = new google.maps.Polyline({
           strokeColor: altColor,
-          strokeOpacity: 0.45,
+          strokeOpacity: 0.65,
           strokeWeight: w.alternate,
           geodesic: true,
           zIndex: 12,
@@ -439,7 +515,7 @@ function GoogleMapInner({
       } else {
         polylineAlternateRef.current.setOptions({
           strokeColor: altColor,
-          strokeOpacity: 0.45,
+          strokeOpacity: 0.65,
           strokeWeight: w.alternate,
           geodesic: true,
         });
@@ -458,8 +534,8 @@ function GoogleMapInner({
     if (traveledLatLngs.length > 1 && isNavigating) {
       if (!polylineTraveledRef.current) {
         polylineTraveledRef.current = new google.maps.Polyline({
-          strokeColor: '#64748b',
-          strokeOpacity: 0.5,
+          strokeColor: '#94a3b8',
+          strokeOpacity: 0.45,
           strokeWeight: Math.max(2, w.foreground - 1),
           geodesic: true,
           zIndex: 10,
@@ -469,7 +545,7 @@ function GoogleMapInner({
         polylineTraveledRef.current.setOptions({
           strokeWeight: Math.max(2, w.foreground - 1),
           geodesic: true,
-          strokeOpacity: 0.5,
+          strokeOpacity: 0.45,
         });
       }
       polylineTraveledRef.current.setPath(traveledLatLngs);
@@ -481,13 +557,14 @@ function GoogleMapInner({
       }
     }
 
-    // 3. Remaining Active Polyline — dark casing + vibrant foreground
+    // 3. Remaining Active Polyline — Google Navigation Royal Blue (#1A73E8)
     if (remainingLatLngs.length > 1) {
-      // Casing (outline)
+      // Soft Casing (outline)
+      const casingColor = theme === 'dark' ? '#0f172a' : '#1557B0';
       if (!polylineRemainingCasingRef.current) {
         polylineRemainingCasingRef.current = new google.maps.Polyline({
-          strokeColor: '#0f172a',
-          strokeOpacity: 0.9,
+          strokeColor: casingColor,
+          strokeOpacity: 0.85,
           strokeWeight: w.casing,
           geodesic: true,
           zIndex: 20,
@@ -495,6 +572,7 @@ function GoogleMapInner({
         });
       } else {
         polylineRemainingCasingRef.current.setOptions({
+          strokeColor: casingColor,
           strokeWeight: w.casing,
           geodesic: true,
         });
@@ -502,8 +580,8 @@ function GoogleMapInner({
       polylineRemainingCasingRef.current.setPath(remainingLatLngs);
       polylineRemainingCasingRef.current.setMap(map);
 
-      // Foreground (colour)
-      const activeColor = selectedRouteType === 'dynamic' ? '#f472b6' : '#38bdf8';
+      // Foreground: Official Google Navigation Royal Blue
+      const activeColor = '#1A73E8';
       if (!polylineRemainingRef.current) {
         polylineRemainingRef.current = new google.maps.Polyline({
           strokeColor: activeColor,
@@ -714,9 +792,9 @@ function GoogleMapInner({
   }, [origin]);
 
   // Bottom offset for the floating button stack (compass + recenter)
-  // These must clear above any drawer/footer that is currently visible
+  // Stacked cleanly above the Report Incident button (~104px + 48px + 12px gap)
   const buttonStackBottomClass = isNavigating
-    ? 'bottom-[108px]'       // above NavigationFooter (~88px) + gap
+    ? 'bottom-[164px] sm:bottom-[168px]'
     : fullConnectedPath.length > 0
     ? 'bottom-[185px]'       // above BottomActionBar (~168px) + gap
     : 'bottom-[28px]';       // idle — near bottom edge
@@ -773,6 +851,18 @@ function GoogleMapInner({
         </AdvancedMarker>
       )}
 
+      {/* Live Crowd-Reported Incident Markers (Accidents, Floods, Closures) */}
+      {activeIncidents.map((incident) => (
+        <AdvancedMarker
+          key={incident.id}
+          position={{ lat: incident.lat, lng: incident.lng }}
+          zIndex={150}
+          title={`${incident.title} (Reported on road)`}
+        >
+          <IncidentMarkerIcon incident={incident} />
+        </AdvancedMarker>
+      ))}
+
       {/*
        * ── Floating button stack: Compass (top) + Recenter (bottom) ──
        * Single container so they always align together and reposition as one unit.
@@ -781,7 +871,7 @@ function GoogleMapInner({
        */}
       <div
         ref={containerRef}
-        className={`fixed right-4 sm:right-6 z-[1001] flex flex-col items-center gap-2 transition-all duration-300 pointer-events-auto ${buttonStackBottomClass} sm:bottom-6`}
+        className={`fixed right-4 sm:right-6 z-[1001] flex flex-col items-center gap-2 transition-all duration-300 pointer-events-auto ${buttonStackBottomClass}`}
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >

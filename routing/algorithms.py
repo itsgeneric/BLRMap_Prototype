@@ -65,7 +65,7 @@ def build_two_wheeler_penalties(main_road_penalty=1.0, inner_road_multiplier=1.0
     penalties['_roundabout_multiplier'] = roundabout_multiplier
     return penalties
 
-def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, congested_nodes=None):
+def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, congested_nodes=None, incident_nodes=None):
     length = float(edge_data.get('length', 1.0))
     hw = edge_data.get('highway', 'unclassified')
     if isinstance(hw, list): hw = hw[0]
@@ -76,6 +76,12 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
     # Dynamic Congestion Penalty (avoid Google Maps traffic jams)
     if congested_nodes and (u in congested_nodes or v in congested_nodes):
         penalty *= 25.0
+
+    # Dynamic Crowd-Reported Incident Penalty (crashes, flooded roads, hazards)
+    if incident_nodes and (u is not None or v is not None):
+        inc_p = max(incident_nodes.get(u, 1.0), incident_nodes.get(v, 1.0))
+        if inc_p > 1.0:
+            penalty *= inc_p
 
     if edge_data.get('junction') == 'roundabout':
         penalty *= penalty_map.get('_roundabout_multiplier', 0.95)
@@ -98,14 +104,14 @@ def astar_on_graph(graph, start_node, end_node):
         return min(float(d.get('length', 1.0)) for d in edge_data.values()) * bl_penalty
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
-def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None):
+def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None, incident_nodes=None):
     # FIX: divide by MIN_PENALTY_FLOOR so heuristic never overestimates true
     # remaining cost (edges can be cheaper than length*1.0, e.g. bridges/roundabouts).
     def heuristic(a, b):
         return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'], graph.nodes[b]['y'], graph.nodes[b]['x']) / MIN_PENALTY_FLOOR
     def cost(u, v, edge_data):
-        if 'length' in edge_data: return two_wheeler_edge_cost(edge_data, graph_mgr, penalties, u, v, congested_nodes)
-        return min(two_wheeler_edge_cost(d, graph_mgr, penalties, u, v, congested_nodes) for d in edge_data.values())
+        if 'length' in edge_data: return two_wheeler_edge_cost(edge_data, graph_mgr, penalties, u, v, congested_nodes, incident_nodes)
+        return min(two_wheeler_edge_cost(d, graph_mgr, penalties, u, v, congested_nodes, incident_nodes) for d in edge_data.values())
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
 def calc_route_distance(graph, route):

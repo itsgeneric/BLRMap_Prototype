@@ -56,8 +56,8 @@ Unified 'journeys' collection schema
   recorded_at: datetime
 }
 """
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime, timezone, timedelta
+from typing import Optional, List, Dict, Any
 from bson import ObjectId
 from database.mongo_client import get_col, is_connected
 from database.models import (
@@ -65,6 +65,8 @@ from database.models import (
     JourneyStartPayload,
     JourneyCompletePayload,
     ReroutePayload,
+    IncidentCreate,
+    IncidentVerify,
 )
 
 # ---------------------------------------------------------------------------
@@ -303,3 +305,200 @@ async def get_strategy_rates_mongo(
     async for doc in col.aggregate(pipeline):
         results[doc["_id"]] = doc["count"]
     return results
+
+
+# ---------------------------------------------------------------------------
+# incidents — Crowd-sourced Google Maps-style incident reporting
+# ---------------------------------------------------------------------------
+
+INCIDENT_TTLS_MINUTES: Dict[str, int] = {
+    "crash": 45,
+    "slowdown": 25,
+    "flooded": 240,       # 4 hours
+    "construction": 1440, # 24 hours
+    "lane_closure": 480,  # 8 hours
+    "hazard": 90,         # Object on road - 1.5 hours
+    "visibility": 120,    # Low visibility - 2 hours
+}
+
+INCIDENT_LABELS: Dict[str, str] = {
+    "crash": "Crash",
+    "slowdown": "Slowdown",
+    "construction": "Construction",
+    "lane_closure": "Lane closure",
+    "hazard": "Object on road",
+    "flooded": "Flooded road",
+    "visibility": "Low visibility",
+}
+
+INCIDENT_PENALTIES: Dict[str, float] = {
+    "flooded": 50.0,      # Two-wheelers must avoid flooded roads
+    "crash": 15.0,        # Severe bottleneck
+    "slowdown": 4.0,      # Congested
+    "lane_closure": 2.5,  # Narrow bottleneck
+    "construction": 2.0,  # Slow movement
+    "hazard": 2.0,        # Object on road
+    "visibility": 1.2,    # Low visibility
+}
+
+
+async def create_incident(data: IncidentCreate, nearest_nodes: Optional[List[int]] = None) -> Dict[str, Any]:
+    """Saves a new incident report with calculated TTL."""
+    if not is_connected():
+        return {"status": "error", "message": "Database not connected"}
+
+    now = _now()
+    incident_type = data.type.lower()
+    ttl_minutes = INCIDENT_TTLS_MINUTES.get(incident_type, 60)
+    expires_at = now + timedelta(minutes=ttl_minutes)
+
+    doc = {
+        "type": incident_type,
+        "title": INCIDENT_LABELS.get(incident_type, incident_type.capitalize()),
+        "location": {
+            "type": "Point",
+            "coordinates": [data.lng, data.lat],  # GeoJSON [longitude, latitude]
+        },
+        "lat": data.lat,
+        "lng": data.lng,
+        "heading": data.heading,
+        "road_name": data.road_name,
+        "reported_by": data.session_id,
+        "created_at": now,
+        "expires_at": expires_at,
+        "status": "active",
+        "upvotes": 1,
+        "downvotes": 0,
+        "affected_nodes": nearest_nodes or [],
+    }
+
+    col = get_col("incidents")
+    result = await col.insert_one(doc)
+    doc["id"] = str(result.inserted_id)
+    doc.pop("_id", None)
+    return {"status": "ok", "incident": doc}
+
+
+async def get_active_incidents(
+    min_lat: Optional[float] = None,
+    min_lng: Optional[float] = None,
+    max_lat: Optional[float] = None,
+    max_lng: Optional[float] = None,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+    radius_m: Optional[float] = None,
+) -> List[Dict[str, Any]]:
+    """Returns active, unexpired incidents within bounding box or near coordinate."""
+    if not is_connected():
+        return []
+
+    now = _now()
+    query: Dict[str, Any] = {
+        "status": "active",
+        "expires_at": {"$gt": now},
+    }
+
+    # Proximity query using $nearSphere
+    if lat is not None and lng is not None and radius_m is not None:
+        query["location"] = {
+            "$nearSphere": {
+                "$geometry": {
+                    "type": "Point",
+                    "coordinates": [lng, lat],
+                },
+                "$maxDistance": radius_m,
+            }
+        }
+    # Bounding box query
+    elif min_lat is not None and min_lng is not None and max_lat is not None and max_lng is not None:
+        query["location"] = {
+            "$geoWithin": {
+                "$box": [
+                    [min_lng, min_lat],
+                    [max_lng, max_lat],
+                ]
+            }
+        }
+
+    col = get_col("incidents")
+    incidents = []
+    async for doc in col.find(query).limit(100):
+        doc["id"] = str(doc["_id"])
+        doc.pop("_id", None)
+        incidents.append(doc)
+    return incidents
+
+
+async def verify_incident(incident_id: str, vote: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    """Records a 'Still here?' vote (yes/no) and updates TTL or resolves incident."""
+    if not is_connected():
+        return {"status": "error", "message": "Database not connected"}
+
+    try:
+        oid = ObjectId(incident_id)
+    except Exception:
+        return {"status": "error", "message": "Invalid incident ID"}
+
+    col = get_col("incidents")
+    incident = await col.find_one({"_id": oid})
+    if not incident:
+        return {"status": "error", "message": "Incident not found"}
+
+    now = _now()
+    if vote.lower() == "yes":
+        # Extend TTL by 50% of original default TTL
+        orig_ttl = INCIDENT_TTLS_MINUTES.get(incident.get("type", ""), 45)
+        extension = timedelta(minutes=int(orig_ttl * 0.5))
+        curr_exp = incident.get("expires_at", now)
+        if hasattr(curr_exp, "tzinfo") and curr_exp.tzinfo is None:
+            curr_exp = curr_exp.replace(tzinfo=timezone.utc)
+        new_expires_at = max(curr_exp, now) + extension
+        await col.update_one(
+            {"_id": oid},
+            {
+                "$inc": {"upvotes": 1},
+                "$set": {"expires_at": new_expires_at, "updated_at": now},
+            },
+        )
+        return {"status": "ok", "message": "Incident verified; lifespan extended"}
+    elif vote.lower() == "no":
+        downvotes = incident.get("downvotes", 0) + 1
+        upvotes = incident.get("upvotes", 1)
+        # If downvotes exceed upvotes, mark as resolved immediately
+        if downvotes > upvotes:
+            await col.update_one(
+                {"_id": oid},
+                {"$inc": {"downvotes": 1}, "$set": {"status": "resolved", "updated_at": now}},
+            )
+            return {"status": "ok", "message": "Incident marked as cleared"}
+        else:
+            await col.update_one(
+                {"_id": oid},
+                {"$inc": {"downvotes": 1}, "$set": {"updated_at": now}},
+            )
+            return {"status": "ok", "message": "Downvote recorded"}
+
+    return {"status": "error", "message": "Invalid vote value"}
+
+
+async def get_active_incident_penalties() -> Dict[int, float]:
+    """
+    Returns a dict mapping { node_id: penalty_multiplier } for all currently active incidents.
+    Used by the routing engine to avoid reported hazards and slowdowns.
+    """
+    if not is_connected():
+        return {}
+
+    now = _now()
+    col = get_col("incidents")
+    penalties: Dict[int, float] = {}
+
+    query = {"status": "active", "expires_at": {"$gt": now}}
+    async for doc in col.find(query, {"affected_nodes": 1, "type": 1}):
+        incident_type = doc.get("type", "")
+        penalty_mult = INCIDENT_PENALTIES.get(incident_type, 2.0)
+        for node in doc.get("affected_nodes", []):
+            penalties[node] = max(penalties.get(node, 1.0), penalty_mult)
+
+    return penalties
+
