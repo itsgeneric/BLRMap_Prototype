@@ -62,3 +62,24 @@ class ReroutePayload(BaseModel):
     lng: float
     distance_off_route_m: float = 0.0
     time_since_start_secs: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Incident reporting models (Google Maps-style crowdsourced reports)
+# ---------------------------------------------------------------------------
+
+class IncidentCreate(BaseModel):
+    """Payload sent when a rider reports an incident on the road."""
+    type: str  # crash | slowdown | construction | lane_closure | hazard | flooded | visibility
+    lat: float
+    lng: float
+    heading: Optional[float] = None
+    road_name: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class IncidentVerify(BaseModel):
+    """Sent when a rider answers 'Still here?' for an existing incident."""
+    vote: str  # "yes" or "no"
+    session_id: Optional[str] = None
+

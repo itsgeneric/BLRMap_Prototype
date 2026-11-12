@@ -1,9 +1,9 @@
-import { Point, RouteMode, RouteResponse, SearchResult } from './types';
+import { Point, RouteMode, RouteResponse, SearchResult, IncidentType, RoadIncident } from './types';
 
 // API Base URL: Toggle between local development and Azure deployment
 const getApiBase = () => {
-  // return 'http://127.0.0.1:8000';
-    return 'http://4.193.145.212:8000'
+    return 'http://127.0.0.1:8000';
+    // return 'http://4.193.145.212:8000'
 };
 
 
@@ -14,49 +14,91 @@ const getApiBase = () => {
 export async function searchPlaces(query: string, signal?: AbortSignal): Promise<SearchResult[]> {
   if (!query || query.trim().length < 2) return [];
 
-  // Try Google Places JavaScript Autocomplete Service if available in browser
-  if (typeof window !== 'undefined' && window.google?.maps?.places?.AutocompleteService) {
+  // Try Google Places JavaScript Autocomplete (New: AutocompleteSuggestion / Place Autocomplete, or fallback to AutocompleteService)
+  if (typeof window !== 'undefined' && window.google?.maps?.places) {
     try {
-      const autoService = new window.google.maps.places.AutocompleteService();
-      const geocoder = new window.google.maps.Geocoder();
-
-      const predictions = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve) => {
-        autoService.getPlacePredictions(
-          {
-            input: query.trim(),
-            componentRestrictions: { country: 'in' },
+      // 1. Try modern AutocompleteSuggestion from Google Maps JavaScript API
+      const placesLib = window.google.maps.places as any;
+      if (placesLib.AutocompleteSuggestion && placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions) {
+        const request = {
+          input: query.trim(),
+          region: 'in',
+          locationBias: {
+            center: { lat: 12.9716, lng: 77.5946 },
+            radius: 50000,
           },
-          (res, status) => {
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && res) {
-              resolve(res.slice(0, 5));
-            } else {
-              resolve([]);
-            }
-          }
-        );
-      });
+        };
+        const { suggestions } = await placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        if (suggestions && suggestions.length > 0) {
+          const results: (SearchResult | null)[] = await Promise.all(
+            suggestions.slice(0, 5).map(async (sugg: any) => {
+              try {
+                const placePrediction = sugg.placePrediction;
+                if (!placePrediction) return null;
+                const place = placePrediction.toPlace();
+                await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
+                if (place.location) {
+                  return {
+                    name: place.displayName || placePrediction.mainText?.text || placePrediction.text?.text,
+                    address: place.formattedAddress || placePrediction.text?.text || '',
+                    lat: typeof place.location.lat === 'function' ? place.location.lat() : place.location.lat,
+                    lng: typeof place.location.lng === 'function' ? place.location.lng() : place.location.lng,
+                  };
+                }
+              } catch (err) {}
+              return null;
+            })
+          );
+          const valid = results.filter((r): r is SearchResult => r !== null);
+          if (valid.length > 0) return valid;
+        }
+      }
 
-      if (predictions.length > 0) {
-        const results = await Promise.all(
-          predictions.map(async (pred) => {
-            const geoRes = await geocoder.geocode({ placeId: pred.place_id });
-            if (geoRes.results && geoRes.results.length > 0) {
-              const loc = geoRes.results[0].geometry.location;
-              return {
-                name: pred.structured_formatting?.main_text || pred.description.split(',')[0],
-                address: pred.description,
-                lat: loc.lat(),
-                lng: loc.lng(),
-              };
+      // 2. Fallback to classic AutocompleteService + Geocoder
+      if (placesLib.AutocompleteService) {
+        const autoService = new placesLib.AutocompleteService();
+        const geocoder = new window.google.maps.Geocoder();
+
+        const predictions = await new Promise<any[]>((resolve) => {
+          autoService.getPlacePredictions(
+            {
+              input: query.trim(),
+              componentRestrictions: { country: 'in' },
+            },
+            (res: any, status: any) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && res) {
+                resolve(res.slice(0, 5));
+              } else {
+                resolve([]);
+              }
             }
-            return null;
-          })
-        );
-        const valid = results.filter((r): r is SearchResult => r !== null);
-        if (valid.length > 0) return valid;
+          );
+        });
+
+        if (predictions && predictions.length > 0) {
+          const results = await Promise.all(
+            predictions.map(async (pred) => {
+              try {
+                const geoRes = await geocoder.geocode({ placeId: pred.place_id });
+                if (geoRes.results && geoRes.results.length > 0) {
+                  const loc = geoRes.results[0].geometry.location;
+                  return {
+                    name: pred.structured_formatting?.main_text || pred.description.split(',')[0],
+                    address: pred.description,
+                    lat: loc.lat(),
+                    lng: loc.lng(),
+                  };
+                }
+              } catch (e) {}
+              return null;
+            })
+          );
+          const valid = results.filter((r): r is SearchResult => r !== null);
+          if (valid.length > 0) return valid;
+        }
       }
     } catch (e) {
-      console.warn('Google Places search fallback:', e);
+      console.warn('Google Places JS search fallback to backend:', e);
     }
   }
 
@@ -196,4 +238,85 @@ export async function fetchBothRoutes(
     timeDiffMins: isFinite(timeDiffMins) ? timeDiffMins : 0,
   };
 }
+
+
+// ---------------------------------------------------------------------------
+// Incident Reporting API Client
+// ---------------------------------------------------------------------------
+
+export async function reportIncident(
+  type: IncidentType,
+  lat: number,
+  lng: number,
+  heading?: number | null,
+  roadName?: string,
+  sessionId?: string
+): Promise<{ status: string; incident?: RoadIncident; message?: string }> {
+  try {
+    const res = await fetch(`${getApiBase()}/incidents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        lat,
+        lng,
+        heading: heading ?? null,
+        road_name: roadName ?? null,
+        session_id: sessionId ?? null,
+      }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to report incident:', err);
+    return { status: 'error', message: 'Failed to submit report' };
+  }
+}
+
+export async function fetchActiveIncidents(params?: {
+  minLat?: number;
+  minLng?: number;
+  maxLat?: number;
+  maxLng?: number;
+  lat?: number;
+  lng?: number;
+  radiusM?: number;
+}): Promise<RoadIncident[]> {
+  try {
+    const url = new URL(`${getApiBase()}/incidents`);
+    if (params) {
+      if (params.minLat !== undefined) url.searchParams.set('min_lat', params.minLat.toString());
+      if (params.minLng !== undefined) url.searchParams.set('min_lng', params.minLng.toString());
+      if (params.maxLat !== undefined) url.searchParams.set('max_lat', params.maxLat.toString());
+      if (params.maxLng !== undefined) url.searchParams.set('max_lng', params.maxLng.toString());
+      if (params.lat !== undefined) url.searchParams.set('lat', params.lat.toString());
+      if (params.lng !== undefined) url.searchParams.set('lng', params.lng.toString());
+      if (params.radiusM !== undefined) url.searchParams.set('radius_m', params.radiusM.toString());
+    }
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    return data.incidents || [];
+  } catch (err) {
+    console.error('Failed to fetch active incidents:', err);
+    return [];
+  }
+}
+
+export async function verifyIncident(
+  incidentId: string,
+  vote: 'yes' | 'no',
+  sessionId?: string
+): Promise<{ status: string; message?: string }> {
+  try {
+    const res = await fetch(`${getApiBase()}/incidents/${incidentId}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vote, session_id: sessionId }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to verify incident:', err);
+    return { status: 'error', message: 'Network error verifying incident' };
+  }
+}
+
 

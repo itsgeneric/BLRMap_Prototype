@@ -83,12 +83,62 @@ async def fetch_traffic_data(client: httpx.AsyncClient, from_lat, from_lng, to_l
     
 async def search_places(q: str):
     if not GOOGLE_KEY: return await _search_nominatim(q)
-    params = {"input": q, "key": GOOGLE_KEY, "components": "country:in", "radius": 50000, "language": "en"}
     results = []
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            res = await client.get("https://maps.googleapis.com/maps/api/place/autocomplete/json", params=params)
-            for prediction in res.json().get("predictions", [])[:5]:
+            # Try Places API (New) first
+            auto_url = "https://places.googleapis.com/v1/places:autocomplete"
+            auto_body = {
+                "input": q,
+                "includedRegionCodes": ["in"],
+                "locationBias": {
+                    "circle": {
+                        "center": {"latitude": 12.9716, "longitude": 77.5946},
+                        "radius": 50000.0
+                    }
+                }
+            }
+            auto_headers = {
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": GOOGLE_KEY
+            }
+            res = await client.post(auto_url, json=auto_body, headers=auto_headers)
+            
+            if res.status_code == 200:
+                suggestions = res.json().get("suggestions", [])[:5]
+                for sugg in suggestions:
+                    pred = sugg.get("placePrediction", {})
+                    place_id = pred.get("placeId")
+                    if not place_id:
+                        continue
+                    
+                    det_url = f"https://places.googleapis.com/v1/places/{place_id}"
+                    det_headers = {
+                        "X-Goog-Api-Key": GOOGLE_KEY,
+                        "X-Goog-FieldMask": "id,displayName,formattedAddress,location"
+                    }
+                    det_res = await client.get(det_url, headers=det_headers)
+                    if det_res.status_code == 200:
+                        details = det_res.json()
+                        loc = details.get("location", {})
+                        if "latitude" in loc and "longitude" in loc:
+                            disp = details.get("displayName", {})
+                            name = disp.get("text") if isinstance(disp, dict) else str(disp)
+                            if not name:
+                                name = pred.get("text", {}).get("text", "").split(",")[0]
+                            results.append({
+                                "name": name,
+                                "address": details.get("formattedAddress", pred.get("text", {}).get("text", "")),
+                                "lat": float(loc["latitude"]),
+                                "lng": float(loc["longitude"]),
+                            })
+                if results:
+                    return {"results": results}
+
+            # Fallback to Legacy Places API if Places (New) didn't return
+            params = {"input": q, "key": GOOGLE_KEY, "components": "country:in", "radius": 50000, "language": "en"}
+            legacy_res = await client.get("https://maps.googleapis.com/maps/api/place/autocomplete/json", params=params)
+            for prediction in legacy_res.json().get("predictions", [])[:5]:
                 det = await client.get("https://maps.googleapis.com/maps/api/place/details/json", params={
                     "place_id": prediction["place_id"], "key": GOOGLE_KEY, "fields": "name,formatted_address,geometry"
                 })
@@ -102,7 +152,8 @@ async def search_places(q: str):
                     })
     except Exception as e:
         print(f"Places search failed: {e}")
-    return {"results": results}
+        return await _search_nominatim(q)
+    return {"results": results if results else (await _search_nominatim(q)).get("results", [])}
 
 async def _search_nominatim(q: str):
     params = {"q": f"{q}, Bengaluru", "format": "json", "addressdetails": 1, "limit": 5}

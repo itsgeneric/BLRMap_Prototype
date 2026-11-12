@@ -14,9 +14,13 @@ ROADS_SNAP_API_URL = "https://roads.googleapis.com/v1/snapToRoads"
 
 MONGODB_URI = os.getenv("MONGODB_URI")  # mongodb+srv://... from Atlas
 
-# Correctly mapped to your Data Assets folder
-GRAPH_FILE_PATH = os.getenv("GRAPH_FILE_PATH", os.path.join(BASE_DIR, "Data Assets", "bengaluru_roads_extended.graphml"))
-EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", os.path.join(BASE_DIR, "Data Assets", "bengaluru_exclude_polys.geojson"))
+# Folder holding the graph assets (graphml / pkl / geojson).
+# Set DATA_DIR in .env; relative paths are resolved against BASE_DIR.
+DATA_DIR = os.path.join(BASE_DIR, os.getenv("DATA_DIR", "Data Assets"))
+
+GRAPH_FILE_PATH = os.getenv("GRAPH_FILE_PATH", os.path.join(DATA_DIR, "bengaluru_roads_extended.graphml"))
+GRAPH_PKL_PATH = os.getenv("GRAPH_PKL_PATH", os.path.join(DATA_DIR, "bengaluru_graph.pkl"))
+EXCLUDE_POLYS_FILE = os.getenv("EXCLUDE_POLYS_FILE", os.path.join(DATA_DIR, "bengaluru_exclude_polys.geojson"))
 
 # These remain in your root folder
 SURFACE_QUALITY_FILE = os.getenv("SURFACE_QUALITY_FILE", os.path.join(BASE_DIR, "bad_surface_segments.json"))

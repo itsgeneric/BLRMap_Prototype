@@ -9,8 +9,9 @@ import {
   ThemeMode,
   ToastMessage,
   TripSummary,
+  RoadIncident,
 } from '@/lib/types';
-import { fetchRoute, fetchBothRoutes } from '@/lib/api';
+import { fetchRoute, fetchBothRoutes, fetchActiveIncidents } from '@/lib/api';
 import { haversineMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
@@ -23,6 +24,7 @@ import { NavigationFooter } from '@/components/Navigation/NavigationFooter';
 import { BottomActionBar } from '@/components/Navigation/BottomActionBar';
 import { ToastContainer } from '@/components/UI/Toast';
 import { ArrivalModal } from '@/components/Navigation/ArrivalModal';
+import { IncidentReportModal } from '@/components/Navigation/IncidentReportModal';
 import { Loader2, Bike } from 'lucide-react';
 
 // Dynamic SSR-disabled GoogleMapContainer
@@ -55,12 +57,29 @@ export default function NavigationApp() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [tripSummary, setTripSummary] = useState<TripSummary | null>(null);
+  const [activeIncidents, setActiveIncidents] = useState<RoadIncident[]>([]);
 
   const routeAbortControllerRef = useRef<AbortController | null>(null);
   const tripStartTimeRef = useRef<number>(0);
   const activeJourneyIdRef = useRef<string | null>(null);
   // Stable ref so onRerouteNeeded can call rerouteFromPosition even before it's defined
   const rerouteFromPositionRef = useRef<((lat: number, lng: number) => void) | null>(null);
+
+  // Live crowd-reported incidents fetching & periodic refresh
+  const refreshIncidents = useCallback(async () => {
+    try {
+      const list = await fetchActiveIncidents();
+      setActiveIncidents(list);
+    } catch (err) {
+      console.error('Failed to refresh incidents:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshIncidents();
+    const interval = setInterval(refreshIncidents, 30000); // 30s live poll
+    return () => clearInterval(interval);
+  }, [refreshIncidents]);
 
   // Toast Helpers (Reserved only for genuine errors)
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'error', duration = 4000) => {
@@ -395,6 +414,21 @@ export default function NavigationApp() {
         }}
       />
 
+      {/* Google Maps-style Incident Reporting Button & Modal */}
+      <IncidentReportModal
+        isNavigating={isNavigating}
+        currentLat={realGpsPosition?.lat ?? origin?.lat ?? routeData?.path?.[0]?.[0]}
+        currentLng={realGpsPosition?.lng ?? origin?.lng ?? routeData?.path?.[0]?.[1]}
+        currentHeading={deviceHeading || realGpsPosition?.heading}
+        currentRoadName={currentManeuver?.road_name}
+        activeIncidents={activeIncidents}
+        onIncidentReported={(newInc) => {
+          setActiveIncidents((prev) => [newInc, ...prev.filter((i) => i.id !== newInc.id)]);
+          addToast(`Reported: ${newInc.title}`, 'success', 3000);
+        }}
+        onIncidentUpdated={refreshIncidents}
+      />
+
       {/* Fullscreen Map Canvas */}
       <MapContainer
         origin={origin}
@@ -420,6 +454,7 @@ export default function NavigationApp() {
         mode={mode}
         isFollowingCamera={isFollowingCamera}
         isNavigating={isNavigating}
+        activeIncidents={activeIncidents}
         onSelectOrigin={handleSelectOrigin}
         onSelectDestination={handleSelectDestination}
       />

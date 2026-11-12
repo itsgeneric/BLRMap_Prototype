@@ -10,7 +10,14 @@ from routing.algorithms import astar_on_graph, two_wheeler_astar, build_two_whee
 from routing.edge_blacklist import edge_blacklist
 from services.external_api import search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads
 from database.mongo_client import connect_db, close_db
-from database.models import RouteSnapshotIn, JourneyStartPayload, JourneyCompletePayload, ReroutePayload
+from database.models import (
+    RouteSnapshotIn,
+    JourneyStartPayload,
+    JourneyCompletePayload,
+    ReroutePayload,
+    IncidentCreate,
+    IncidentVerify,
+)
 import database.operations as db
 
 
@@ -113,12 +120,16 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
         for lat, lng in jam_coords:
             congested_nodes.add(ox.nearest_nodes(graph_manager.G, lng, lat))
 
+    # Fetch live crowd-sourced incidents (accidents, floods, hazards) for dynamic avoidance
+    incident_penalties = await db.get_active_incident_penalties()
+
     penalties = build_two_wheeler_penalties()
 
     try:
         route = two_wheeler_astar(
             graph_manager.G, start, end, graph_manager,
             penalties=penalties, congested_nodes=congested_nodes,
+            incident_nodes=incident_penalties,
         )
 
         # GMaps verification loop: iteratively eliminate any ghost/private roads
@@ -130,6 +141,7 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
                 route = two_wheeler_astar(
                     graph_manager.G, start, end, graph_manager,
                     penalties=penalties, congested_nodes=congested_nodes,
+                    incident_nodes=incident_penalties,
                 )
             except Exception:
                 break
@@ -265,6 +277,77 @@ def reload_blacklist():
     """Reloads the edge blacklist from disk."""
     edge_blacklist.load()
     return {"status": "ok", "count": edge_blacklist.count()}
+
+
+# ---------------------------------------------------------------------------
+# Crowd-Sourced Incident Reporting Endpoints (Google Maps style)
+# ---------------------------------------------------------------------------
+
+@app.post("/incidents")
+async def report_incident(payload: IncidentCreate):
+    """
+    Rider reports a live incident (crash, slowdown, flooded road, construction, etc.).
+    Associates the report with nearest road network nodes and stores in MongoDB with TTL.
+    """
+    affected_nodes = []
+    try:
+        if graph_manager.G is not None and len(graph_manager.G) > 0:
+            target_node = ox.nearest_nodes(graph_manager.G, payload.lng, payload.lat)
+            affected_nodes.append(int(target_node))
+            if target_node in graph_manager.G:
+                for neighbor in graph_manager.G.neighbors(target_node):
+                    affected_nodes.append(int(neighbor))
+    except Exception as exc:
+        print(f"⚠️ Could not map incident to graph nodes: {exc}")
+
+    result = await db.create_incident(payload, nearest_nodes=affected_nodes)
+    return result
+
+
+@app.get("/incidents")
+async def get_active_incidents(
+    min_lat: float | None = None,
+    min_lng: float | None = None,
+    max_lat: float | None = None,
+    max_lng: float | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+    radius_m: float | None = None,
+):
+    """
+    Returns active, unexpired incidents for rendering on the map.
+    Can filter by bounding box (viewport) or proximity radius.
+    """
+    incidents = await db.get_active_incidents(
+        min_lat=min_lat,
+        min_lng=min_lng,
+        max_lat=max_lat,
+        max_lng=max_lng,
+        lat=lat,
+        lng=lng,
+        radius_m=radius_m,
+    )
+    return {"status": "ok", "count": len(incidents), "incidents": incidents}
+
+
+@app.post("/incidents/{incident_id}/verify")
+async def verify_incident_endpoint(incident_id: str, payload: IncidentVerify):
+    """
+    Handles 'Still here?' rider feedback (vote: 'yes' extends TTL, 'no' can resolve early).
+    """
+    result = await db.verify_incident(
+        incident_id=incident_id,
+        vote=payload.vote,
+        session_id=payload.session_id,
+    )
+    return result
+
+
+@app.get("/incidents/penalties")
+async def get_incident_penalties():
+    """Returns currently active routing penalties caused by incidents."""
+    penalties = await db.get_active_incident_penalties()
+    return {"status": "ok", "affected_nodes_count": len(penalties), "penalties": penalties}
 
 
 if __name__ == "__main__":
