@@ -4,7 +4,7 @@ import pickle
 import osmnx as ox
 import networkx as nx
 from core.config import (
-    BASE_DIR, GRAPH_FILE_PATH, SURFACE_QUALITY_FILE,
+    BASE_DIR, GRAPH_FILE_PATH, GRAPH_PKL_PATH, SURFACE_QUALITY_FILE,
     INNER_ROAD_TYPES, MAIN_ROAD_TYPES
 )
 from routing.algorithms import haversine_m
@@ -36,7 +36,7 @@ class GraphManager:
         return self.surface_penalties.get(key_fwd, self.surface_penalties.get(key_rev, 1.0))
 
     def load_graph(self):
-        pkl_path = os.path.join(BASE_DIR, "Data Assets", "bengaluru_graph.pkl")
+        pkl_path = GRAPH_PKL_PATH
         if os.path.exists(pkl_path):
             print(f"Loading compiled road network directly from binary PKL: {pkl_path}...")
             with open(pkl_path, 'rb') as f:
