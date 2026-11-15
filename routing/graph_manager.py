@@ -123,6 +123,18 @@ class GraphManager:
             [(u, v, k) for u, v, k, d in self.G.edges(keys=True, data=True) if self._is_inner(d)]
         ).copy()
 
+        # ── Index major arterial nodes for anti-rat-running transition penalties ──
+        from core.config import MAJOR_HIGHWAY_TYPES
+        self.major_nodes = set()
+        for u, v, data in self.G.edges(data=True):
+            hw = data.get('highway', '')
+            if isinstance(hw, list): hw = hw[0] if hw else ''
+            if hw in MAJOR_HIGHWAY_TYPES:
+                self.major_nodes.add(u)
+                self.major_nodes.add(v)
+        print(f"Indexed {len(self.major_nodes):,} major corridor nodes for transition penalties")
+        # ──────────────────────────────────────────────────────────────────────────
+
         self.load_surface_penalties()
         from routing.edge_blacklist import edge_blacklist
         edge_blacklist.load()

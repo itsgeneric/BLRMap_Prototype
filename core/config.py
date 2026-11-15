@@ -30,6 +30,18 @@ DECISIONS_DB = os.getenv("DECISIONS_DB", os.path.join(BASE_DIR, "route_decisions
 SNAP_DEVIATION_THRESHOLD_M = float(os.getenv("SNAP_DEVIATION_THRESHOLD_M", "65.0"))
 BLACKLIST_PENALTY_MULTIPLIER = float(os.getenv("BLACKLIST_PENALTY_MULTIPLIER", "10000.0"))
 
+# Anti-Rat-Running: Penalty applied when turning from a major arterial road into a minor residential alley
+MAJOR_TO_MINOR_TRANSITION_PENALTY_M = float(os.getenv("MAJOR_TO_MINOR_TRANSITION_PENALTY_M", "45.0"))
+
+MINOR_ALLEY_TYPES = {
+    'residential', 'living_street', 'unclassified', 'service'
+}
+
+MAJOR_HIGHWAY_TYPES = {
+    'motorway', 'motorway_link', 'trunk', 'trunk_link',
+    'primary', 'primary_link', 'secondary', 'secondary_link'
+}
+
 INNER_ROAD_TYPES = {
     'residential', 'living_street', 'unclassified',
     'tertiary', 'tertiary_link'
@@ -46,20 +58,20 @@ INNER_ROAD_BIASED_TYPES = {
 }
 
 TWO_WHEELER_ROAD_PENALTIES = {
-    'motorway': 4.0,
-    'motorway_link': 3.0,
-    'trunk': 3.0,
-    'trunk_link': 2.5,
-    'primary': 2.2,
-    'primary_link': 2.0,
-    'secondary': 1.5,
-    'secondary_link': 1.4,
-    'tertiary': 1.15,
-    'tertiary_link': 1.1,
+    'motorway': 3.5,
+    'motorway_link': 2.5,
+    'trunk': 2.5,
+    'trunk_link': 2.0,
+    'primary': 1.35,
+    'primary_link': 1.25,
+    'secondary': 1.20,
+    'secondary_link': 1.15,
+    'tertiary': 1.10,
+    'tertiary_link': 1.05,
     'residential': 1.0,
-    'living_street': 0.95,
+    'living_street': 0.98,
     'unclassified': 1.0,
-    'service': 0.9,
+    'service': 1.05,
     'road': 1.1,
 }
 

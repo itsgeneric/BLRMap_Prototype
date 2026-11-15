@@ -4,7 +4,8 @@ import networkx as nx
 from core.config import (
     TWO_WHEELER_ROAD_PENALTIES, MAIN_ROAD_TYPES, INNER_ROAD_BIASED_TYPES,
     FILTER_DISCOUNT_PER_JUNCTION, FILTER_DISCOUNT_FLOOR, MIN_LANES_FOR_FILTERING,
-    DEFAULT_ROUTE_SPLIT_FRACTIONS, DETOUR_TOLERANCE
+    DEFAULT_ROUTE_SPLIT_FRACTIONS, DETOUR_TOLERANCE,
+    MAJOR_TO_MINOR_TRANSITION_PENALTY_M, MINOR_ALLEY_TYPES
 )
 
 # Lowest possible multiplier any edge can get (roundabout default=0.95,
@@ -83,6 +84,11 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
         if inc_p > 1.0:
             penalty *= inc_p
 
+    # Anti-Rat-Running: Penalize transitioning from a major highway into a minor residential alley
+    if hw in MINOR_ALLEY_TYPES and u is not None and v is not None and graph_mgr is not None:
+        if hasattr(graph_mgr, 'major_nodes') and u in graph_mgr.major_nodes and v not in graph_mgr.major_nodes:
+            return (length * penalty) + MAJOR_TO_MINOR_TRANSITION_PENALTY_M
+
     if edge_data.get('junction') == 'roundabout':
         penalty *= penalty_map.get('_roundabout_multiplier', 0.95)
 
@@ -94,6 +100,53 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
         penalty *= edge_blacklist.get_edge_penalty(u, v)
 
     return length * penalty
+
+def collapse_micro_loops(route_nodes, graph, max_detour_m=160.0):
+    """
+    Scans the route for redundant micro-loops where a route leaves a corridor
+    and returns to the same corridor within a short distance (<= max_detour_m).
+    If a direct path along the corridor exists and is shorter or equal, collapses the loop.
+    """
+    if not route_nodes or len(route_nodes) < 4:
+        return route_nodes
+
+    n = len(route_nodes)
+    collapsed = []
+    i = 0
+    while i < n:
+        curr = route_nodes[i]
+        collapsed.append(curr)
+
+        # Look ahead up to 12 steps (micro-loops are typically 3-8 nodes)
+        shortcut_found = False
+        max_lookahead = min(n, i + 12)
+        for j in range(max_lookahead - 1, i + 2, -1):
+            target = route_nodes[j]
+            # Check if a direct edge exists between curr and target
+            if target in graph[curr]:
+                # Calculate the detour distance along route_nodes[i:j+1]
+                detour_dist = 0.0
+                for k in range(i, j):
+                    a, b = route_nodes[k], route_nodes[k+1]
+                    if b in graph[a]:
+                        detour_dist += float(min(d.get('length', 1.0) for d in graph[a][b].values()))
+
+                if 0 < detour_dist <= max_detour_m:
+                    direct_edge = min(graph[curr][target].values(), key=lambda d: float(d.get('length', 1.0)))
+                    direct_len = float(direct_edge.get('length', 1.0))
+
+                    # If direct path is shorter than the detour loop, bypass the detour!
+                    if direct_len < detour_dist:
+                        i = j  # jump directly to target
+                        shortcut_found = True
+                        break
+
+        if not shortcut_found:
+            i += 1
+
+    if collapsed[-1] != route_nodes[-1]:
+        collapsed.append(route_nodes[-1])
+    return collapsed
 
 def astar_on_graph(graph, start_node, end_node):
     from routing.edge_blacklist import edge_blacklist
