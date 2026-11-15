@@ -101,11 +101,12 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
 
     return length * penalty
 
-def collapse_micro_loops(route_nodes, graph, max_detour_m=160.0):
+def collapse_micro_loops(route_nodes, graph, max_detour_m=320.0):
     """
-    Scans the route for redundant micro-loops where a route leaves a corridor
+    Scans the route for redundant micro-loops / box detours where a route leaves a corridor
     and returns to the same corridor within a short distance (<= max_detour_m).
-    If a direct path along the corridor exists and is shorter or equal, collapses the loop.
+    Checks both direct 1-hop edges and multi-hop corridor paths.
+    If a direct corridor path exists and is shorter or bypasses a box detour, collapses the loop.
     """
     if not route_nodes or len(route_nodes) < 4:
         return route_nodes
@@ -117,29 +118,54 @@ def collapse_micro_loops(route_nodes, graph, max_detour_m=160.0):
         curr = route_nodes[i]
         collapsed.append(curr)
 
-        # Look ahead up to 12 steps (micro-loops are typically 3-8 nodes)
+        # Look ahead up to 15 steps (micro-loops and box detours are typically 3-12 nodes)
         shortcut_found = False
-        max_lookahead = min(n, i + 12)
+        max_lookahead = min(n, i + 15)
         for j in range(max_lookahead - 1, i + 2, -1):
             target = route_nodes[j]
-            # Check if a direct edge exists between curr and target
+
+            # Calculate the detour distance along route_nodes[i:j+1]
+            detour_dist = 0.0
+            valid_detour = True
+            for k in range(i, j):
+                a, b = route_nodes[k], route_nodes[k+1]
+                if b in graph[a]:
+                    detour_dist += float(min(d.get('length', 1.0) for d in graph[a][b].values()))
+                else:
+                    valid_detour = False
+                    break
+
+            if not valid_detour or detour_dist > max_detour_m or detour_dist <= 5.0:
+                continue
+
+            # 1. Direct 1-hop edge
             if target in graph[curr]:
-                # Calculate the detour distance along route_nodes[i:j+1]
-                detour_dist = 0.0
-                for k in range(i, j):
-                    a, b = route_nodes[k], route_nodes[k+1]
-                    if b in graph[a]:
-                        detour_dist += float(min(d.get('length', 1.0) for d in graph[a][b].values()))
+                direct_edge = min(graph[curr][target].values(), key=lambda d: float(d.get('length', 1.0)))
+                direct_len = float(direct_edge.get('length', 1.0))
+                if direct_len < detour_dist:
+                    i = j
+                    shortcut_found = True
+                    break
 
-                if 0 < detour_dist <= max_detour_m:
-                    direct_edge = min(graph[curr][target].values(), key=lambda d: float(d.get('length', 1.0)))
-                    direct_len = float(direct_edge.get('length', 1.0))
+            # 2. Multi-hop corridor path (e.g. box loop around a block)
+            try:
+                direct_path = nx.shortest_path(
+                    graph, curr, target,
+                    weight=lambda u, v, d: float(min(ed.get('length', 1.0) for ed in d.values()) if isinstance(d, dict) and 'length' not in d else d.get('length', 1.0))
+                )
+                direct_dist = 0.0
+                for idx in range(len(direct_path) - 1):
+                    du, dv = direct_path[idx], direct_path[idx+1]
+                    direct_dist += float(min(ed.get('length', 1.0) for ed in graph[du][dv].values()))
 
-                    # If direct path is shorter than the detour loop, bypass the detour!
-                    if direct_len < detour_dist:
-                        i = j  # jump directly to target
-                        shortcut_found = True
-                        break
+                # If direct corridor path is shorter or replaces a multi-turn detour with fewer nodes
+                if direct_dist < detour_dist - 5.0 or (direct_dist <= detour_dist + 2.0 and len(direct_path) < (j - i)):
+                    collapsed.extend(direct_path[1:-1])
+                    i = j
+                    shortcut_found = True
+                    break
+            except Exception:
+                continue
 
         if not shortcut_found:
             i += 1

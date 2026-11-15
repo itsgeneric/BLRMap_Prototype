@@ -104,6 +104,7 @@ export default function NavigationApp() {
     deviceHeading,
     isLocating,
     getCurrentLocation,
+    requestCompassPermission,
   } = useGPS();
 
   // Check if Origin is user's current live location
@@ -283,6 +284,13 @@ export default function NavigationApp() {
         } else {
           setShortestRouteData(res);
         }
+        if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          try {
+            const utterance = new SpeechSynthesisUtterance('New route found');
+            utterance.rate = 1.05;
+            window.speechSynthesis.speak(utterance);
+          } catch {}
+        }
       } else {
         addToast('Could not reroute from your position. Stay on course.', 'warning');
       }
@@ -366,10 +374,11 @@ export default function NavigationApp() {
       if (activeJourneyIdRef.current) {
         startTrip(activeJourneyIdRef.current, origin, destination);
       }
+      requestCompassPermission();
       startNavigation();
       setIsFollowingCamera(true);
     },
-    [routeData, shortestRouteData, dynamicRouteData, selectedRouteType, startNavigation]
+    [routeData, shortestRouteData, dynamicRouteData, selectedRouteType, startNavigation, requestCompassPermission]
   );
 
   // Preview Route Handler (Fits bounds to show full route)

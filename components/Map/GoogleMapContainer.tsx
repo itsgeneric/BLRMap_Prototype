@@ -454,11 +454,15 @@ function GoogleMapInner({
 
   // ─── Map heading follow during navigation (GMaps-style) ───
   // When in 'heading_up' (Local POV) mode with camera follow:
-  // Smoothly rotate map to face direction of travel + 30-deg perspective tilt.
+  // Smoothly rotate map to face direction of travel + 45-deg perspective tilt.
+  // When stationary (speed <= 1.5 m/s), follows phone compass as the user rotates phone in hand!
   // When in 'north_up' mode or navigation ends: lock map heading to 0 and flat view.
   useEffect(() => {
     if (!map) return;
-    const riderHeading = gpsPosition?.heading ?? deviceHeading ?? 0;
+    const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
+    const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
+      ? gpsPosition.heading
+      : (deviceHeading || gpsPosition?.heading || 0);
 
     if (isNavigating && isFollowingCamera && compassMode === 'heading_up' && riderHeading !== null) {
       // Smoothly rotate map to rider heading + 45-deg perspective tilt for 3D buildings
@@ -475,7 +479,7 @@ function GoogleMapInner({
       }
     }
     prevIsNavigatingRef.current = isNavigating;
-  }, [map, isNavigating, isFollowingCamera, compassMode, gpsPosition?.heading, deviceHeading]);
+  }, [map, isNavigating, isFollowingCamera, compassMode, gpsPosition?.heading, gpsPosition?.speed, deviceHeading]);
 
   // Also reset heading when camera unlinks (user pans map during navigation)
   useEffect(() => {
@@ -755,7 +759,10 @@ function GoogleMapInner({
     if (!map) return;
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
 
-    const riderHeading = gpsPosition?.heading ?? deviceHeading ?? 0;
+    const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
+    const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
+      ? gpsPosition.heading
+      : (deviceHeading || gpsPosition?.heading || 0);
 
     if (compassMode === 'heading_up') {
       // Tap 1: Switch to North-Up flat view
@@ -800,7 +807,10 @@ function GoogleMapInner({
     : 'bottom-[28px]';       // idle — near bottom edge
 
   const riderCoord = gpsPosition?.lat && gpsPosition?.lng ? gpsPosition : null;
-  const riderHeading = gpsPosition?.heading ?? deviceHeading ?? 0;
+  const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
+  const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
+    ? gpsPosition.heading
+    : (deviceHeading || gpsPosition?.heading || 0);
 
   return (
     <>

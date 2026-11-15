@@ -94,18 +94,37 @@ export function useNavigationEngine({
     const remDist = calculateRemainingRouteDistance(lat, lng, polyline, segIdx);
     setRemainingMeters(remDist);
 
-    // 4. Off-Route Detection
-    // 80m threshold: GPS accuracy is ±10-30m in urban Bangalore, so 80m is a safe margin.
-    // Requires 8 consecutive seconds off-route before triggering (avoids false positives at intersections).
+    // 4. Off-Route Detection (Google Maps Grade)
+    // 38m threshold: GPS accuracy in Bangalore is ±8-15m. 38m means rider has clearly entered an alternative turn/road.
+    // 2000ms persistence: Requires 2 seconds continuously off-route to eliminate single GPS point bounce.
+    // 6000ms cooldown: Prevents API hammering while allowing swift re-evaluation.
     const now = Date.now();
-    if (distToRoute > 80) {
+    if (distToRoute > 38) {
       if (!offRouteSinceRef.current) {
         offRouteSinceRef.current = now;
-      } else if (now - offRouteSinceRef.current > 8000) {
+      } else if (now - offRouteSinceRef.current > 2000) {
         // Don't fire if a reroute is already in flight or cooldown hasn't elapsed
-        if (!isOffRoute && !isRerouting && now - lastRerouteTimeRef.current > 20000) {
+        if (!isOffRoute && !isRerouting && now - lastRerouteTimeRef.current > 6000) {
           setIsOffRoute(true);
           lastRerouteTimeRef.current = now;
+
+          // Haptic double-pulse feedback
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate([40, 60, 40]);
+          }
+
+          // Voice guidance alert: "Rerouting..."
+          if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance('Rerouting');
+              utterance.rate = 1.05;
+              window.speechSynthesis.speak(utterance);
+            } catch (e) {
+              // Ignore speech errors
+            }
+          }
+
           if (onRerouteNeeded) {
             onRerouteNeeded({
               lat,
