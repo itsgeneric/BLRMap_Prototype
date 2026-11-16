@@ -41,6 +41,20 @@ class GraphManager:
             print(f"Loading compiled road network directly from binary PKL: {pkl_path}...")
             with open(pkl_path, 'rb') as f:
                 data = pickle.load(f)
+
+            # Fast binary path: If PKL already contains pre-compiled, strongly-connected graph with indexes
+            if isinstance(data, dict) and 'major_nodes' in data and 'G_inner' in data:
+                self.G = data['G']
+                self.G_inner = data.get('G_inner')
+                self.major_nodes = data.get('major_nodes', set())
+                self.bounds = data.get('bounds', {})
+                self.center = data.get('center', {})
+                print(f"Fast binary load complete: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (instant boot)")
+                self.load_surface_penalties()
+                from routing.edge_blacklist import edge_blacklist
+                edge_blacklist.load()
+                return
+
             self.G = data['G'] if isinstance(data, dict) else data
             print(f"PKL loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
         else:
@@ -138,6 +152,22 @@ class GraphManager:
         self.load_surface_penalties()
         from routing.edge_blacklist import edge_blacklist
         edge_blacklist.load()
+
+        # ── Auto-cache fully compiled graph binary for instant boots next time ──
+        try:
+            print(f"Caching optimized graph binary for instant boots next time to: {pkl_path}...")
+            with open(pkl_path, 'wb') as f:
+                pickle.dump({
+                    'G': self.G,
+                    'G_inner': self.G_inner,
+                    'major_nodes': self.major_nodes,
+                    'bounds': self.bounds,
+                    'center': self.center,
+                    'version': 2
+                }, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print("Optimized binary PKL saved successfully.")
+        except Exception as exc:
+            print(f"Warning: Could not auto-cache optimized graph: {exc}")
 
     def _is_inner(self, data):
         hw = data.get('highway', 'unclassified')
