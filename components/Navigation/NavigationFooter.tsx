@@ -21,13 +21,43 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = ({
 }) => {
   const displayDist = formatDistance(remainingMeters);
   const etaTime = calculateETA(remainingMeters, currentSpeedMps ?? null);
+
+  // Steady Bengaluru urban 2-wheeler baseline: 26 km/h.
+  // Only adapt if rider is steadily cruising at sustained high speed (> 22 km/h / 6.0 m/s).
+  // This completely eliminates ETA flip-flopping when stopped at traffic lights or turning corners.
+  let effectiveSpeedKmh = 26.0;
+  if (currentSpeedMps && currentSpeedMps > 6.0) {
+    effectiveSpeedKmh = Math.min(45.0, 0.7 * (currentSpeedMps * 3.6) + 0.3 * 26.0);
+  }
   const durationRemaining = formatDuration(
-    Math.max(30, (remainingMeters / 1000 / (currentSpeedMps && currentSpeedMps > 1 ? currentSpeedMps * 3.6 : 28)) * 3600)
+    Math.max(30, (remainingMeters / 1000 / effectiveSpeedKmh) * 3600)
   );
   const speedText = formatSpeed(currentSpeedMps ?? null);
 
   return (
     <div className="fixed bottom-2.5 sm:bottom-4 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[1000] font-sans pb-[env(safe-area-inset-bottom)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+      {/* Floating Google Maps Re-center Button (pops up when user drags / explores map) */}
+      {!isFollowingCamera && (
+        <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-[1002] animate-in fade-in zoom-in-95 duration-200">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (typeof window !== 'undefined') {
+                if ('vibrate' in navigator) navigator.vibrate(12);
+                window.dispatchEvent(new CustomEvent('recenter-map'));
+              }
+              if (onRecenter) onRecenter();
+            }}
+            className="bg-white hover:bg-slate-50 active:scale-95 text-[#1a73e8] px-5 py-2.5 rounded-full shadow-2xl shadow-black/30 border border-slate-200 flex items-center gap-2 font-bold text-sm tracking-wide transition cursor-pointer"
+          >
+            <Crosshair className="w-4 h-4 text-[#1a73e8]" />
+            <span>Re-center</span>
+          </button>
+        </div>
+      )}
+
       {/* Google Maps Authentic Navigation Footer Card */}
       <div className="bg-white rounded-3xl p-3.5 sm:p-4 text-slate-900 flex items-center justify-between gap-3 shadow-2xl shadow-black/25 border border-slate-200">
         {/* ETA & Distance Info */}

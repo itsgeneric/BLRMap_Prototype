@@ -33,6 +33,7 @@ export interface MapContainerProps {
   onSelectDestination?: (location: Point) => void;
   onMapClick?: (latlng: [number, number]) => void;
   onRecenter?: () => void;
+  onCameraUnlink?: () => void;
 }
 
 const GOOGLE_MAPS_API_KEY =
@@ -320,13 +321,52 @@ function GoogleMapInner({
   onSelectDestination,
   onMapClick,
   onRecenter,
+  onCameraUnlink,
 }: MapContainerProps) {
   const map = useMap();
   const [locating, setLocating] = useState(false);
   const [mapHeading, setMapHeading] = useState(0);
   const [compassMode, setCompassMode] = useState<'heading_up' | 'north_up'>('heading_up');
+  const [isLocallyFollowing, setIsLocallyFollowing] = useState(isFollowingCamera);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const prevIsNavigatingRef = useRef(false);
+
+  // Keep local follow state synced when prop changes (e.g. from Recenter button)
+  useEffect(() => {
+    setIsLocallyFollowing(isFollowingCamera);
+  }, [isFollowingCamera]);
+
+  // When user touches, drags, or zooms the map, immediately unlink camera so they can freely explore
+  useEffect(() => {
+    if (!map) return;
+
+    const unlink = () => {
+      setIsLocallyFollowing(false);
+      if (onCameraUnlink) onCameraUnlink();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('camera-unlinked'));
+      }
+    };
+
+    const dragStartListener = map.addListener('dragstart', unlink);
+    const dragListener = map.addListener('drag', unlink);
+
+    // Also attach native DOM touch listeners to map container for mobile touchscreens
+    const mapDiv = map.getDiv();
+    if (mapDiv) {
+      mapDiv.addEventListener('touchstart', unlink, { passive: true });
+      mapDiv.addEventListener('touchmove', unlink, { passive: true });
+    }
+
+    return () => {
+      google.maps.event.removeListener(dragStartListener);
+      google.maps.event.removeListener(dragListener);
+      if (mapDiv) {
+        mapDiv.removeEventListener('touchstart', unlink);
+        mapDiv.removeEventListener('touchmove', unlink);
+      }
+    };
+  }, [map, onCameraUnlink]);
 
   // When navigation starts, automatically enter heading_up (Local POV) mode
   useEffect(() => {
@@ -464,7 +504,7 @@ function GoogleMapInner({
       ? gpsPosition.heading
       : (deviceHeading || gpsPosition?.heading || 0);
 
-    if (isNavigating && isFollowingCamera && compassMode === 'heading_up' && riderHeading !== null) {
+    if (isNavigating && isLocallyFollowing && compassMode === 'heading_up' && riderHeading !== null) {
       // Smoothly rotate map to rider heading + 45-deg perspective tilt for 3D buildings
       map.setHeading(riderHeading);
       map.setTilt(45);
@@ -479,7 +519,7 @@ function GoogleMapInner({
       }
     }
     prevIsNavigatingRef.current = isNavigating;
-  }, [map, isNavigating, isFollowingCamera, compassMode, gpsPosition?.heading, gpsPosition?.speed, deviceHeading]);
+  }, [map, isNavigating, isLocallyFollowing, compassMode, gpsPosition?.heading, gpsPosition?.speed, deviceHeading]);
 
   // Also reset heading when camera unlinks (user pans map during navigation)
   useEffect(() => {
@@ -660,6 +700,7 @@ function GoogleMapInner({
   // Global recenter listener
   useEffect(() => {
     const handleGlobalRecenter = () => {
+      setIsLocallyFollowing(true);
       if (!map) return;
       const zoomLevel = isNavigating ? 18 : 16;
       if (gpsPosition?.lat && gpsPosition?.lng) {
@@ -682,11 +723,11 @@ function GoogleMapInner({
 
   // Camera follow during active navigation
   useEffect(() => {
-    if (!map || !isNavigating || !isFollowingCamera) return;
+    if (!map || !isNavigating || !isLocallyFollowing) return;
     if (gpsPosition?.lat && gpsPosition?.lng) {
       map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
     }
-  }, [map, gpsPosition, isNavigating, isFollowingCamera]);
+  }, [map, gpsPosition, isNavigating, isLocallyFollowing]);
 
   // Handle map click events to set Origin / Destination
   useEffect(() => {
@@ -720,6 +761,7 @@ function GoogleMapInner({
       e.stopPropagation();
       e.preventDefault();
       if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+      setIsLocallyFollowing(true);
       if (onRecenter) onRecenter();
       if (!map) return;
 
@@ -755,6 +797,7 @@ function GoogleMapInner({
   // Compass toggle — GMaps style:
   // - Tap once: locks map to North-Up (flat view facing North)
   // - Tap again: switches back to Local POV (where user is seeing / facing, with 3D tilt)
+  // - Does NOT force panTo: user stays wherever they are currently viewing!
   const handleCompassToggle = useCallback(() => {
     if (!map) return;
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
@@ -765,26 +808,29 @@ function GoogleMapInner({
       : (deviceHeading || gpsPosition?.heading || 0);
 
     if (compassMode === 'heading_up') {
-      // Tap 1: Switch to North-Up flat view
+      // Tap 1: Switch to North-Up flat view (0° heading, 0° tilt)
       setCompassMode('north_up');
       map.setHeading(0);
       map.setTilt(0);
       setMapHeading(0);
     } else {
-      // Tap 2: Switch back to Local POV (facing where user is seeing/traveling)
+      // Tap 2: Switch back to Driver POV (re-locks camera onto driver at 45° tilt!)
       setCompassMode('heading_up');
       if (riderHeading !== null) {
         map.setHeading(riderHeading);
-        if (isNavigating) {
-          map.setTilt(30);
-        }
         setMapHeading(riderHeading);
       }
-      if (gpsPosition?.lat && gpsPosition?.lng) {
-        map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
+      if (isNavigating) {
+        map.setTilt(45);
+        setIsLocallyFollowing(true);
+        if (onRecenter) onRecenter();
+        if (gpsPosition?.lat && gpsPosition?.lng) {
+          map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
+          map.setZoom(18);
+        }
       }
     }
-  }, [map, compassMode, isNavigating, gpsPosition, deviceHeading]);
+  }, [map, compassMode, isNavigating, gpsPosition, deviceHeading, onRecenter]);
 
   const isOriginMyLocation = useMemo(() => {
     if (!origin) return false;

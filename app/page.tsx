@@ -403,6 +403,13 @@ export default function NavigationApp() {
     }
   }, []);
 
+  // Listen for user panning/dragging the map to unlink camera follow
+  useEffect(() => {
+    const handleCameraUnlink = () => setIsFollowingCamera(false);
+    window.addEventListener('camera-unlinked', handleCameraUnlink);
+    return () => window.removeEventListener('camera-unlinked', handleCameraUnlink);
+  }, []);
+
   return (
     <div className="relative w-screen h-screen h-[100dvh] overflow-hidden flex flex-col font-sans select-none bg-slate-950">
       {/* Toast Notifications */}
@@ -466,6 +473,8 @@ export default function NavigationApp() {
         activeIncidents={activeIncidents}
         onSelectOrigin={handleSelectOrigin}
         onSelectDestination={handleSelectDestination}
+        onRecenter={handleRecenter}
+        onCameraUnlink={() => setIsFollowingCamera(false)}
       />
 
       {/* Floating Top UI Layer */}

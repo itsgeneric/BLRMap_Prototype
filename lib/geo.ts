@@ -48,9 +48,15 @@ export function formatSpeed(mps: number | null): string {
   return `${kmh} km/h`;
 }
 
-export function calculateETA(remainingMeters: number, currentSpeedMps: number | null): string {
-  const defaultSpeedKmh = 25; // Urban 2W average
-  const speedKmh = currentSpeedMps && currentSpeedMps > 1.5 ? currentSpeedMps * 3.6 : defaultSpeedKmh;
+export function calculateETA(remainingMeters: number, currentSpeedMps: number | null = null): string {
+  // Steady Bengaluru urban 2-wheeler average: 26 km/h (~7.2 m/s)
+  // Only adapt if rider is steadily traveling at a sustained cruising speed (> 22 km/h / 6.0 m/s).
+  // This completely eliminates ETA flip-flopping when stopped at traffic lights or turning corners.
+  let speedKmh = 26.0;
+  if (currentSpeedMps && currentSpeedMps > 6.0) {
+    speedKmh = Math.min(45.0, 0.7 * (currentSpeedMps * 3.6) + 0.3 * 26.0);
+  }
+
   const hours = (remainingMeters / 1000) / speedKmh;
   const seconds = Math.max(30, hours * 3600);
   
