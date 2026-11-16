@@ -2,8 +2,8 @@ import { Point, RouteMode, RouteResponse, SearchResult, IncidentType, RoadIncide
 
 // API Base URL: Toggle between local development and Azure deployment
 const getApiBase = () => {
-    return 'http://127.0.0.1:8000';
-    // return 'http://4.193.145.212:8000'
+    // return 'http://127.0.0.1:8000';
+    return 'http://4.193.145.212:8000'
 };
 
 
