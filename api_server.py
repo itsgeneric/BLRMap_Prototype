@@ -132,13 +132,18 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
     # Fetch live crowd-sourced incidents (accidents, floods, hazards) for dynamic avoidance
     incident_penalties = await db.get_active_incident_penalties()
 
-    penalties = build_two_wheeler_penalties()
+    # Check if this is a local neighbourhood trip (< 1.5 km) where inner link roads should be prioritized
+    direct_dist = haversine_m(from_lat, from_lng, to_lat, to_lng)
+    is_short_trip = direct_dist < 1500.0
+
+    penalties = build_two_wheeler_penalties(inner_road_multiplier=0.95 if is_short_trip else 1.0)
 
     try:
         route = two_wheeler_astar(
             graph_manager.G, start, end, graph_manager,
             penalties=penalties, congested_nodes=congested_nodes,
             incident_nodes=incident_penalties,
+            is_short_trip=is_short_trip,
         )
 
         # GMaps verification loop: iteratively eliminate any ghost/private roads
@@ -151,6 +156,7 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
                     graph_manager.G, start, end, graph_manager,
                     penalties=penalties, congested_nodes=congested_nodes,
                     incident_nodes=incident_penalties,
+                    is_short_trip=is_short_trip,
                 )
             except Exception:
                 break

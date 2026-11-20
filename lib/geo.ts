@@ -197,7 +197,7 @@ export function snapPositionToPolyline(
   lng: number,
   polyline: LatLng[],
   lastKnownIndex: number = 0,
-  maxSnapDistanceM: number = 32
+  maxSnapDistanceM: number = 75
 ): {
   lat: number;
   lng: number;

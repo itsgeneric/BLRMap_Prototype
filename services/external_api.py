@@ -327,6 +327,10 @@ async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = S
 
             for idx, (u, v, orig_lat, orig_lng, hw) in enumerate(sampled_edges):
                 if idx not in snapped_by_index:
+                    # Do NOT blacklist residential / unclassified / service roads simply because Google Roads Snap
+                    # did not return a match. In Bengaluru, Google Roads API frequently omits valid residential cross streets.
+                    if hw in {'residential', 'living_street', 'unclassified', 'service', 'road'}:
+                        continue
                     # Point could not be snapped to any road in Google Maps
                     edge_blacklist.mark_edge_bad(
                         u, v,

@@ -66,7 +66,7 @@ def build_two_wheeler_penalties(main_road_penalty=1.0, inner_road_multiplier=1.0
     penalties['_roundabout_multiplier'] = roundabout_multiplier
     return penalties
 
-def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, congested_nodes=None, incident_nodes=None):
+def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, congested_nodes=None, incident_nodes=None, is_short_trip=False):
     length = float(edge_data.get('length', 1.0))
     hw = edge_data.get('highway', 'unclassified')
     if isinstance(hw, list): hw = hw[0]
@@ -85,7 +85,9 @@ def two_wheeler_edge_cost(edge_data, graph_mgr, penalties=None, u=None, v=None, 
             penalty *= inc_p
 
     # Anti-Rat-Running: Penalize transitioning from a major highway into a minor residential alley
-    if hw in MINOR_ALLEY_TYPES and u is not None and v is not None and graph_mgr is not None:
+    # ONLY applied on medium/long distance commutes (> 1.5 km). For local neighbourhood trips (< 1.5 km),
+    # inner link roads and residential cross streets are essential, direct shortcuts for two-wheelers!
+    if not is_short_trip and hw in MINOR_ALLEY_TYPES and u is not None and v is not None and graph_mgr is not None:
         if hasattr(graph_mgr, 'major_nodes') and u in graph_mgr.major_nodes and v not in graph_mgr.major_nodes:
             return (length * penalty) + MAJOR_TO_MINOR_TRANSITION_PENALTY_M
 
@@ -183,14 +185,14 @@ def astar_on_graph(graph, start_node, end_node):
         return min(float(d.get('length', 1.0)) for d in edge_data.values()) * bl_penalty
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
-def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None, incident_nodes=None):
+def two_wheeler_astar(graph, start_node, end_node, graph_mgr, penalties=None, congested_nodes=None, incident_nodes=None, is_short_trip=False):
     # FIX: divide by MIN_PENALTY_FLOOR so heuristic never overestimates true
     # remaining cost (edges can be cheaper than length*1.0, e.g. bridges/roundabouts).
     def heuristic(a, b):
         return haversine_m(graph.nodes[a]['y'], graph.nodes[a]['x'], graph.nodes[b]['y'], graph.nodes[b]['x']) / MIN_PENALTY_FLOOR
     def cost(u, v, edge_data):
-        if 'length' in edge_data: return two_wheeler_edge_cost(edge_data, graph_mgr, penalties, u, v, congested_nodes, incident_nodes)
-        return min(two_wheeler_edge_cost(d, graph_mgr, penalties, u, v, congested_nodes, incident_nodes) for d in edge_data.values())
+        if 'length' in edge_data: return two_wheeler_edge_cost(edge_data, graph_mgr, penalties, u, v, congested_nodes, incident_nodes, is_short_trip=is_short_trip)
+        return min(two_wheeler_edge_cost(d, graph_mgr, penalties, u, v, congested_nodes, incident_nodes, is_short_trip=is_short_trip) for d in edge_data.values())
     return nx.astar_path(graph, start_node, end_node, heuristic=heuristic, weight=cost)
 
 def calc_route_distance(graph, route):

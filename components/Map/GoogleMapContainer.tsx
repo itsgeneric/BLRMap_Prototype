@@ -437,6 +437,30 @@ function GoogleMapInner({
     return dist > 0.00001 ? 1 : 0;
   }, [routePath, origin]);
 
+  // Google Maps-Grade Snap-to-Road:
+  // Orthogonally projects noisy GPS coordinates onto the active route polyline centerline
+  const snapped = useMemo(() => {
+    if (!isNavigating || !fullConnectedPath || fullConnectedPath.length < 2 || !gpsPosition?.lat || !gpsPosition?.lng) {
+      return null;
+    }
+    return snapPositionToPolyline(gpsPosition.lat, gpsPosition.lng, fullConnectedPath, traveledIndex, 75);
+  }, [isNavigating, fullConnectedPath, gpsPosition?.lat, gpsPosition?.lng, traveledIndex]);
+
+  const activeRiderLat = snapped?.isSnapped ? snapped.lat : gpsPosition?.lat;
+  const activeRiderLng = snapped?.isSnapped ? snapped.lng : gpsPosition?.lng;
+  const riderCoord = activeRiderLat && activeRiderLng ? { lat: activeRiderLat, lng: activeRiderLng } : null;
+
+  const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.2;
+  const riderHeading = useMemo(() => {
+    if (isNavigating && snapped?.isSnapped && isMoving) {
+      return snapped.bearing;
+    }
+    if (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined) {
+      return gpsPosition.heading;
+    }
+    return deviceHeading || gpsPosition?.heading || 0;
+  }, [isNavigating, snapped, isMoving, gpsPosition?.heading, deviceHeading]);
+
   // Split route into Traveled vs Remaining for Google Maps progression
   // traveledIndex indexes into routeData.path, so we correct for the origin prefix
   const { traveledCoords, remainingCoords } = useMemo(() => {
@@ -449,9 +473,13 @@ function GoogleMapInner({
     // Adjust for the origin prefix that was prepended to fullConnectedPath
     const adjustedIdx = Math.min(traveledIndex + pathPrefixOffset, fullConnectedPath.length - 1);
     const traveled = fullConnectedPath.slice(0, adjustedIdx + 1);
-    const remaining = fullConnectedPath.slice(adjustedIdx);
+    let remaining = fullConnectedPath.slice(adjustedIdx);
+    if (isNavigating && riderCoord) {
+      // Connect remaining blue line seamlessly from the rider's snapped chevron position (zero floating gap)
+      remaining = [[riderCoord.lat, riderCoord.lng], ...remaining];
+    }
     return { traveledCoords: traveled, remainingCoords: remaining };
-  }, [fullConnectedPath, isNavigating, traveledIndex, pathPrefixOffset]);
+  }, [fullConnectedPath, isNavigating, traveledIndex, pathPrefixOffset, riderCoord]);
 
   // ─── Zoom-change listener: track heading + update polyline weights ───
   useEffect(() => {
@@ -721,29 +749,7 @@ function GoogleMapInner({
     return () => window.removeEventListener('recenter-map', handleGlobalRecenter);
   }, [map, gpsPosition, isNavigating]);
 
-  // Google Maps-Grade Snap-to-Road:
-  // Orthogonally projects noisy GPS coordinates onto the active route polyline centerline
-  const snapped = useMemo(() => {
-    if (!isNavigating || !routePath || routePath.length < 2 || !gpsPosition?.lat || !gpsPosition?.lng) {
-      return null;
-    }
-    return snapPositionToPolyline(gpsPosition.lat, gpsPosition.lng, routePath, traveledIndex, 35);
-  }, [isNavigating, routePath, gpsPosition?.lat, gpsPosition?.lng, traveledIndex]);
 
-  const activeRiderLat = snapped?.isSnapped ? snapped.lat : gpsPosition?.lat;
-  const activeRiderLng = snapped?.isSnapped ? snapped.lng : gpsPosition?.lng;
-  const riderCoord = activeRiderLat && activeRiderLng ? { lat: activeRiderLat, lng: activeRiderLng } : null;
-
-  const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.2;
-  const riderHeading = useMemo(() => {
-    if (isNavigating && snapped?.isSnapped && isMoving) {
-      return snapped.bearing;
-    }
-    if (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined) {
-      return gpsPosition.heading;
-    }
-    return deviceHeading || gpsPosition?.heading || 0;
-  }, [isNavigating, snapped, isMoving, gpsPosition?.heading, deviceHeading]);
 
   // Camera follow during active navigation (smoothly tracks road-snapped coordinate)
   useEffect(() => {

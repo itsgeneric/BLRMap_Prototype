@@ -1,6 +1,6 @@
 class VoiceGuidance {
   private synth: SpeechSynthesis | null = null;
-  private enabled: boolean = false; // Default OFF
+  private enabled: boolean = true; // Default ON so rider hears navigation immediately
   private lastSpokenText: string = '';
   private lastSpokenTime: number = 0;
   private spokenMilestones: Set<string> = new Set();
@@ -8,6 +8,27 @@ class VoiceGuidance {
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this.synth = window.speechSynthesis;
+    }
+  }
+
+  /**
+   * Primes speech synthesis on a user touch/click gesture.
+   * Required by Android WebView to unlock audio channels.
+   */
+  public prime() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      this.synth = window.speechSynthesis;
+      if (!this.enabled || !this.synth) return;
+      try {
+        this.synth.cancel();
+        const u = new SpeechSynthesisUtterance('Navigation started');
+        u.volume = 1.0;
+        u.rate = 1.05;
+        u.lang = 'en-US';
+        this.synth.speak(u);
+      } catch (e) {
+        console.warn('Speech prime warning:', e);
+      }
     }
   }
 
@@ -60,7 +81,11 @@ class VoiceGuidance {
   }
 
   public speak(text: string) {
-    if (!this.enabled || !this.synth || !text) return;
+    if (!this.enabled || !text) return;
+    if (!this.synth && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      this.synth = window.speechSynthesis;
+    }
+    if (!this.synth) return;
 
     const now = Date.now();
     if (text === this.lastSpokenText && now - this.lastSpokenTime < 5000) {

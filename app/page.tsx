@@ -16,6 +16,7 @@ import { haversineMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
 import { startTrip, completeTrip, reportReroute } from '@/lib/tripTracker';
+import { voiceGuidance } from '@/lib/speech';
 
 import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
 import { ModeSelector } from '@/components/Navigation/ModeSelector';
@@ -54,12 +55,14 @@ export default function NavigationApp() {
   const [loading, setLoading] = useState(false);
   const [isRerouting, setIsRerouting] = useState(false);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('blrnav_voice');
-      if (saved === 'true') setVoiceEnabled(true);
+      if (saved !== null) {
+        setVoiceEnabled(saved === 'true');
+      }
     }
   }, []);
 
@@ -191,12 +194,36 @@ export default function NavigationApp() {
         originName: origin?.name || 'Start Point',
         destinationName: destination?.name || 'Destination',
       };
+      // Immediately clear all route polylines so no stray or crossed lines remain drawn
+      setRouteData(null);
+      setShortestRouteData(null);
+      setDynamicRouteData(null);
       setTripSummary(summary);
+
+      if (voiceEnabled) {
+        voiceGuidance.speak('You have arrived at your destination. Journey complete.');
+      }
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]);
+      }
       if (activeJourneyIdRef.current) {
         completeTrip(activeJourneyIdRef.current, summary);
       }
     },
   });
+
+  const handleArrivalDone = useCallback(() => {
+    setTripSummary(null);
+    setOrigin(null);
+    setDestination(null);
+    setRouteData(null);
+    setShortestRouteData(null);
+    setDynamicRouteData(null);
+    setActiveInput('origin');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recenter-map'));
+    }
+  }, []);
 
   // Route Fetch Function (for initial + mode change loads)
   const loadRoute = useCallback(async () => {
@@ -216,40 +243,28 @@ export default function NavigationApp() {
 
     setLoading(true);
     try {
-      if (mode === 'fastest') {
-        const both = await fetchBothRoutes(origin, destination, routeAbortControllerRef.current.signal);
-        setShortestRouteData(both.shortest);
-        setDynamicRouteData(both.dynamic);
+      // Always fetch both the direct link route (shortest) and the dynamic traffic route
+      // so the user has immediate route options to choose from (e.g. inner link road vs main road)
+      const both = await fetchBothRoutes(origin, destination, routeAbortControllerRef.current.signal);
+      setShortestRouteData(both.shortest);
+      setDynamicRouteData(both.dynamic);
 
-        const chosenType = both.fastestChoice;
-        setSelectedRouteType(chosenType);
-
-        const activeRes = both[chosenType] || both.shortest || both.dynamic;
-        if (activeRes && activeRes.path && activeRes.path.length > 0) {
-          setRouteData(activeRes);
-        } else {
-          setRouteData(null);
-          addToast('Could not calculate fastest route comparison.', 'error');
-        }
+      let chosenType: 'shortest' | 'dynamic' = 'shortest';
+      if (mode === 'dynamic') {
+        chosenType = both.dynamic ? 'dynamic' : 'shortest';
+      } else if (mode === 'fastest') {
+        chosenType = both.fastestChoice;
       } else {
-        const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
-        if (res.status === 'success' && res.path && res.path.length > 0) {
-          setRouteData(res);
-          if (mode === 'shortest') {
-            setShortestRouteData(res);
-            setDynamicRouteData(null);
-            setSelectedRouteType('shortest');
-          } else {
-            setDynamicRouteData(res);
-            setShortestRouteData(null);
-            setSelectedRouteType('dynamic');
-          }
-        } else {
-          setRouteData(null);
-          setShortestRouteData(null);
-          setDynamicRouteData(null);
-          addToast(res.message || 'No viable route found between these locations.', 'error');
-        }
+        chosenType = both.shortest ? 'shortest' : 'dynamic';
+      }
+      setSelectedRouteType(chosenType);
+
+      const activeRes = chosenType === 'dynamic' ? (both.dynamic || both.shortest) : (both.shortest || both.dynamic);
+      if (activeRes && activeRes.path && activeRes.path.length > 0) {
+        setRouteData(activeRes);
+      } else {
+        setRouteData(null);
+        addToast('No viable route found between these locations.', 'error');
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -396,6 +411,8 @@ export default function NavigationApp() {
       if (activeJourneyIdRef.current) {
         startTrip(activeJourneyIdRef.current, origin, destination);
       }
+      // Prime voice audio on user interaction to unlock Android WebView audio
+      voiceGuidance.prime();
       requestCompassPermission();
       startNavigation();
       setIsFollowingCamera(true);
@@ -440,16 +457,7 @@ export default function NavigationApp() {
       {/* Arrival Completion Summary Modal */}
       <ArrivalModal
         summary={tripSummary}
-        onClose={() => setTripSummary(null)}
-        onNewRoute={() => {
-          setTripSummary(null);
-          setOrigin(null);
-          setDestination(null);
-          setRouteData(null);
-          setShortestRouteData(null);
-          setDynamicRouteData(null);
-          setActiveInput('origin');
-        }}
+        onDone={handleArrivalDone}
       />
 
       {/* Google Maps-style Incident Reporting Button & Modal */}
@@ -474,10 +482,8 @@ export default function NavigationApp() {
         activeInput={activeInput}
         routePath={routeData?.path || null}
         alternateRoutePath={
-          // Only show the ghost alternate route while both routes are loaded
-          // AND the user has NOT yet confirmed/selected one of them.
-          // Once user taps a route card => hasConfirmedRoute=true => ghost disappears.
-          mode === 'fastest' && shortestRouteData && dynamicRouteData && !hasConfirmedRoute
+          // Show clickable alternate route polyline on map whenever both routes are available before navigation
+          shortestRouteData && dynamicRouteData && !isNavigating
             ? selectedRouteType === 'dynamic'
               ? shortestRouteData?.path
               : dynamicRouteData?.path
