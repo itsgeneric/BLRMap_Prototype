@@ -1,4 +1,5 @@
 import { Point, RouteMode, RouteResponse, SearchResult, IncidentType, RoadIncident } from './types';
+import { generateManeuversFromPolyline } from './geo';
 
 // API Base URL: Toggle between local development and Azure deployment
 const getApiBase = () => {
@@ -159,6 +160,11 @@ export async function fetchRoute(
     const data: RouteResponse = await res.json();
     if (data.status === 'error') {
       throw new Error(data.message || 'Route could not be calculated by algorithm.');
+    }
+
+    // Automatically synthesize turn-by-turn maneuvers from algorithm polyline
+    if (data.path && data.path.length >= 2 && (!data.maneuvers || data.maneuvers.length === 0)) {
+      data.maneuvers = generateManeuversFromPolyline(data.path);
     }
 
     return data;

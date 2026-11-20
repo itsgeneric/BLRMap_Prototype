@@ -10,7 +10,7 @@ import {
 } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
 import { LatLng as LatLngType, Point, GPSPosition, RouteMode, RoadIncident } from '@/lib/types';
-import { haversineMeters } from '@/lib/geo';
+import { haversineMeters, snapPositionToPolyline } from '@/lib/geo';
 import { darkMapStyle, lightMapStyle } from './googleMapStyles';
 
 export interface MapContainerProps {
@@ -38,7 +38,7 @@ export interface MapContainerProps {
 
 const GOOGLE_MAPS_API_KEY =
   process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ||
-  'AIzaSyDMeViVgIxe2EueO72GXA60D13o1ra-6yQ';
+  'AIzaSyAnGMf_jCG3tiPY15u3Quk8ThXCAHlGOjc';
 
 // ─────────────────────────────────────────────────────────────────
 // Zoom-adaptive stroke weights — mirrors Google Maps route rendering
@@ -721,18 +721,53 @@ function GoogleMapInner({
     return () => window.removeEventListener('recenter-map', handleGlobalRecenter);
   }, [map, gpsPosition, isNavigating]);
 
-  // Camera follow during active navigation
+  // Google Maps-Grade Snap-to-Road:
+  // Orthogonally projects noisy GPS coordinates onto the active route polyline centerline
+  const snapped = useMemo(() => {
+    if (!isNavigating || !routePath || routePath.length < 2 || !gpsPosition?.lat || !gpsPosition?.lng) {
+      return null;
+    }
+    return snapPositionToPolyline(gpsPosition.lat, gpsPosition.lng, routePath, traveledIndex, 35);
+  }, [isNavigating, routePath, gpsPosition?.lat, gpsPosition?.lng, traveledIndex]);
+
+  const activeRiderLat = snapped?.isSnapped ? snapped.lat : gpsPosition?.lat;
+  const activeRiderLng = snapped?.isSnapped ? snapped.lng : gpsPosition?.lng;
+  const riderCoord = activeRiderLat && activeRiderLng ? { lat: activeRiderLat, lng: activeRiderLng } : null;
+
+  const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.2;
+  const riderHeading = useMemo(() => {
+    if (isNavigating && snapped?.isSnapped && isMoving) {
+      return snapped.bearing;
+    }
+    if (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined) {
+      return gpsPosition.heading;
+    }
+    return deviceHeading || gpsPosition?.heading || 0;
+  }, [isNavigating, snapped, isMoving, gpsPosition?.heading, deviceHeading]);
+
+  // Camera follow during active navigation (smoothly tracks road-snapped coordinate)
   useEffect(() => {
     if (!map || !isNavigating || !isLocallyFollowing) return;
-    if (gpsPosition?.lat && gpsPosition?.lng) {
-      map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
+    const targetLat = snapped?.isSnapped ? snapped.lat : gpsPosition?.lat;
+    const targetLng = snapped?.isSnapped ? snapped.lng : gpsPosition?.lng;
+    if (targetLat && targetLng) {
+      map.panTo({ lat: targetLat, lng: targetLng });
     }
-  }, [map, gpsPosition, isNavigating, isLocallyFollowing]);
+  }, [map, isNavigating, isLocallyFollowing, snapped?.isSnapped, snapped?.lat, snapped?.lng, gpsPosition?.lat, gpsPosition?.lng]);
 
-  // Handle map click events to set Origin / Destination
+  // Disable clickable POI previews (shops, restaurants, etc.) to keep navigation clean and undisturbed
+  useEffect(() => {
+    if (!map) return;
+    map.setClickableIcons(false);
+  }, [map]);
+
+  // Handle map click events to set Origin / Destination (Disabled during active navigation)
   useEffect(() => {
     if (!map) return;
     const listener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      // 1. Never select origin or destination when user is actively navigating
+      if (isNavigating) return;
+
       if (!e.latLng) return;
       const lat = Number(e.latLng.lat().toFixed(5));
       const lng = Number(e.latLng.lng().toFixed(5));
@@ -753,7 +788,7 @@ function GoogleMapInner({
       }
     });
     return () => google.maps.event.removeListener(listener);
-  }, [map, activeInput, origin, destination, onSelectOrigin, onSelectDestination, onMapClick]);
+  }, [map, isNavigating, activeInput, origin, destination, onSelectOrigin, onSelectDestination, onMapClick]);
 
   // Recenter button click handler
   const handleRecenterClick = useCallback(
@@ -852,12 +887,6 @@ function GoogleMapInner({
     ? 'bottom-[185px]'       // above BottomActionBar (~168px) + gap
     : 'bottom-[28px]';       // idle — near bottom edge
 
-  const riderCoord = gpsPosition?.lat && gpsPosition?.lng ? gpsPosition : null;
-  const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
-  const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
-    ? gpsPosition.heading
-    : (deviceHeading || gpsPosition?.heading || 0);
-
   return (
     <>
       {/* Origin Marker */}
@@ -908,16 +937,18 @@ function GoogleMapInner({
       )}
 
       {/* Live Crowd-Reported Incident Markers (Accidents, Floods, Closures) */}
-      {activeIncidents.map((incident) => (
-        <AdvancedMarker
-          key={incident.id}
-          position={{ lat: incident.lat, lng: incident.lng }}
-          zIndex={150}
-          title={`${incident.title} (Reported on road)`}
-        >
-          <IncidentMarkerIcon incident={incident} />
-        </AdvancedMarker>
-      ))}
+      {(activeIncidents || [])
+        .filter((inc) => inc && typeof inc.lat === 'number' && typeof inc.lng === 'number' && !isNaN(inc.lat) && !isNaN(inc.lng))
+        .map((incident) => (
+          <AdvancedMarker
+            key={incident.id || `${incident.lat}_${incident.lng}`}
+            position={{ lat: incident.lat, lng: incident.lng }}
+            zIndex={150}
+            title={`${incident.title || 'Road Alert'} (Reported on road)`}
+          >
+            <IncidentMarkerIcon incident={incident} />
+          </AdvancedMarker>
+        ))}
 
       {/*
        * ── Floating button stack: Compass (top) + Recenter (bottom) ──
@@ -971,6 +1002,53 @@ function GoogleMapInner({
   );
 }
 
+interface MapErrorBoundaryProps {
+  children: React.ReactNode;
+}
+interface MapErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class MapErrorBoundary extends React.Component<MapErrorBoundaryProps, MapErrorBoundaryState> {
+  constructor(props: MapErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): MapErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('GoogleMap ErrorBoundary caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-full w-full flex flex-col items-center justify-center bg-slate-950 text-slate-300 p-6 text-center select-none font-sans">
+          <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mb-3 text-xl">
+            ⚠️
+          </div>
+          <p className="text-sm font-bold text-white mb-1">Map Loading Alert</p>
+          <p className="text-xs text-slate-400 max-w-xs mb-4">
+            {this.state.error?.message || 'Google Maps encountered an issue during startup.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold active:scale-95 cursor-pointer shadow-lg"
+          >
+            Retry Map Engine
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Root exported component — wraps GMap APIProvider
 // ─────────────────────────────────────────────────────────────────
@@ -982,18 +1060,21 @@ export const GoogleMapContainer: React.FC<MapContainerProps> = (props) => {
 
   return (
     <div className="h-full w-full relative z-0 touch-action-manipulation select-none overflow-hidden bg-slate-950">
-      <APIProvider apiKey={GOOGLE_MAPS_API_KEY} libraries={['places', 'geometry', 'routes', 'marker']}>
-        <GMap
-          defaultCenter={defaultCenter}
-          defaultZoom={13}
-          mapId="DEMO_MAP_ID"
-          gestureHandling="greedy"
-          disableDefaultUI={true}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <GoogleMapInner {...props} />
-        </GMap>
-      </APIProvider>
+      <MapErrorBoundary>
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY} libraries={['places', 'geometry', 'routes', 'marker']}>
+          <GMap
+            defaultCenter={defaultCenter}
+            defaultZoom={13}
+            mapId="DEMO_MAP_ID"
+            gestureHandling="greedy"
+            disableDefaultUI={true}
+            clickableIcons={false}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <GoogleMapInner {...props} />
+          </GMap>
+        </APIProvider>
+      </MapErrorBoundary>
     </div>
   );
 };

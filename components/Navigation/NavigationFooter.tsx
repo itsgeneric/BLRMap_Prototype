@@ -22,12 +22,12 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = ({
   const displayDist = formatDistance(remainingMeters);
   const etaTime = calculateETA(remainingMeters, currentSpeedMps ?? null);
 
-  // Steady Bengaluru urban 2-wheeler baseline: 26 km/h.
-  // Only adapt if rider is steadily cruising at sustained high speed (> 22 km/h / 6.0 m/s).
-  // This completely eliminates ETA flip-flopping when stopped at traffic lights or turning corners.
+  // Calibrated urban two-wheeler baseline: 26 km/h.
+  // Blends real cruising speed when moving steadily above 18 km/h.
   let effectiveSpeedKmh = 26.0;
-  if (currentSpeedMps && currentSpeedMps > 6.0) {
-    effectiveSpeedKmh = Math.min(45.0, 0.7 * (currentSpeedMps * 3.6) + 0.3 * 26.0);
+  if (currentSpeedMps && currentSpeedMps > 5.0) {
+    const realKmh = Math.min(60.0, currentSpeedMps * 3.6);
+    effectiveSpeedKmh = 0.5 * realKmh + 0.5 * 26.0;
   }
   const durationRemaining = formatDuration(
     Math.max(30, (remainingMeters / 1000 / effectiveSpeedKmh) * 3600)

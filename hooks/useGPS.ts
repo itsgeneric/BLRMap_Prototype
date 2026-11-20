@@ -13,6 +13,7 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
   const [permissionState, setPermissionState] = useState<'granted' | 'prompt' | 'denied' | 'unknown'>('unknown');
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState<number>(0);
 
   const prevCoords = useRef<{ lat: number; lng: number } | null>(null);
   const gpsPositionRef = useRef<GPSPosition | null>(null);
@@ -98,7 +99,32 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
     };
   }, [options.enableCompass, updateSmoothedHeading]);
 
-  // Single Hardware GPS Watcher (Runs continuously — NOT torn down on compass change)
+  // Listen for native Android permission grant or app regain focus
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePermissionGrant = () => {
+      setRetryKey((k) => k + 1);
+    };
+
+    window.addEventListener('native-location-permission-granted', handlePermissionGrant);
+    window.addEventListener('focus', handlePermissionGrant);
+    
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handlePermissionGrant();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('native-location-permission-granted', handlePermissionGrant);
+      window.removeEventListener('focus', handlePermissionGrant);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  // Single Hardware GPS Watcher — restarts dynamically if permissions are granted after initial launch
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
       setError('Geolocation not supported');
@@ -108,7 +134,12 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' }).then((status) => {
         setPermissionState(status.state);
-        status.onchange = () => setPermissionState(status.state);
+        status.onchange = () => {
+          setPermissionState(status.state);
+          if (status.state === 'granted') {
+            setRetryKey((k) => k + 1);
+          }
+        };
       }).catch(() => {});
     }
 
@@ -149,6 +180,12 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
         if (err.code === err.PERMISSION_DENIED) {
           setPermissionState('denied');
           setError('Location permission denied');
+          // If on initial launch the user hasn't accepted the prompt yet,
+          // auto-retry after 2 seconds so when they tap 'Allow' it locks on automatically
+          const retryTimer = setTimeout(() => {
+            setRetryKey((k) => k + 1);
+          }, 2000);
+          return () => clearTimeout(retryTimer);
         } else {
           setError(err.message);
         }
@@ -163,7 +200,7 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, []); // Intentionally empty dependency array: keeps GPS watch active permanently
+  }, [retryKey]);
 
   // Effective Heading:
   // When rider is moving (> 1.5 m/s or > 5 km/h), GPS motion course is used.
@@ -206,6 +243,11 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
       navigator.geolocation.getCurrentPosition(
         onSuccess,
         (highErr) => {
+          if (highErr.code === highErr.PERMISSION_DENIED) {
+            setIsLocating(false);
+            reject(new Error('Location permission denied in phone settings.'));
+            return;
+          }
           console.warn('High-accuracy GPS attempt timed out, trying fallback:', highErr.message);
           navigator.geolocation.getCurrentPosition(
             onSuccess,
@@ -213,10 +255,10 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
               setIsLocating(false);
               reject(fallbackErr);
             },
-            { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
           );
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
     });
   }, []);

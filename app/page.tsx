@@ -55,6 +55,14 @@ export default function NavigationApp() {
   const [isRerouting, setIsRerouting] = useState(false);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('blrnav_voice');
+      if (saved === 'true') setVoiceEnabled(true);
+    }
+  }, []);
+
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [tripSummary, setTripSummary] = useState<TripSummary | null>(null);
   const [activeIncidents, setActiveIncidents] = useState<RoadIncident[]>([]);
@@ -93,6 +101,17 @@ export default function NavigationApp() {
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const handleToggleVoice = useCallback(() => {
+    setVoiceEnabled((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('blrnav_voice', String(next));
+      }
+      addToast(next ? 'Voice guidance ON' : 'Voice guidance muted', 'info', 2000);
+      return next;
+    });
+  }, [addToast]);
 
   // hasConfirmedRoute: user has explicitly clicked a route card in compare mode
   // When true, the alternate ghost polyline is hidden from the map.
@@ -353,7 +372,10 @@ export default function NavigationApp() {
         setActiveInput('destination');
       }
     } catch (err: any) {
-      addToast('Could not acquire GPS position. Ensure location services are enabled.', 'error');
+      const msg = err?.message?.includes('denied')
+        ? 'Location permission denied. Please allow Location in phone Settings.'
+        : 'Could not acquire GPS position. Ensure phone Location (GPS) is turned ON.';
+      addToast(msg, 'error');
     }
   }, [getCurrentLocation, destination, addToast]);
 
@@ -544,7 +566,7 @@ export default function NavigationApp() {
               nextManeuver={nextManeuver}
               distanceToManeuverMeters={distanceToManeuverMeters}
               voiceEnabled={voiceEnabled}
-              onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
+              onToggleVoice={handleToggleVoice}
             />
           </div>
         )}

@@ -43,18 +43,18 @@ export function formatDuration(seconds: number): string {
 }
 
 export function formatSpeed(mps: number | null): string {
-  if (mps === null || mps < 0.5) return '0 km/h';
-  const kmh = Math.round(mps * 3.6);
+  if (mps === null || mps < 0.8) return '0 km/h';
+  const kmh = Math.min(80, Math.round(mps * 3.6));
   return `${kmh} km/h`;
 }
 
 export function calculateETA(remainingMeters: number, currentSpeedMps: number | null = null): string {
-  // Steady Bengaluru urban 2-wheeler average: 26 km/h (~7.2 m/s)
-  // Only adapt if rider is steadily traveling at a sustained cruising speed (> 22 km/h / 6.0 m/s).
-  // This completely eliminates ETA flip-flopping when stopped at traffic lights or turning corners.
+  // Calibrated urban two-wheeler speed: 26 km/h (~7.2 m/s) baseline
   let speedKmh = 26.0;
-  if (currentSpeedMps && currentSpeedMps > 6.0) {
-    speedKmh = Math.min(45.0, 0.7 * (currentSpeedMps * 3.6) + 0.3 * 26.0);
+  if (currentSpeedMps && currentSpeedMps > 5.0) {
+    // If rider is cruising above 18 km/h, blend real speed (50%) with urban traffic baseline (50%)
+    const realKmh = Math.min(60, currentSpeedMps * 3.6);
+    speedKmh = 0.5 * realKmh + 0.5 * 26.0;
   }
 
   const hours = (remainingMeters / 1000) / speedKmh;
@@ -68,17 +68,18 @@ export function calculateETA(remainingMeters: number, currentSpeedMps: number | 
  * Strips out 'Unnamed', technical tags, and road names, returning clean, pure user instructions (e.g. "Turn left", "Turn right").
  */
 export function cleanManeuverText(maneuver: TurnManeuver | null): string {
-  if (!maneuver) return '';
+  if (!maneuver) return 'Proceed along the highlighted route';
+  const roadPart = maneuver.road_name ? ` onto ${maneuver.road_name}` : '';
 
   switch (maneuver.type) {
     case 'turn_left':
-      return 'Turn left';
+      return `Turn left${roadPart}`;
     case 'slight_left':
-      return 'Bear left';
+      return `Take slight left${roadPart}`;
     case 'turn_right':
-      return 'Turn right';
+      return `Turn right${roadPart}`;
     case 'slight_right':
-      return 'Bear right';
+      return `Take slight right${roadPart}`;
     case 'u_turn':
       return 'Make a U-turn';
     case 'arrive':
@@ -87,8 +88,166 @@ export function cleanManeuverText(maneuver: TurnManeuver | null): string {
       return 'Head straight on route';
     case 'straight':
     default:
-      return 'Continue straight';
+      return `Continue straight${roadPart}`;
   }
+}
+
+/**
+ * Generates turn-by-turn maneuvers from a road polyline using segment angular deflections.
+ * Detects real street turns (left, right, slight, u-turn) while skipping minor curve jitter.
+ */
+export function generateManeuversFromPolyline(polyline: LatLng[]): TurnManeuver[] {
+  if (!polyline || polyline.length < 2) return [];
+
+  const maneuvers: TurnManeuver[] = [];
+
+  let prevSampleIdx = 0;
+  let accumulatedDist = 0;
+
+  for (let i = 1; i < polyline.length - 1; i++) {
+    const distFromPrev = haversineMeters(
+      polyline[prevSampleIdx][0],
+      polyline[prevSampleIdx][1],
+      polyline[i][0],
+      polyline[i][1]
+    );
+
+    // Require at least 25m between analysis vertices to avoid micro-curve false positives
+    if (distFromPrev < 25) continue;
+
+    let nextIdx = i + 1;
+    while (
+      nextIdx < polyline.length - 1 &&
+      haversineMeters(polyline[i][0], polyline[i][1], polyline[nextIdx][0], polyline[nextIdx][1]) < 25
+    ) {
+      nextIdx++;
+    }
+
+    const bIn = calculateBearing(
+      polyline[prevSampleIdx][0],
+      polyline[prevSampleIdx][1],
+      polyline[i][0],
+      polyline[i][1]
+    );
+    const bOut = calculateBearing(
+      polyline[i][0],
+      polyline[i][1],
+      polyline[nextIdx][0],
+      polyline[nextIdx][1]
+    );
+
+    // Angular deflection (-180 to +180)
+    const diff = ((bOut - bIn + 540) % 360) - 180;
+
+    let turnType: TurnManeuver['type'] | null = null;
+    let turnInstruction = '';
+
+    if (Math.abs(diff) >= 140) {
+      turnType = 'u_turn';
+      turnInstruction = 'Make a U-turn';
+    } else if (diff >= 45) {
+      turnType = 'turn_right';
+      turnInstruction = 'Turn right';
+    } else if (diff <= -45) {
+      turnType = 'turn_left';
+      turnInstruction = 'Turn left';
+    } else if (diff >= 22) {
+      turnType = 'slight_right';
+      turnInstruction = 'Take slight right';
+    } else if (diff <= -22) {
+      turnType = 'slight_left';
+      turnInstruction = 'Take slight left';
+    }
+
+    if (turnType) {
+      accumulatedDist += distFromPrev;
+      maneuvers.push({
+        type: turnType,
+        instruction: turnInstruction,
+        road_name: '',
+        distance_m: Math.round(accumulatedDist),
+        lat: polyline[i][0],
+        lng: polyline[i][1],
+      });
+      accumulatedDist = 0;
+      prevSampleIdx = i;
+    }
+  }
+
+  // Final Arrival
+  const lastPt = polyline[polyline.length - 1];
+  maneuvers.push({
+    type: 'arrive',
+    instruction: 'Arrive at destination',
+    road_name: '',
+    distance_m: 0,
+    lat: lastPt[0],
+    lng: lastPt[1],
+  });
+
+  return maneuvers;
+}
+
+/**
+ * Snaps raw noisy GPS coordinates onto the road centerline of the active route polyline.
+ * Glides smoothly on the road just like Google Maps, while preserving off-route detection.
+ */
+export function snapPositionToPolyline(
+  lat: number,
+  lng: number,
+  polyline: LatLng[],
+  lastKnownIndex: number = 0,
+  maxSnapDistanceM: number = 32
+): {
+  lat: number;
+  lng: number;
+  bearing: number;
+  isSnapped: boolean;
+  distanceM: number;
+  nearestSegmentIndex: number;
+} {
+  if (!polyline || polyline.length < 2) {
+    return { lat, lng, bearing: 0, isSnapped: false, distanceM: 0, nearestSegmentIndex: 0 };
+  }
+
+  const { distanceMeters, nearestSegmentIndex } = findDistanceToPolyline(lat, lng, polyline, lastKnownIndex);
+  const p1 = polyline[nearestSegmentIndex];
+  const p2 = polyline[nearestSegmentIndex + 1] || p1;
+
+  const segBearing = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+
+  if (distanceMeters <= maxSnapDistanceM) {
+    // Project orthogonally onto the segment
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    let snappedLat = p1[0];
+    let snappedLng = p1[1];
+
+    if (dx !== 0 || dy !== 0) {
+      const t = Math.max(0, Math.min(1, ((lat - p1[0]) * dx + (lng - p1[1]) * dy) / (dx * dx + dy * dy)));
+      snappedLat = p1[0] + t * dx;
+      snappedLng = p1[1] + t * dy;
+    }
+
+    return {
+      lat: Number(snappedLat.toFixed(6)),
+      lng: Number(snappedLng.toFixed(6)),
+      bearing: segBearing,
+      isSnapped: true,
+      distanceM: distanceMeters,
+      nearestSegmentIndex,
+    };
+  }
+
+  // Off-route: return raw GPS so off-route rerouting can trigger
+  return {
+    lat,
+    lng,
+    bearing: segBearing,
+    isSnapped: false,
+    distanceM: distanceMeters,
+    nearestSegmentIndex,
+  };
 }
 
 /**

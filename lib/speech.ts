@@ -29,23 +29,26 @@ class VoiceGuidance {
   }
 
   /**
-   * Speaks ONLY turn directions when user has explicitly unmuted/enabled the speaker.
+   * Speaks turn directions when user has enabled voice navigation.
+   * Milestone-based: triggers early prep (≤300m), approach (≤110m), and immediate execution (≤35m).
    */
   public speakManeuver(instruction: string, distanceMeters: number, maneuverIndex: number) {
     if (!this.enabled || !this.synth) return;
 
     let milestoneBucket: string | null = null;
-    let spokenDistance = '';
+    let speechText = '';
 
     if (distanceMeters <= 35) {
       milestoneBucket = `${maneuverIndex}_now`;
-      spokenDistance = 'Now';
-    } else if (distanceMeters <= 120 && distanceMeters > 70) {
+      speechText = `${instruction} now`;
+    } else if (distanceMeters <= 110) {
       milestoneBucket = `${maneuverIndex}_100m`;
-      spokenDistance = `In 100 meters`;
-    } else if (distanceMeters <= 300 && distanceMeters > 220) {
-      milestoneBucket = `${maneuverIndex}_250m`;
-      spokenDistance = `In 250 meters`;
+      const roundedMeters = Math.max(40, Math.round(distanceMeters / 10) * 10);
+      speechText = `In ${roundedMeters} meters, ${instruction}`;
+    } else if (distanceMeters <= 300) {
+      milestoneBucket = `${maneuverIndex}_300m`;
+      const roundedMeters = Math.max(150, Math.round(distanceMeters / 50) * 50);
+      speechText = `In ${roundedMeters} meters, ${instruction}`;
     }
 
     if (!milestoneBucket || this.spokenMilestones.has(milestoneBucket)) {
@@ -53,7 +56,6 @@ class VoiceGuidance {
     }
 
     this.spokenMilestones.add(milestoneBucket);
-    const speechText = spokenDistance === 'Now' ? `${instruction} now` : `${spokenDistance}, ${instruction}`;
     this.speak(speechText);
   }
 
