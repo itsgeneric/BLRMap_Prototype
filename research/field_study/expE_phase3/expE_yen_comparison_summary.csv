@@ -1,0 +1,4 @@
+method,n,corridors_with_any_alt,k3_achieved,mean_alts,runtime_mean_s,runtime_median_s,diversity_mean_all5_zero_for_failures,diversity_mean_corridors_with_alts,diversity_mean_matched_corridors,n_matched,overlap_mean_alts,overlap_max,detour_mean_alts,candidates_total,rejected_overlap_total
+E1 Offset,5,3,1,1.2,9.5,8.84,0.3489,0.5815,0.5815,3,0.4368,0.6392,1.0746,60,
+E2 Raw Yen,5,5,5,3.0,42.61,10.36,0.1409,0.1409,0.1291,3,0.9255,0.9867,1.0331,1022,
+E3 Filtered Yen,5,4,4,2.4,42.26,9.97,0.2662,0.3327,0.3459,3,0.5488,0.6791,1.0856,1085,323.0

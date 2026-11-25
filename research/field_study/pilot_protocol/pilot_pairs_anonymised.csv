@@ -1,0 +1,5 @@
+pair,distance_class_by_project_route,project_km,project_eta_min,google_top_km,google_top_eta_min,waze_top_km,waze_top_eta_min,project_vs_google_distance_pct,project_vs_waze_distance_pct,google_alternatives_shown,waze_alternatives_shown,note
+A,Long (>15 km),24.2,53,33.7,65,21.7,62,-28.2,11.5,3,3,Waze top route flagged toll
+B,Short (<5 km),4.4,10,4.5,17,4.0,13,-2.2,10.0,3,3,
+C,Long (>15 km),17.4,59,15.6,65,14.6,75,11.5,19.2,3,3,
+D,Medium (5-15 km),13.2,41,16.8,52,17.4,55,-21.4,-24.1,3,3,

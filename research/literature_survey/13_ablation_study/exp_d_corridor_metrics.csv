@@ -1,0 +1,101 @@
+corridor_id,corridor_name,dist_cat,config,runtime_ms,distance_km,impedance_cost,bridge_length_m,bridge_pct,roundabout_length_m,roundabout_pct
+OD_01,BNMIT to MG Road,Long (10.1 km),D1_Bridge_Off_Roundabout_Off,935.36,10.065,12652.51,44.73,0.44,0.0,0.0
+OD_01,BNMIT to MG Road,Long (10.1 km),D2_Bridge_On_Roundabout_Off,936.25,10.065,12652.51,44.73,0.44,0.0,0.0
+OD_01,BNMIT to MG Road,Long (10.1 km),D3_Bridge_Off_Roundabout_On,921.13,10.065,12652.51,44.73,0.44,0.0,0.0
+OD_01,BNMIT to MG Road,Long (10.1 km),D4_Bridge_On_Roundabout_On,946.29,10.065,12652.51,44.73,0.44,0.0,0.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),D1_Bridge_Off_Roundabout_Off,109.99,6.38,6460.97,126.3,1.98,0.0,0.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),D2_Bridge_On_Roundabout_Off,112.17,6.38,6460.97,126.3,1.98,0.0,0.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),D3_Bridge_Off_Roundabout_On,110.6,6.38,6460.97,126.3,1.98,0.0,0.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),D4_Bridge_On_Roundabout_On,113.32,6.38,6460.97,126.3,1.98,0.0,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),D1_Bridge_Off_Roundabout_Off,218.51,9.505,11209.25,243.25,2.56,0.0,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),D2_Bridge_On_Roundabout_Off,227.23,9.505,11209.25,243.25,2.56,0.0,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),D3_Bridge_Off_Roundabout_On,218.22,9.505,11209.25,243.25,2.56,0.0,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),D4_Bridge_On_Roundabout_On,222.41,9.505,11209.25,243.25,2.56,0.0,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),D1_Bridge_Off_Roundabout_Off,159.05,9.459,11760.13,136.86,1.45,0.0,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),D2_Bridge_On_Roundabout_Off,148.46,8.814,11493.93,742.48,8.42,0.0,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),D3_Bridge_Off_Roundabout_On,162.31,9.459,11760.13,136.86,1.45,0.0,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),D4_Bridge_On_Roundabout_On,149.5,8.814,11493.93,742.48,8.42,0.0,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),D1_Bridge_Off_Roundabout_Off,508.4,9.944,11536.13,63.58,0.64,0.0,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),D2_Bridge_On_Roundabout_Off,513.6,9.944,11536.13,63.58,0.64,0.0,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),D3_Bridge_Off_Roundabout_On,495.83,9.944,11536.13,63.58,0.64,0.0,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),D4_Bridge_On_Roundabout_On,513.16,9.944,11536.13,63.58,0.64,0.0,0.0
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),D1_Bridge_Off_Roundabout_Off,997.9,12.447,14153.24,33.57,0.27,62.98,0.51
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),D2_Bridge_On_Roundabout_Off,1000.44,12.447,14153.24,33.57,0.27,62.98,0.51
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),D3_Bridge_Off_Roundabout_On,991.52,12.447,14153.24,33.57,0.27,62.98,0.51
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),D4_Bridge_On_Roundabout_On,1007.27,12.447,14153.24,33.57,0.27,62.98,0.51
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),D1_Bridge_Off_Roundabout_Off,59.35,5.807,6505.39,0.0,0.0,0.0,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),D2_Bridge_On_Roundabout_Off,61.79,5.807,6505.39,0.0,0.0,0.0,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),D3_Bridge_Off_Roundabout_On,59.41,5.807,6505.39,0.0,0.0,0.0,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),D4_Bridge_On_Roundabout_On,60.09,5.807,6505.39,0.0,0.0,0.0,0.0
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),D1_Bridge_Off_Roundabout_Off,1765.86,14.554,18507.46,123.74,0.85,0.0,0.0
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),D2_Bridge_On_Roundabout_Off,1825.72,14.554,18507.46,123.74,0.85,0.0,0.0
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),D3_Bridge_Off_Roundabout_On,1762.08,14.554,18507.46,123.74,0.85,0.0,0.0
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),D4_Bridge_On_Roundabout_On,1818.7,14.554,18507.46,123.74,0.85,0.0,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),D1_Bridge_Off_Roundabout_Off,391.56,8.29,9199.77,372.89,4.5,0.0,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),D2_Bridge_On_Roundabout_Off,342.26,8.29,9199.77,372.89,4.5,0.0,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),D3_Bridge_Off_Roundabout_On,387.35,8.29,9199.77,372.89,4.5,0.0,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),D4_Bridge_On_Roundabout_On,340.56,8.29,9199.77,372.89,4.5,0.0,0.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),D1_Bridge_Off_Roundabout_Off,187.62,7.784,9337.4,54.14,0.7,0.0,0.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),D2_Bridge_On_Roundabout_Off,211.08,7.784,9337.4,54.14,0.7,0.0,0.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),D3_Bridge_Off_Roundabout_On,183.62,7.784,9337.4,54.14,0.7,0.0,0.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),D4_Bridge_On_Roundabout_On,209.55,7.784,9337.4,54.14,0.7,0.0,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),D1_Bridge_Off_Roundabout_Off,1311.98,11.425,16604.66,73.42,0.64,0.0,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),D2_Bridge_On_Roundabout_Off,1348.42,11.425,16604.66,73.42,0.64,0.0,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),D3_Bridge_Off_Roundabout_On,1323.07,11.425,16604.66,73.42,0.64,0.0,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),D4_Bridge_On_Roundabout_On,1343.85,11.425,16604.66,73.42,0.64,0.0,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),D1_Bridge_Off_Roundabout_Off,37.11,2.735,2979.43,0.0,0.0,0.0,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),D2_Bridge_On_Roundabout_Off,40.68,2.735,2979.43,0.0,0.0,0.0,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),D3_Bridge_Off_Roundabout_On,36.83,2.735,2979.43,0.0,0.0,0.0,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),D4_Bridge_On_Roundabout_On,37.04,2.735,2979.43,0.0,0.0,0.0,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),D1_Bridge_Off_Roundabout_Off,354.25,7.851,9996.39,35.97,0.46,0.0,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),D2_Bridge_On_Roundabout_Off,375.39,7.851,9996.39,35.97,0.46,0.0,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),D3_Bridge_Off_Roundabout_On,358.26,7.851,9996.39,35.97,0.46,0.0,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),D4_Bridge_On_Roundabout_On,377.61,7.851,9996.39,35.97,0.46,0.0,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),D1_Bridge_Off_Roundabout_Off,653.27,7.186,9005.61,135.49,1.89,0.0,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),D2_Bridge_On_Roundabout_Off,682.15,7.186,9005.61,135.49,1.89,0.0,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),D3_Bridge_Off_Roundabout_On,630.07,7.186,9005.61,135.49,1.89,0.0,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),D4_Bridge_On_Roundabout_On,672.41,7.186,9005.61,135.49,1.89,0.0,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),D1_Bridge_Off_Roundabout_Off,254.73,10.816,12072.2,562.66,5.2,0.0,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),D2_Bridge_On_Roundabout_Off,64.07,8.67,9315.45,5901.14,68.07,0.0,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),D3_Bridge_Off_Roundabout_On,254.78,10.816,12072.2,562.66,5.2,0.0,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),D4_Bridge_On_Roundabout_On,65.08,8.67,9315.45,5901.14,68.07,0.0,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),D1_Bridge_Off_Roundabout_Off,328.59,15.036,16052.26,930.58,6.19,0.0,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),D2_Bridge_On_Roundabout_Off,366.2,15.036,16052.26,930.58,6.19,0.0,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),D3_Bridge_Off_Roundabout_On,342.79,15.036,16052.26,930.58,6.19,0.0,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),D4_Bridge_On_Roundabout_On,370.0,15.036,16052.26,930.58,6.19,0.0,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),D1_Bridge_Off_Roundabout_Off,61.74,3.422,3414.15,371.15,10.85,0.0,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),D2_Bridge_On_Roundabout_Off,53.4,3.422,3414.15,371.15,10.85,0.0,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),D3_Bridge_Off_Roundabout_On,62.27,3.422,3414.15,371.15,10.85,0.0,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),D4_Bridge_On_Roundabout_On,52.05,3.422,3414.15,371.15,10.85,0.0,0.0
+OD_18,Indiranagar to MG Road,Medium (5.9 km),D1_Bridge_Off_Roundabout_Off,161.31,5.876,8512.03,76.82,1.31,0.0,0.0
+OD_18,Indiranagar to MG Road,Medium (5.9 km),D2_Bridge_On_Roundabout_Off,165.24,5.876,8512.03,76.82,1.31,0.0,0.0
+OD_18,Indiranagar to MG Road,Medium (5.9 km),D3_Bridge_Off_Roundabout_On,162.59,5.876,8512.03,76.82,1.31,0.0,0.0
+OD_18,Indiranagar to MG Road,Medium (5.9 km),D4_Bridge_On_Roundabout_On,162.83,5.876,8512.03,76.82,1.31,0.0,0.0
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),D1_Bridge_Off_Roundabout_Off,21.66,2.013,2877.03,16.74,0.83,0.0,0.0
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),D2_Bridge_On_Roundabout_Off,21.85,2.013,2877.03,16.74,0.83,0.0,0.0
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),D3_Bridge_Off_Roundabout_On,20.92,2.013,2877.03,16.74,0.83,0.0,0.0
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),D4_Bridge_On_Roundabout_On,21.22,2.013,2877.03,16.74,0.83,0.0,0.0
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),D1_Bridge_Off_Roundabout_Off,668.34,12.327,14045.44,570.61,4.63,0.0,0.0
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),D2_Bridge_On_Roundabout_Off,626.93,12.327,14045.44,570.61,4.63,0.0,0.0
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),D3_Bridge_Off_Roundabout_On,663.04,12.327,14045.44,570.61,4.63,0.0,0.0
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),D4_Bridge_On_Roundabout_On,635.1,12.327,14045.44,570.61,4.63,0.0,0.0
+OD_21,RT Nagar to Cantonment,Short (5.0 km),D1_Bridge_Off_Roundabout_Off,126.71,4.984,5798.38,0.0,0.0,0.0,0.0
+OD_21,RT Nagar to Cantonment,Short (5.0 km),D2_Bridge_On_Roundabout_Off,129.78,4.984,5798.38,0.0,0.0,0.0,0.0
+OD_21,RT Nagar to Cantonment,Short (5.0 km),D3_Bridge_Off_Roundabout_On,129.67,4.984,5798.38,0.0,0.0,0.0,0.0
+OD_21,RT Nagar to Cantonment,Short (5.0 km),D4_Bridge_On_Roundabout_On,127.85,4.984,5798.38,0.0,0.0,0.0,0.0
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),D1_Bridge_Off_Roundabout_Off,111.88,7.727,8248.15,0.0,0.0,0.0,0.0
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),D2_Bridge_On_Roundabout_Off,120.88,7.727,8248.15,0.0,0.0,0.0,0.0
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),D3_Bridge_Off_Roundabout_On,112.5,7.727,8248.15,0.0,0.0,0.0,0.0
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),D4_Bridge_On_Roundabout_On,116.09,7.727,8248.15,0.0,0.0,0.0,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),D1_Bridge_Off_Roundabout_Off,1.02,1.353,2994.96,0.0,0.0,0.0,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),D2_Bridge_On_Roundabout_Off,1.01,1.353,2994.96,0.0,0.0,0.0,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),D3_Bridge_Off_Roundabout_On,1.0,1.353,2994.96,0.0,0.0,0.0,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),D4_Bridge_On_Roundabout_On,1.02,1.353,2994.96,0.0,0.0,0.0,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),D1_Bridge_Off_Roundabout_Off,34.65,2.398,2674.31,19.44,0.81,0.0,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),D2_Bridge_On_Roundabout_Off,34.8,2.398,2674.31,19.44,0.81,0.0,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),D3_Bridge_Off_Roundabout_On,34.12,2.398,2674.31,19.44,0.81,0.0,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),D4_Bridge_On_Roundabout_On,34.45,2.398,2674.31,19.44,0.81,0.0,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),D1_Bridge_Off_Roundabout_Off,109.18,4.594,4934.12,0.0,0.0,0.0,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),D2_Bridge_On_Roundabout_Off,114.66,4.594,4934.12,0.0,0.0,0.0,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),D3_Bridge_Off_Roundabout_On,106.25,4.594,4934.12,0.0,0.0,0.0,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),D4_Bridge_On_Roundabout_On,113.63,4.594,4934.12,0.0,0.0,0.0,0.0

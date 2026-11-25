@@ -1,0 +1,51 @@
+corridor_id,corridor_name,distance_category,algorithm,repetitions,mean_ms,std_ms,median_ms,min_ms,max_ms,cv_pct,speedup_vs_dijkstra
+OD_01,BNMIT to MG Road,Long (10.1 km),Dijkstra,5,3166.78,864.39,2796.67,2747.31,4712.43,27.3,1.0
+OD_01,BNMIT to MG Road,Long (10.1 km),Admissible_AStar,5,1017.13,22.94,1011.58,987.64,1049.49,2.26,3.11
+OD_01,BNMIT to MG Road,Long (10.1 km),Aggressive_AStar,5,526.88,7.52,524.09,521.28,539.76,1.43,6.01
+OD_01,BNMIT to MG Road,Long (10.1 km),Perpendicular_Offset,5,15812.03,957.02,15530.29,15223.98,17502.39,6.05,0.2
+OD_01,BNMIT to MG Road,Long (10.1 km),Yens_KSP,3,227723.48,37659.23,226520.41,190680.2,265969.82,16.54,0.01
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),Dijkstra,5,394.65,6.96,392.76,388.03,406.5,1.76,1.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),Admissible_AStar,5,136.96,11.49,133.6,123.61,154.75,8.39,2.88
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),Aggressive_AStar,5,70.22,8.07,67.04,65.75,84.6,11.49,5.62
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),Perpendicular_Offset,5,9841.61,1011.39,9359.13,9281.27,11633.24,10.28,0.04
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),Yens_KSP,3,12597.5,1263.33,11912.26,11824.85,14055.39,10.03,0.03
+OD_03,Electronic City to Silk Board,Long (9.5 km),Dijkstra,5,877.35,5.54,874.66,872.97,886.74,0.63,1.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),Admissible_AStar,5,259.98,18.65,257.58,244.91,290.59,7.17,3.37
+OD_03,Electronic City to Silk Board,Long (9.5 km),Aggressive_AStar,5,58.19,12.48,53.3,50.36,80.24,21.45,15.08
+OD_03,Electronic City to Silk Board,Long (9.5 km),Perpendicular_Offset,5,11194.98,1229.41,10356.45,10262.97,12557.98,10.98,0.08
+OD_03,Electronic City to Silk Board,Long (9.5 km),Yens_KSP,3,23899.65,25.9,23907.39,23870.76,23920.8,0.11,0.04
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),Dijkstra,5,385.93,13.12,380.96,373.67,407.41,3.4,1.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),Admissible_AStar,5,166.96,4.73,164.87,163.48,175.22,2.83,2.31
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),Aggressive_AStar,5,105.82,3.04,105.54,102.82,108.97,2.87,3.65
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),Perpendicular_Offset,5,11094.42,1181.02,10449.92,10129.05,12390.26,10.65,0.03
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),Yens_KSP,3,9027.37,100.72,8982.99,8956.46,9142.66,1.12,0.04
+OD_05,Hebbal to Majestic,Long (9.9 km),Dijkstra,5,1799.28,43.47,1773.13,1770.28,1871.7,2.42,1.0
+OD_05,Hebbal to Majestic,Long (9.9 km),Admissible_AStar,5,571.81,2.41,572.72,568.93,574.38,0.42,3.15
+OD_05,Hebbal to Majestic,Long (9.9 km),Aggressive_AStar,5,279.41,7.83,284.3,267.99,285.45,2.8,6.44
+OD_05,Hebbal to Majestic,Long (9.9 km),Perpendicular_Offset,5,14455.81,1257.49,13660.85,13468.23,15853.2,8.7,0.12
+OD_05,Hebbal to Majestic,Long (9.9 km),Yens_KSP,3,95058.24,193.21,94953.76,94939.77,95281.19,0.2,0.02
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),Dijkstra,5,300.43,7.38,297.29,295.95,313.53,2.46,1.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),Admissible_AStar,5,68.25,2.82,68.91,64.54,71.46,4.14,4.4
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),Aggressive_AStar,5,29.01,1.18,28.42,27.98,30.75,4.06,10.36
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),Perpendicular_Offset,5,9415.11,1038.06,8969.3,8905.42,11271.43,11.03,0.03
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),Yens_KSP,3,5919.65,1286.25,5192.48,5161.69,7404.77,21.73,0.05
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),Dijkstra,5,1670.01,18.21,1669.26,1650.06,1698.88,1.09,1.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),Admissible_AStar,5,390.5,15.41,385.98,379.21,417.52,3.94,4.28
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),Aggressive_AStar,5,223.34,2.91,222.67,219.67,227.09,1.3,7.48
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),Perpendicular_Offset,5,13309.41,1028.92,12854.49,12805.14,15149.25,7.73,0.13
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),Yens_KSP,3,51078.63,198.0,51104.86,50868.82,51262.2,0.39,0.03
+OD_10,BTM Layout to Domlur,Medium (7.8 km),Dijkstra,5,1169.98,14.8,1162.32,1158.78,1193.24,1.26,1.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),Admissible_AStar,5,234.77,6.93,231.41,227.04,242.95,2.95,4.98
+OD_10,BTM Layout to Domlur,Medium (7.8 km),Aggressive_AStar,5,106.88,8.08,104.14,100.47,120.39,7.56,10.95
+OD_10,BTM Layout to Domlur,Medium (7.8 km),Perpendicular_Offset,5,11939.22,1254.94,11076.02,10995.37,13330.75,10.51,0.1
+OD_10,BTM Layout to Domlur,Medium (7.8 km),Yens_KSP,3,22906.6,154.15,22862.14,22779.56,23078.09,0.67,0.05
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),Dijkstra,5,131.63,4.9,129.91,128.38,140.12,3.72,1.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),Admissible_AStar,5,42.56,1.57,42.15,40.84,45.05,3.69,3.09
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),Aggressive_AStar,5,17.7,0.95,17.31,16.96,19.25,5.37,7.44
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),Perpendicular_Offset,5,9162.93,996.57,8713.11,8681.05,10944.52,10.88,0.01
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),Yens_KSP,3,2638.06,45.78,2642.73,2590.12,2681.32,1.74,0.05
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),Dijkstra,5,449.9,3.7,450.42,445.52,455.08,0.82,1.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),Admissible_AStar,5,524.79,1007.83,73.95,71.55,2327.64,192.04,0.86
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),Aggressive_AStar,5,89.13,2.45,88.25,86.5,93.0,2.75,5.05
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),Perpendicular_Offset,5,11679.08,973.5,11219.85,11198.89,13416.29,8.34,0.04
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),Yens_KSP,3,8378.74,556.07,8681.89,7736.97,8717.36,6.64,0.05

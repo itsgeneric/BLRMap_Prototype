@@ -1,0 +1,5 @@
+group,n_corridors,n_with_any_alt,pct_any_alt,n_full_k3,pct_full_k3,mean_alts_all,mean_alts_when_any,diversity_mean_incl_zero_for_failures,diversity_mean_successful_only,diversity_median_successful_only,n_alternatives_total,detour_mean,detour_max,overlap_mean,overlap_max,runtime_median_s,runtime_mean_s,runtime_min_s,runtime_max_s
+All 25 corridors,25,22,88.0,14,56.0,2.24,2.545,0.4932,0.5605,0.5672,56,1.046,1.1939,0.4961,0.6911,9.09,10.52,7.36,22.54
+Short corridors,7,6,85.7,5,71.4,2.429,2.833,0.5327,0.6215,0.637,17,1.0523,1.1569,0.5141,0.6905,7.71,7.79,7.36,8.29
+Medium corridors,10,8,80.0,5,50.0,1.9,2.375,0.4238,0.5298,0.5112,19,1.0776,1.1939,0.5658,0.6911,9.38,9.86,7.9,13.53
+Long corridors,8,8,100.0,4,50.0,2.5,2.5,0.5454,0.5454,0.5672,20,1.0106,1.1687,0.4146,0.6658,12.99,13.74,9.09,22.54

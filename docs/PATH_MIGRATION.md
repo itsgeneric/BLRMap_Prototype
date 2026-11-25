@@ -1,0 +1,75 @@
+# Path migration (repository reorganisation, 2026-11-23)
+
+Historical reports, audit logs and the handover package cite the **old** paths. This table maps
+them to the current layout. No research content, data or results were changed. Files were only
+moved, and the code was updated so that it resolves the new locations.
+
+## Application
+
+| Old path                                   | New path                                         |
+|--------------------------------------------|--------------------------------------------------|
+| `api_server.py`                            | `backend/api_server.py`                          |
+| `router.py`                                | `backend/router.py`                              |
+| `core/`, `routing/`, `services/`, `database/`, `data/` | `backend/core/`, `backend/routing/`, … (same names) |
+| `Standalone/Debug Scripts/*.py`            | `backend/scripts/*.py`                           |
+| `bengaluru_roads_extended.graphml`         | `backend/data_assets/bengaluru_roads_extended.graphml` |
+| `bengaluru_graph.pkl`                      | `backend/data_assets/bengaluru_graph.pkl`        |
+| `bengaluru_graph_oldfilter.pkl`            | `backend/data_assets/bengaluru_graph_oldfilter.pkl` |
+| `route_decisions.db`                       | `backend/route_decisions.db`                     |
+| `app/`, `components/`, `hooks/`, `lib/`, `android/` | `frontend/…` (same names)               |
+| `package.json`, `next.config.mjs`, `tsconfig.json`, `tailwind.config.js`, `postcss.config.js`, `capacitor.config.ts`, `next-env.d.ts`, `package-lock.json` | `frontend/…` |
+| `index.html` (Leaflet UI)                  | `frontend/legacy/leaflet_index.html`             |
+| `CHANGES.md`                               | `docs/CHANGES.md`                                |
+
+## Tests and research
+
+| Old path                                   | New path                                         |
+|--------------------------------------------|--------------------------------------------------|
+| `tests/test_*.py`                          | `tests/test_*.py` (unchanged)                    |
+| `tests/benchmark_three_heuristics.py`      | `research/experiments/benchmark_three_heuristics.py` |
+| `experiments/`                             | `research/experiments/`                          |
+| `research/literature_survey/`              | unchanged (includes the frozen `13_ablation_study/`) |
+| `phase2_strava/`                           | `research/field_study/strava_phase2/`            |
+| `phase3_expE/`                             | `research/field_study/expE_phase3/`              |
+| `Pilot protocol/`                          | `research/field_study/pilot_protocol/`           |
+| `comparision_images/`                      | `research/field_study/route_comparison_screenshots/` |
+| `phase_2A_route_provenance_verification.md`| `research/audits/phase_2A_route_provenance_verification.md` |
+| `Research_Handover_Package/`               | `research/handover_package/` (contents untouched; manifest verifies) |
+
+## Papers
+
+| Old path                                   | New path                                         |
+|--------------------------------------------|--------------------------------------------------|
+| `Paper_1_Full_Latex/`                      | `paper/paper1/latex/`                            |
+| `research/paper1_blueprint/`               | `paper/paper1/blueprint/`                        |
+| `research/paper1_literature/`              | `paper/paper1/literature/`                       |
+| `research/paper1_manuscript/`              | `paper/paper1/manuscript_drafts/`                |
+| `Paper_2_Full_Latex/`                      | `paper/paper2/latex/`                            |
+
+## Removed
+
+These files were removed only when they were regenerable or a byte-identical copy still exists:
+
+| Removed                                                    | Why / where the content lives                 |
+|------------------------------------------------------------|-----------------------------------------------|
+| `phase_11_documentation_corrections.md` (root)             | Identical to `research/literature_survey/11_route_quality_evaluation/` copy |
+| `phase_13_1_2_stage_2_preflight.md`, `phase_13_1_3_final_preflight.md`, `phase_13_1_stage_1_independent_audit.md`, `phase_13_4_correction_and_freeze_report.md` (root) | Identical to copies in `research/literature_survey/13_ablation_study/` |
+| `strava_route_recovery_audit.md` (root)                    | Identical to `research/handover_package/Evidence/` copy |
+| `Paper1_Overleaf_Submission.zip`, `Paper1_Overleaf_Submission_v2.zip` (root) | Identical to copies in `paper/paper1/manuscript_drafts/` |
+| `Paper_2_Full_Latex.zip`                                   | Identical archive of `paper/paper2/latex/`    |
+| `.next/`, `out/`, `tsconfig.tsbuildinfo`, `__pycache__/`   | Build output, regenerated by `npm run build` / Python |
+| `cache/`                                                   | OSMnx HTTP download cache, regenerated on demand |
+
+## Code changes (path-only)
+
+- `backend/core/config.py`: `BASE_DIR` is now `backend/`. Added `data_assets/` as the first lookup
+  folder for the GraphML file. The old `Data Assets/` lookups are still there as fallbacks.
+  `EXCLUDE_POLYS_FILE` now defaults to `data_assets/`.
+- `tests/*.py`: `sys.path` now points to `backend/`.
+- `research/experiments/**/*.py`: `sys.path` now adds the repo root and `backend/`. Changed
+  `experiments.*` imports to `research.experiments.*`. The robustness output folder is now
+  `research/experiments/robustness_testing`. `patch_remediation.py` now targets `backend/`.
+- `.gitignore`: added `/env` (a secrets file that was not ignored) and `backend/data_assets/`.
+- `.agents/skills/blrmap-research-protocol/SKILL.md`: updated one code path to `backend/routing/algorithms.py`.
+- Files in `research/literature_survey/13_ablation_study/` were **not** modified (frozen).
+  Run them with `PYTHONPATH=backend`.

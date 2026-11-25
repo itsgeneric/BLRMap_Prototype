@@ -1,5 +1,6 @@
 # ── Environment & Secrets ──
 .env
+/env
 .env.local
 .env.*.local
 .env.production
@@ -45,6 +46,7 @@ tsconfig.tsbuildinfo
 *.pbf
 *.zip
 Data Assets/
+backend/data_assets/
 
 # ── OSMnx & API Cache ──
 cache/
@@ -77,4 +79,3 @@ project_*.txt
 .Trashes
 ehthumbs.db
 Thumbs.db
-out/

@@ -1,0 +1,2762 @@
+[
+  {
+    "id": "OD_01",
+    "name": "BNMIT to MG Road",
+    "start_node": 7479665259,
+    "end_node": 11961205354,
+    "from_coords": [
+      12.9237,
+      77.5714
+    ],
+    "to_coords": [
+      12.9756,
+      77.6066
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 17317.64,
+      "candidates_generated": 12,
+      "candidates_rejected": 8,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.6641,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 213,
+          "distance_km": 10.065,
+          "cost": 12652.51,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 259,
+          "distance_km": 10.311,
+          "cost": 13503.87,
+          "detour_ratio": 1.0244,
+          "overlap_ratio_pct": 19.3,
+          "jaccard_similarity": 0.1083
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 228,
+          "distance_km": 10.664,
+          "cost": 13807.44,
+          "detour_ratio": 1.0595,
+          "overlap_ratio_pct": 51.35,
+          "jaccard_similarity": 0.359
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 240,
+          "distance_km": 11.206,
+          "cost": 14579.39,
+          "detour_ratio": 1.1134,
+          "overlap_ratio_pct": 48.86,
+          "jaccard_similarity": 0.3467
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 192996.97,
+      "candidates_generated": 425,
+      "candidates_rejected_detour": 2,
+      "candidates_rejected_duplicates": 130,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0764,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 213,
+          "distance_km": 10.065,
+          "cost": 12652.51,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 209,
+          "distance_km": 10.12,
+          "cost": 12654.91,
+          "detour_ratio": 1.0055,
+          "overlap_ratio_pct": 95.55,
+          "jaccard_similarity": 0.9195,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 215,
+          "distance_km": 10.062,
+          "cost": 12654.98,
+          "detour_ratio": 0.9997,
+          "overlap_ratio_pct": 98.2,
+          "jaccard_similarity": 0.9645,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 211,
+          "distance_km": 10.117,
+          "cost": 12657.38,
+          "detour_ratio": 1.0052,
+          "overlap_ratio_pct": 93.76,
+          "jaccard_similarity": 0.8868,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_02",
+    "name": "Koramangala to Indiranagar",
+    "start_node": 309592695,
+    "end_node": 448306395,
+    "from_coords": [
+      12.9352,
+      77.6245
+    ],
+    "to_coords": [
+      12.9719,
+      77.6412
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 10037.59,
+      "candidates_generated": 12,
+      "candidates_rejected": 11,
+      "valid_alternatives_count": 1,
+      "pairwise_diversity": 0.5135,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 105,
+          "distance_km": 6.38,
+          "cost": 6460.97,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 110,
+          "distance_km": 6.694,
+          "cost": 6935.95,
+          "detour_ratio": 1.0492,
+          "overlap_ratio_pct": 63.92,
+          "jaccard_similarity": 0.4865
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 12177.48,
+      "candidates_generated": 257,
+      "candidates_rejected_detour": 14,
+      "candidates_rejected_duplicates": 91,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.2392,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 105,
+          "distance_km": 6.38,
+          "cost": 6460.97,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 108,
+          "distance_km": 6.371,
+          "cost": 6478.38,
+          "detour_ratio": 0.9985,
+          "overlap_ratio_pct": 93.34,
+          "jaccard_similarity": 0.8739,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 104,
+          "distance_km": 6.378,
+          "cost": 6483.73,
+          "detour_ratio": 0.9997,
+          "overlap_ratio_pct": 97.08,
+          "jaccard_similarity": 0.943,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 112,
+          "distance_km": 6.377,
+          "cost": 6483.75,
+          "detour_ratio": 0.9996,
+          "overlap_ratio_pct": 80.45,
+          "jaccard_similarity": 0.6727,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_03",
+    "name": "Electronic City to Silk Board",
+    "start_node": 12450442633,
+    "end_node": 9968184749,
+    "from_coords": [
+      12.8452,
+      77.6602
+    ],
+    "to_coords": [
+      12.9176,
+      77.6238
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 13273.05,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.5669,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 174,
+          "distance_km": 9.505,
+          "cost": 11204.93,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 196,
+          "distance_km": 10.341,
+          "cost": 12779.04,
+          "detour_ratio": 1.088,
+          "overlap_ratio_pct": 27.77,
+          "jaccard_similarity": 0.1692
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 211,
+          "distance_km": 10.735,
+          "cost": 13270.6,
+          "detour_ratio": 1.1294,
+          "overlap_ratio_pct": 26.79,
+          "jaccard_similarity": 0.1655
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 24720.82,
+      "candidates_generated": 190,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 28,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0717,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 174,
+          "distance_km": 9.505,
+          "cost": 11204.93,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 173,
+          "distance_km": 9.512,
+          "cost": 11208.29,
+          "detour_ratio": 1.0007,
+          "overlap_ratio_pct": 97.13,
+          "jaccard_similarity": 0.9449,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 175,
+          "distance_km": 9.529,
+          "cost": 11229.8,
+          "detour_ratio": 1.0025,
+          "overlap_ratio_pct": 97.1,
+          "jaccard_similarity": 0.946,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 174,
+          "distance_km": 9.536,
+          "cost": 11233.16,
+          "detour_ratio": 1.0033,
+          "overlap_ratio_pct": 94.24,
+          "jaccard_similarity": 0.8939,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_04",
+    "name": "Whitefield to Marathahalli",
+    "start_node": 1104250513,
+    "end_node": 343334152,
+    "from_coords": [
+      12.9698,
+      77.75
+    ],
+    "to_coords": [
+      12.9569,
+      77.7011
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 12424.48,
+      "candidates_generated": 12,
+      "candidates_rejected": 12,
+      "valid_alternatives_count": 0,
+      "pairwise_diversity": 0.0,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 186,
+          "distance_km": 8.814,
+          "cost": 11468.77,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 8864.44,
+      "candidates_generated": 131,
+      "candidates_rejected_detour": 16,
+      "candidates_rejected_duplicates": 46,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0399,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 186,
+          "distance_km": 8.814,
+          "cost": 11468.77,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 185,
+          "distance_km": 8.821,
+          "cost": 11470.77,
+          "detour_ratio": 1.0008,
+          "overlap_ratio_pct": 98.67,
+          "jaccard_similarity": 0.9745,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 191,
+          "distance_km": 8.804,
+          "cost": 11476.47,
+          "detour_ratio": 0.9988,
+          "overlap_ratio_pct": 98.28,
+          "jaccard_similarity": 0.9651,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 190,
+          "distance_km": 8.811,
+          "cost": 11478.47,
+          "detour_ratio": 0.9996,
+          "overlap_ratio_pct": 96.95,
+          "jaccard_similarity": 0.9405,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_05",
+    "name": "Hebbal to Majestic",
+    "start_node": 2460383180,
+    "end_node": 3755675128,
+    "from_coords": [
+      13.0358,
+      77.597
+    ],
+    "to_coords": [
+      12.9767,
+      77.5713
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 13487.0,
+      "candidates_generated": 12,
+      "candidates_rejected": 8,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.6413,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 189,
+          "distance_km": 9.944,
+          "cost": 11536.13,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 197,
+          "distance_km": 9.573,
+          "cost": 14134.75,
+          "detour_ratio": 0.9627,
+          "overlap_ratio_pct": 37.12,
+          "jaccard_similarity": 0.2226
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 184,
+          "distance_km": 10.871,
+          "cost": 14314.97,
+          "detour_ratio": 1.0932,
+          "overlap_ratio_pct": 24.33,
+          "jaccard_similarity": 0.1455
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 193,
+          "distance_km": 11.253,
+          "cost": 14741.94,
+          "detour_ratio": 1.1316,
+          "overlap_ratio_pct": 23.5,
+          "jaccard_similarity": 0.1425
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 96996.44,
+      "candidates_generated": 399,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 19,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.193,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 189,
+          "distance_km": 9.944,
+          "cost": 11536.13,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 187,
+          "distance_km": 10.0,
+          "cost": 11536.47,
+          "detour_ratio": 1.0056,
+          "overlap_ratio_pct": 97.76,
+          "jaccard_similarity": 0.9614,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 183,
+          "distance_km": 10.025,
+          "cost": 11544.49,
+          "detour_ratio": 1.0081,
+          "overlap_ratio_pct": 84.96,
+          "jaccard_similarity": 0.7437,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 181,
+          "distance_km": 10.081,
+          "cost": 11544.84,
+          "detour_ratio": 1.0137,
+          "overlap_ratio_pct": 82.82,
+          "jaccard_similarity": 0.715,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_06",
+    "name": "Jayanagar 4th Block to Malleshwaram",
+    "start_node": 303923398,
+    "end_node": 610181412,
+    "from_coords": [
+      12.925,
+      77.5838
+    ],
+    "to_coords": [
+      13.0031,
+      77.5643
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 19175.83,
+      "candidates_generated": 12,
+      "candidates_rejected": 5,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.3692,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 252,
+          "distance_km": 12.447,
+          "cost": 14153.24,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 257,
+          "distance_km": 12.265,
+          "cost": 14418.49,
+          "detour_ratio": 0.9854,
+          "overlap_ratio_pct": 51.84,
+          "jaccard_similarity": 0.3464
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 254,
+          "distance_km": 12.27,
+          "cost": 14493.45,
+          "detour_ratio": 0.9857,
+          "overlap_ratio_pct": 51.82,
+          "jaccard_similarity": 0.3464
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 260,
+          "distance_km": 12.389,
+          "cost": 14529.83,
+          "detour_ratio": 0.9953,
+          "overlap_ratio_pct": 51.33,
+          "jaccard_similarity": 0.3441
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 307870.61,
+      "candidates_generated": 608,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 303,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0387,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 252,
+          "distance_km": 12.447,
+          "cost": 14153.24,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 254,
+          "distance_km": 12.449,
+          "cost": 14154.86,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 99.06,
+          "jaccard_similarity": 0.9816,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 252,
+          "distance_km": 12.449,
+          "cost": 14155.05,
+          "detour_ratio": 1.0002,
+          "overlap_ratio_pct": 97.95,
+          "jaccard_similarity": 0.96,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 254,
+          "distance_km": 12.451,
+          "cost": 14156.67,
+          "detour_ratio": 1.0003,
+          "overlap_ratio_pct": 97.01,
+          "jaccard_similarity": 0.9423,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_07",
+    "name": "HSR Layout to Bellandur",
+    "start_node": 11178931802,
+    "end_node": 4824673767,
+    "from_coords": [
+      12.9121,
+      77.6446
+    ],
+    "to_coords": [
+      12.9304,
+      77.6784
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 14326.12,
+      "candidates_generated": 12,
+      "candidates_rejected": 9,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.5178,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 105,
+          "distance_km": 5.807,
+          "cost": 6505.39,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 104,
+          "distance_km": 6.066,
+          "cost": 6773.32,
+          "detour_ratio": 1.0447,
+          "overlap_ratio_pct": 62.93,
+          "jaccard_similarity": 0.4739
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 95,
+          "distance_km": 6.521,
+          "cost": 7264.4,
+          "detour_ratio": 1.123,
+          "overlap_ratio_pct": 64.3,
+          "jaccard_similarity": 0.5154
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 97,
+          "distance_km": 6.677,
+          "cost": 7429.82,
+          "detour_ratio": 1.1499,
+          "overlap_ratio_pct": 62.8,
+          "jaccard_similarity": 0.5057
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 6525.46,
+      "candidates_generated": 182,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 97,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.1315,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 105,
+          "distance_km": 5.807,
+          "cost": 6505.39,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 108,
+          "distance_km": 5.81,
+          "cost": 6510.0,
+          "detour_ratio": 1.0005,
+          "overlap_ratio_pct": 92.14,
+          "jaccard_similarity": 0.8547,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 106,
+          "distance_km": 5.812,
+          "cost": 6513.64,
+          "detour_ratio": 1.0009,
+          "overlap_ratio_pct": 98.36,
+          "jaccard_similarity": 0.9686,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 108,
+          "distance_km": 5.808,
+          "cost": 6516.24,
+          "detour_ratio": 1.0002,
+          "overlap_ratio_pct": 90.22,
+          "jaccard_similarity": 0.8219,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_08",
+    "name": "Banashankari to Yeshwanthpur",
+    "start_node": 7410528383,
+    "end_node": 12193906419,
+    "from_coords": [
+      12.9255,
+      77.5468
+    ],
+    "to_coords": [
+      13.0285,
+      77.5409
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 45112.1,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.5168,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 322,
+          "distance_km": 14.554,
+          "cost": 18507.46,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 298,
+          "distance_km": 14.954,
+          "cost": 18942.32,
+          "detour_ratio": 1.0275,
+          "overlap_ratio_pct": 48.74,
+          "jaccard_similarity": 0.328
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 316,
+          "distance_km": 14.862,
+          "cost": 18990.37,
+          "detour_ratio": 1.0212,
+          "overlap_ratio_pct": 49.04,
+          "jaccard_similarity": 0.3294
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 688234.83,
+      "candidates_generated": 722,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 238,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0363,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 322,
+          "distance_km": 14.554,
+          "cost": 18507.46,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 323,
+          "distance_km": 14.556,
+          "cost": 18508.95,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 99.06,
+          "jaccard_similarity": 0.9815,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 322,
+          "distance_km": 14.553,
+          "cost": 18510.64,
+          "detour_ratio": 0.9999,
+          "overlap_ratio_pct": 98.37,
+          "jaccard_similarity": 0.9679,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 322,
+          "distance_km": 14.535,
+          "cost": 18511.33,
+          "detour_ratio": 0.9987,
+          "overlap_ratio_pct": 98.92,
+          "jaccard_similarity": 0.9774,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_09",
+    "name": "Rajajinagar to Commercial Street",
+    "start_node": 6753406912,
+    "end_node": 429415637,
+    "from_coords": [
+      12.9915,
+      77.5523
+    ],
+    "to_coords": [
+      12.9822,
+      77.6083
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 12907.41,
+      "candidates_generated": 12,
+      "candidates_rejected": 4,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.665,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 168,
+          "distance_km": 8.29,
+          "cost": 9199.77,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 195,
+          "distance_km": 9.171,
+          "cost": 11100.59,
+          "detour_ratio": 1.1063,
+          "overlap_ratio_pct": 62.45,
+          "jaccard_similarity": 0.4881
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 189,
+          "distance_km": 9.898,
+          "cost": 11109.62,
+          "detour_ratio": 1.1939,
+          "overlap_ratio_pct": 41.95,
+          "jaccard_similarity": 0.2958
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 206,
+          "distance_km": 9.345,
+          "cost": 11414.55,
+          "detour_ratio": 1.1272,
+          "overlap_ratio_pct": 43.83,
+          "jaccard_similarity": 0.3026
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 52488.41,
+      "candidates_generated": 407,
+      "candidates_rejected_detour": 2,
+      "candidates_rejected_duplicates": 197,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0823,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 168,
+          "distance_km": 8.29,
+          "cost": 9199.77,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 165,
+          "distance_km": 8.333,
+          "cost": 9205.5,
+          "detour_ratio": 1.0052,
+          "overlap_ratio_pct": 95.84,
+          "jaccard_similarity": 0.9246,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 167,
+          "distance_km": 8.269,
+          "cost": 9205.97,
+          "detour_ratio": 0.9974,
+          "overlap_ratio_pct": 96.54,
+          "jaccard_similarity": 0.9308,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 168,
+          "distance_km": 8.297,
+          "cost": 9206.06,
+          "detour_ratio": 1.0008,
+          "overlap_ratio_pct": 97.78,
+          "jaccard_similarity": 0.9574,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_10",
+    "name": "BTM Layout to Domlur",
+    "start_node": 10123822801,
+    "end_node": 11337845996,
+    "from_coords": [
+      12.9166,
+      77.6101
+    ],
+    "to_coords": [
+      12.9609,
+      77.6387
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 11342.37,
+      "candidates_generated": 12,
+      "candidates_rejected": 11,
+      "valid_alternatives_count": 1,
+      "pairwise_diversity": 0.413,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 131,
+          "distance_km": 7.784,
+          "cost": 9337.4,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 156,
+          "distance_km": 9.064,
+          "cost": 11077.15,
+          "detour_ratio": 1.1645,
+          "overlap_ratio_pct": 68.75,
+          "jaccard_similarity": 0.587
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 23611.91,
+      "candidates_generated": 302,
+      "candidates_rejected_detour": 23,
+      "candidates_rejected_duplicates": 70,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.068,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 131,
+          "distance_km": 7.784,
+          "cost": 9337.4,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 130,
+          "distance_km": 7.785,
+          "cost": 9338.23,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 98.81,
+          "jaccard_similarity": 0.9765,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 129,
+          "distance_km": 7.8,
+          "cost": 9341.73,
+          "detour_ratio": 1.0021,
+          "overlap_ratio_pct": 95.76,
+          "jaccard_similarity": 0.9205,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 128,
+          "distance_km": 7.801,
+          "cost": 9342.56,
+          "detour_ratio": 1.0022,
+          "overlap_ratio_pct": 94.57,
+          "jaccard_similarity": 0.8989,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_11",
+    "name": "Basavanagudi to Ulsoor",
+    "start_node": 1837757332,
+    "end_node": 3304182912,
+    "from_coords": [
+      12.9416,
+      77.5738
+    ],
+    "to_coords": [
+      12.9818,
+      77.6284
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 19751.13,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.5674,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 258,
+          "distance_km": 11.425,
+          "cost": 16585.88,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 257,
+          "distance_km": 12.942,
+          "cost": 18054.77,
+          "detour_ratio": 1.1328,
+          "overlap_ratio_pct": 40.56,
+          "jaccard_similarity": 0.2745
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 286,
+          "distance_km": 13.352,
+          "cost": 18384.4,
+          "detour_ratio": 1.1687,
+          "overlap_ratio_pct": 66.58,
+          "jaccard_similarity": 0.5596
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 280134.31,
+      "candidates_generated": 503,
+      "candidates_rejected_detour": 9,
+      "candidates_rejected_duplicates": 128,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0516,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 258,
+          "distance_km": 11.425,
+          "cost": 16585.88,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 258,
+          "distance_km": 11.426,
+          "cost": 16586.81,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 99.2,
+          "jaccard_similarity": 0.9842,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 254,
+          "distance_km": 11.432,
+          "cost": 16592.36,
+          "detour_ratio": 1.0006,
+          "overlap_ratio_pct": 96.28,
+          "jaccard_similarity": 0.9289,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 260,
+          "distance_km": 11.436,
+          "cost": 16592.95,
+          "detour_ratio": 1.0009,
+          "overlap_ratio_pct": 99.09,
+          "jaccard_similarity": 0.9828,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_12",
+    "name": "Frazer Town to Shivajinagar",
+    "start_node": 2228426756,
+    "end_node": 10038561456,
+    "from_coords": [
+      12.9982,
+      77.6145
+    ],
+    "to_coords": [
+      12.9856,
+      77.6006
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 8653.38,
+      "candidates_generated": 12,
+      "candidates_rejected": 8,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.6389,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 67,
+          "distance_km": 2.735,
+          "cost": 2979.43,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 64,
+          "distance_km": 2.763,
+          "cost": 3142.46,
+          "detour_ratio": 1.0102,
+          "overlap_ratio_pct": 42.35,
+          "jaccard_similarity": 0.2704
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 78,
+          "distance_km": 3.131,
+          "cost": 3623.83,
+          "detour_ratio": 1.1445,
+          "overlap_ratio_pct": 63.09,
+          "jaccard_similarity": 0.5076
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 65,
+          "distance_km": 2.92,
+          "cost": 3650.13,
+          "detour_ratio": 1.0676,
+          "overlap_ratio_pct": 57.34,
+          "jaccard_similarity": 0.4206
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 2587.3,
+      "candidates_generated": 159,
+      "candidates_rejected_detour": 2,
+      "candidates_rejected_duplicates": 65,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 2,
+      "pairwise_diversity": 0.432,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 67,
+          "distance_km": 2.735,
+          "cost": 2979.43,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 67,
+          "distance_km": 2.727,
+          "cost": 2980.52,
+          "detour_ratio": 0.997,
+          "overlap_ratio_pct": 53.57,
+          "jaccard_similarity": 0.3651,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 68,
+          "distance_km": 2.735,
+          "cost": 2987.11,
+          "detour_ratio": 0.9999,
+          "overlap_ratio_pct": 58.48,
+          "jaccard_similarity": 0.4132,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 65,
+          "distance_km": 2.727,
+          "cost": 2988.52,
+          "detour_ratio": 0.997,
+          "overlap_ratio_pct": 83.68,
+          "jaccard_similarity": 0.7174,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_13",
+    "name": "JP Nagar 6th Phase to Koramangala",
+    "start_node": 7100647721,
+    "end_node": 309592695,
+    "from_coords": [
+      12.9063,
+      77.5855
+    ],
+    "to_coords": [
+      12.9352,
+      77.6245
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 13522.5,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.71,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 165,
+          "distance_km": 7.851,
+          "cost": 9996.39,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 161,
+          "distance_km": 8.12,
+          "cost": 10569.7,
+          "detour_ratio": 1.0342,
+          "overlap_ratio_pct": 69.11,
+          "jaccard_similarity": 0.5417
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 172,
+          "distance_km": 9.152,
+          "cost": 12295.16,
+          "detour_ratio": 1.1657,
+          "overlap_ratio_pct": 22.98,
+          "jaccard_similarity": 0.1411
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 59674.34,
+      "candidates_generated": 388,
+      "candidates_rejected_detour": 6,
+      "candidates_rejected_duplicates": 116,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0919,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 165,
+          "distance_km": 7.851,
+          "cost": 9996.39,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 163,
+          "distance_km": 7.855,
+          "cost": 10000.47,
+          "detour_ratio": 1.0006,
+          "overlap_ratio_pct": 94.65,
+          "jaccard_similarity": 0.8989,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 166,
+          "distance_km": 7.854,
+          "cost": 10001.9,
+          "detour_ratio": 1.0004,
+          "overlap_ratio_pct": 97.59,
+          "jaccard_similarity": 0.9534,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 165,
+          "distance_km": 7.859,
+          "cost": 10003.22,
+          "detour_ratio": 1.001,
+          "overlap_ratio_pct": 97.94,
+          "jaccard_similarity": 0.9604,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_14",
+    "name": "Vijayanagar to Majestic",
+    "start_node": 1512512264,
+    "end_node": 3755675128,
+    "from_coords": [
+      12.9719,
+      77.5306
+    ],
+    "to_coords": [
+      12.9767,
+      77.5713
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 14334.66,
+      "candidates_generated": 12,
+      "candidates_rejected": 4,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.4979,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 160,
+          "distance_km": 7.186,
+          "cost": 9005.61,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 134,
+          "distance_km": 7.272,
+          "cost": 9199.2,
+          "detour_ratio": 1.0119,
+          "overlap_ratio_pct": 66.49,
+          "jaccard_similarity": 0.5025
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 136,
+          "distance_km": 7.241,
+          "cost": 9262.07,
+          "detour_ratio": 1.0077,
+          "overlap_ratio_pct": 58.85,
+          "jaccard_similarity": 0.4192
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 148,
+          "distance_km": 7.298,
+          "cost": 9589.63,
+          "detour_ratio": 1.0156,
+          "overlap_ratio_pct": 60.29,
+          "jaccard_similarity": 0.4363
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 115767.97,
+      "candidates_generated": 375,
+      "candidates_rejected_detour": 9,
+      "candidates_rejected_duplicates": 120,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.1357,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 160,
+          "distance_km": 7.186,
+          "cost": 9005.61,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 165,
+          "distance_km": 7.197,
+          "cost": 9015.25,
+          "detour_ratio": 1.0015,
+          "overlap_ratio_pct": 96.94,
+          "jaccard_similarity": 0.942,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 148,
+          "distance_km": 7.215,
+          "cost": 9017.27,
+          "detour_ratio": 1.004,
+          "overlap_ratio_pct": 90.24,
+          "jaccard_similarity": 0.8252,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 162,
+          "distance_km": 7.202,
+          "cost": 9019.52,
+          "detour_ratio": 1.0022,
+          "overlap_ratio_pct": 97.58,
+          "jaccard_similarity": 0.9547,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_15",
+    "name": "Yelahanka to Hebbal",
+    "start_node": 2464052225,
+    "end_node": 2460383180,
+    "from_coords": [
+      13.1007,
+      77.5963
+    ],
+    "to_coords": [
+      13.0358,
+      77.597
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 13466.66,
+      "candidates_generated": 12,
+      "candidates_rejected": 12,
+      "valid_alternatives_count": 0,
+      "pairwise_diversity": 0.0,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 62,
+          "distance_km": 8.67,
+          "cost": 9315.45,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 5392.02,
+      "candidates_generated": 129,
+      "candidates_rejected_detour": 4,
+      "candidates_rejected_duplicates": 44,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0673,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 62,
+          "distance_km": 8.67,
+          "cost": 9315.45,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 62,
+          "distance_km": 8.676,
+          "cost": 9345.83,
+          "detour_ratio": 1.0007,
+          "overlap_ratio_pct": 97.77,
+          "jaccard_similarity": 0.9571,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 63,
+          "distance_km": 8.705,
+          "cost": 9347.6,
+          "detour_ratio": 1.0041,
+          "overlap_ratio_pct": 95.33,
+          "jaccard_similarity": 0.9143,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 66,
+          "distance_km": 8.701,
+          "cost": 9353.51,
+          "detour_ratio": 1.0037,
+          "overlap_ratio_pct": 96.18,
+          "jaccard_similarity": 0.9296,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_16",
+    "name": "Bellandur to Whitefield",
+    "start_node": 4824673767,
+    "end_node": 1104250513,
+    "from_coords": [
+      12.9304,
+      77.6784
+    ],
+    "to_coords": [
+      12.9698,
+      77.75
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 11363.61,
+      "candidates_generated": 12,
+      "candidates_rejected": 3,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.5999,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 333,
+          "distance_km": 15.036,
+          "cost": 16052.26,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 261,
+          "distance_km": 12.032,
+          "cost": 16291.23,
+          "detour_ratio": 0.8002,
+          "overlap_ratio_pct": 42.07,
+          "jaccard_similarity": 0.23
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 261,
+          "distance_km": 12.279,
+          "cost": 16459.47,
+          "detour_ratio": 0.8166,
+          "overlap_ratio_pct": 41.23,
+          "jaccard_similarity": 0.2275
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 260,
+          "distance_km": 12.951,
+          "cost": 16673.45,
+          "detour_ratio": 0.8613,
+          "overlap_ratio_pct": 17.92,
+          "jaccard_similarity": 0.0904
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 28433.58,
+      "candidates_generated": 278,
+      "candidates_rejected_detour": 7,
+      "candidates_rejected_duplicates": 94,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0818,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 333,
+          "distance_km": 15.036,
+          "cost": 16052.26,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 335,
+          "distance_km": 14.985,
+          "cost": 16069.38,
+          "detour_ratio": 0.9966,
+          "overlap_ratio_pct": 93.78,
+          "jaccard_similarity": 0.88,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 331,
+          "distance_km": 15.025,
+          "cost": 16080.03,
+          "detour_ratio": 0.9992,
+          "overlap_ratio_pct": 98.9,
+          "jaccard_similarity": 0.9776,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 329,
+          "distance_km": 15.046,
+          "cost": 16081.49,
+          "detour_ratio": 1.0007,
+          "overlap_ratio_pct": 98.28,
+          "jaccard_similarity": 0.9669,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_17",
+    "name": "Malleshwaram to Rajajinagar",
+    "start_node": 610181412,
+    "end_node": 6753406912,
+    "from_coords": [
+      13.0031,
+      77.5643
+    ],
+    "to_coords": [
+      12.9915,
+      77.5523
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 8883.5,
+      "candidates_generated": 12,
+      "candidates_rejected": 4,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.7327,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 56,
+          "distance_km": 3.422,
+          "cost": 3414.15,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 73,
+          "distance_km": 3.597,
+          "cost": 3746.0,
+          "detour_ratio": 1.0513,
+          "overlap_ratio_pct": 17.68,
+          "jaccard_similarity": 0.0996
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 74,
+          "distance_km": 3.659,
+          "cost": 3826.23,
+          "detour_ratio": 1.0692,
+          "overlap_ratio_pct": 17.38,
+          "jaccard_similarity": 0.0987
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 79,
+          "distance_km": 3.859,
+          "cost": 3882.13,
+          "detour_ratio": 1.1276,
+          "overlap_ratio_pct": 69.05,
+          "jaccard_similarity": 0.5771
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 2864.69,
+      "candidates_generated": 131,
+      "candidates_rejected_detour": 5,
+      "candidates_rejected_duplicates": 25,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.2801,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 56,
+          "distance_km": 3.422,
+          "cost": 3414.15,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 55,
+          "distance_km": 3.444,
+          "cost": 3433.99,
+          "detour_ratio": 1.0064,
+          "overlap_ratio_pct": 88.94,
+          "jaccard_similarity": 0.8054,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 58,
+          "distance_km": 3.42,
+          "cost": 3443.22,
+          "detour_ratio": 0.9995,
+          "overlap_ratio_pct": 93.61,
+          "jaccard_similarity": 0.8795,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 58,
+          "distance_km": 3.448,
+          "cost": 3443.55,
+          "detour_ratio": 1.0075,
+          "overlap_ratio_pct": 80.05,
+          "jaccard_similarity": 0.6716,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_18",
+    "name": "Indiranagar to MG Road",
+    "start_node": 448306395,
+    "end_node": 11961205354,
+    "from_coords": [
+      12.9719,
+      77.6412
+    ],
+    "to_coords": [
+      12.9756,
+      77.6066
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 12502.12,
+      "candidates_generated": 12,
+      "candidates_rejected": 8,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.412,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 117,
+          "distance_km": 5.876,
+          "cost": 8512.03,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 132,
+          "distance_km": 6.025,
+          "cost": 8960.68,
+          "detour_ratio": 1.0252,
+          "overlap_ratio_pct": 52.52,
+          "jaccard_similarity": 0.3621
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 139,
+          "distance_km": 6.262,
+          "cost": 9135.63,
+          "detour_ratio": 1.0657,
+          "overlap_ratio_pct": 50.52,
+          "jaccard_similarity": 0.3525
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 138,
+          "distance_km": 6.264,
+          "cost": 9237.37,
+          "detour_ratio": 1.0659,
+          "overlap_ratio_pct": 50.51,
+          "jaccard_similarity": 0.3525
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 89344.19,
+      "candidates_generated": 147,
+      "candidates_rejected_detour": 8,
+      "candidates_rejected_duplicates": 68,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0667,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 117,
+          "distance_km": 5.876,
+          "cost": 8512.03,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 120,
+          "distance_km": 5.877,
+          "cost": 8516.83,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 95.75,
+          "jaccard_similarity": 0.9186,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 116,
+          "distance_km": 5.879,
+          "cost": 8518.83,
+          "detour_ratio": 1.0004,
+          "overlap_ratio_pct": 99.01,
+          "jaccard_similarity": 0.9806,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 119,
+          "distance_km": 5.879,
+          "cost": 8523.63,
+          "detour_ratio": 1.0004,
+          "overlap_ratio_pct": 94.76,
+          "jaccard_similarity": 0.9008,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_19",
+    "name": "Silk Board to BTM 2nd Stage",
+    "start_node": 9968184749,
+    "end_node": 10123822801,
+    "from_coords": [
+      12.9176,
+      77.6238
+    ],
+    "to_coords": [
+      12.9166,
+      77.6101
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 8516.22,
+      "candidates_generated": 12,
+      "candidates_rejected": 9,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.7198,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 45,
+          "distance_km": 2.013,
+          "cost": 2877.03,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 42,
+          "distance_km": 2.084,
+          "cost": 2931.71,
+          "detour_ratio": 1.0352,
+          "overlap_ratio_pct": 68.39,
+          "jaccard_similarity": 0.5334
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 57,
+          "distance_km": 2.314,
+          "cost": 3116.39,
+          "detour_ratio": 1.1493,
+          "overlap_ratio_pct": 28.31,
+          "jaccard_similarity": 0.1784
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 52,
+          "distance_km": 2.329,
+          "cost": 3201.05,
+          "detour_ratio": 1.1569,
+          "overlap_ratio_pct": 51.68,
+          "jaccard_similarity": 0.3835
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 1581.95,
+      "candidates_generated": 89,
+      "candidates_rejected_detour": 11,
+      "candidates_rejected_duplicates": 14,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.1986,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 45,
+          "distance_km": 2.013,
+          "cost": 2877.03,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 46,
+          "distance_km": 2.021,
+          "cost": 2891.14,
+          "detour_ratio": 1.0037,
+          "overlap_ratio_pct": 94.59,
+          "jaccard_similarity": 0.9005,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 50,
+          "distance_km": 2.084,
+          "cost": 2920.9,
+          "detour_ratio": 1.0352,
+          "overlap_ratio_pct": 89.51,
+          "jaccard_similarity": 0.8358,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 51,
+          "distance_km": 2.097,
+          "cost": 2923.64,
+          "detour_ratio": 1.0417,
+          "overlap_ratio_pct": 85.75,
+          "jaccard_similarity": 0.7778,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_20",
+    "name": "Kengeri to Satellite Bus Station",
+    "start_node": 13260995293,
+    "end_node": 4926591971,
+    "from_coords": [
+      12.9081,
+      77.4852
+    ],
+    "to_coords": [
+      12.9536,
+      77.5432
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 15687.61,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.4378,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 238,
+          "distance_km": 12.327,
+          "cost": 13978.45,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 210,
+          "distance_km": 11.11,
+          "cost": 14752.12,
+          "detour_ratio": 0.9013,
+          "overlap_ratio_pct": 54.88,
+          "jaccard_similarity": 0.3516
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 214,
+          "distance_km": 11.262,
+          "cost": 14925.79,
+          "detour_ratio": 0.9136,
+          "overlap_ratio_pct": 54.13,
+          "jaccard_similarity": 0.3485
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 131341.88,
+      "candidates_generated": 409,
+      "candidates_rejected_detour": 4,
+      "candidates_rejected_duplicates": 83,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0527,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 238,
+          "distance_km": 12.327,
+          "cost": 13978.45,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 239,
+          "distance_km": 12.329,
+          "cost": 13979.98,
+          "detour_ratio": 1.0001,
+          "overlap_ratio_pct": 98.75,
+          "jaccard_similarity": 0.9755,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 239,
+          "distance_km": 12.331,
+          "cost": 13982.45,
+          "detour_ratio": 1.0004,
+          "overlap_ratio_pct": 98.83,
+          "jaccard_similarity": 0.9773,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 234,
+          "distance_km": 12.36,
+          "cost": 13982.69,
+          "detour_ratio": 1.0027,
+          "overlap_ratio_pct": 96.81,
+          "jaccard_similarity": 0.9406,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_21",
+    "name": "RT Nagar to Cantonment",
+    "start_node": 6461900267,
+    "end_node": 7250050350,
+    "from_coords": [
+      13.0238,
+      77.5936
+    ],
+    "to_coords": [
+      12.9935,
+      77.6001
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 9363.78,
+      "candidates_generated": 12,
+      "candidates_rejected": 10,
+      "valid_alternatives_count": 2,
+      "pairwise_diversity": 0.4313,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 129,
+          "distance_km": 4.984,
+          "cost": 5798.38,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 108,
+          "distance_km": 4.805,
+          "cost": 6431.8,
+          "detour_ratio": 0.9641,
+          "overlap_ratio_pct": 63.84,
+          "jaccard_similarity": 0.4564
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 111,
+          "distance_km": 4.918,
+          "cost": 6533.24,
+          "detour_ratio": 0.9869,
+          "overlap_ratio_pct": 62.37,
+          "jaccard_similarity": 0.4488
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 15085.47,
+      "candidates_generated": 266,
+      "candidates_rejected_detour": 13,
+      "candidates_rejected_duplicates": 110,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.1072,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 129,
+          "distance_km": 4.984,
+          "cost": 5798.38,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 128,
+          "distance_km": 4.985,
+          "cost": 5808.96,
+          "detour_ratio": 1.0003,
+          "overlap_ratio_pct": 96.68,
+          "jaccard_similarity": 0.9361,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 129,
+          "distance_km": 4.987,
+          "cost": 5810.76,
+          "detour_ratio": 1.0006,
+          "overlap_ratio_pct": 95.36,
+          "jaccard_similarity": 0.9119,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 129,
+          "distance_km": 5.001,
+          "cost": 5813.76,
+          "detour_ratio": 1.0034,
+          "overlap_ratio_pct": 96.34,
+          "jaccard_similarity": 0.9324,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_22",
+    "name": "Marathahalli to HAL Airport Road",
+    "start_node": 343334152,
+    "end_node": 4937997455,
+    "from_coords": [
+      12.9569,
+      77.7011
+    ],
+    "to_coords": [
+      12.9609,
+      77.6582
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 9629.35,
+      "candidates_generated": 12,
+      "candidates_rejected": 7,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.5089,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 150,
+          "distance_km": 7.727,
+          "cost": 8248.15,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 124,
+          "distance_km": 8.439,
+          "cost": 9041.37,
+          "detour_ratio": 1.0922,
+          "overlap_ratio_pct": 64.05,
+          "jaccard_similarity": 0.5024
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 129,
+          "distance_km": 8.473,
+          "cost": 9138.69,
+          "detour_ratio": 1.0966,
+          "overlap_ratio_pct": 63.8,
+          "jaccard_similarity": 0.5008
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 131,
+          "distance_km": 7.23,
+          "cost": 9340.18,
+          "detour_ratio": 0.9357,
+          "overlap_ratio_pct": 44.97,
+          "jaccard_similarity": 0.2778
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 11345.22,
+      "candidates_generated": 281,
+      "candidates_rejected_detour": 4,
+      "candidates_rejected_duplicates": 117,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.0695,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 150,
+          "distance_km": 7.727,
+          "cost": 8248.15,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 153,
+          "distance_km": 7.667,
+          "cost": 8253.86,
+          "detour_ratio": 0.9922,
+          "overlap_ratio_pct": 96.27,
+          "jaccard_similarity": 0.9212,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 157,
+          "distance_km": 7.68,
+          "cost": 8255.07,
+          "detour_ratio": 0.9939,
+          "overlap_ratio_pct": 95.12,
+          "jaccard_similarity": 0.9017,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 155,
+          "distance_km": 7.678,
+          "cost": 8261.27,
+          "detour_ratio": 0.9936,
+          "overlap_ratio_pct": 95.15,
+          "jaccard_similarity": 0.902,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_23",
+    "name": "Richmond Town to Brigade Road",
+    "start_node": 9825123715,
+    "end_node": 10017310826,
+    "from_coords": [
+      12.9667,
+      77.6015
+    ],
+    "to_coords": [
+      12.9733,
+      77.6074
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 10582.48,
+      "candidates_generated": 12,
+      "candidates_rejected": 12,
+      "valid_alternatives_count": 0,
+      "pairwise_diversity": 0.0,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 29,
+          "distance_km": 1.353,
+          "cost": 2994.96,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 111.04,
+      "candidates_generated": 19,
+      "candidates_rejected_detour": 11,
+      "candidates_rejected_duplicates": 4,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.2774,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 29,
+          "distance_km": 1.353,
+          "cost": 2994.96,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 30,
+          "distance_km": 1.52,
+          "cost": 3250.04,
+          "detour_ratio": 1.1236,
+          "overlap_ratio_pct": 83.58,
+          "jaccard_similarity": 0.7929,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 32,
+          "distance_km": 1.594,
+          "cost": 3293.74,
+          "detour_ratio": 1.1786,
+          "overlap_ratio_pct": 81.21,
+          "jaccard_similarity": 0.7837,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 33,
+          "distance_km": 1.597,
+          "cost": 3555.64,
+          "detour_ratio": 1.1807,
+          "overlap_ratio_pct": 82.62,
+          "jaccard_similarity": 0.8095,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_24",
+    "name": "Banaswadi to Kammanahalli",
+    "start_node": 6562189762,
+    "end_node": 7271096808,
+    "from_coords": [
+      13.0142,
+      77.6519
+    ],
+    "to_coords": [
+      13.0094,
+      77.6367
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 8571.15,
+      "candidates_generated": 12,
+      "candidates_rejected": 3,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.5709,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 61,
+          "distance_km": 2.398,
+          "cost": 2674.31,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 60,
+          "distance_km": 2.394,
+          "cost": 2764.57,
+          "detour_ratio": 0.9984,
+          "overlap_ratio_pct": 54.6,
+          "jaccard_similarity": 0.3751
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 62,
+          "distance_km": 2.404,
+          "cost": 2779.39,
+          "detour_ratio": 1.0026,
+          "overlap_ratio_pct": 56.14,
+          "jaccard_similarity": 0.391
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 55,
+          "distance_km": 2.438,
+          "cost": 2828.4,
+          "detour_ratio": 1.0168,
+          "overlap_ratio_pct": 43.67,
+          "jaccard_similarity": 0.2824
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 2236.64,
+      "candidates_generated": 151,
+      "candidates_rejected_detour": 9,
+      "candidates_rejected_duplicates": 54,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.2025,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 61,
+          "distance_km": 2.398,
+          "cost": 2674.31,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 61,
+          "distance_km": 2.409,
+          "cost": 2706.87,
+          "detour_ratio": 1.0045,
+          "overlap_ratio_pct": 84.83,
+          "jaccard_similarity": 0.7395,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 62,
+          "distance_km": 2.407,
+          "cost": 2711.0,
+          "detour_ratio": 1.0038,
+          "overlap_ratio_pct": 86.65,
+          "jaccard_similarity": 0.767,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 61,
+          "distance_km": 2.398,
+          "cost": 2724.31,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 94.04,
+          "jaccard_similarity": 0.8875,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "OD_25",
+    "name": "Padmanabhanagar to Gandhi Bazaar",
+    "start_node": 503308828,
+    "end_node": 249782667,
+    "from_coords": [
+      12.918,
+      77.5576
+    ],
+    "to_coords": [
+      12.9463,
+      77.5694
+    ],
+    "perpendicular_offset": {
+      "runtime_ms": 9187.37,
+      "candidates_generated": 12,
+      "candidates_rejected": 7,
+      "valid_alternatives_count": 3,
+      "pairwise_diversity": 0.6352,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "direct",
+          "node_count": 95,
+          "distance_km": 4.594,
+          "cost": 4931.48,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0
+        },
+        {
+          "route_index": 1,
+          "strategy": "line_split",
+          "node_count": 88,
+          "distance_km": 4.93,
+          "cost": 5001.33,
+          "detour_ratio": 1.0732,
+          "overlap_ratio_pct": 57.97,
+          "jaccard_similarity": 0.4287
+        },
+        {
+          "route_index": 2,
+          "strategy": "line_split",
+          "node_count": 97,
+          "distance_km": 4.642,
+          "cost": 5002.93,
+          "detour_ratio": 1.0104,
+          "overlap_ratio_pct": 60.51,
+          "jaccard_similarity": 0.437
+        },
+        {
+          "route_index": 3,
+          "strategy": "line_split",
+          "node_count": 101,
+          "distance_km": 4.71,
+          "cost": 5106.75,
+          "detour_ratio": 1.0253,
+          "overlap_ratio_pct": 59.63,
+          "jaccard_similarity": 0.4324
+        }
+      ]
+    },
+    "yen_ksp": {
+      "runtime_ms": 12203.48,
+      "candidates_generated": 234,
+      "candidates_rejected_detour": 0,
+      "candidates_rejected_duplicates": 138,
+      "total_paths_found": 4,
+      "surviving_under_70pct_filter": 0,
+      "pairwise_diversity": 0.1182,
+      "routes": [
+        {
+          "route_index": 0,
+          "strategy": "yen_ksp_0",
+          "node_count": 95,
+          "distance_km": 4.594,
+          "cost": 4931.48,
+          "detour_ratio": 1.0,
+          "overlap_ratio_pct": 100.0,
+          "jaccard_similarity": 1.0,
+          "survives_70pct_filter": true
+        },
+        {
+          "route_index": 1,
+          "strategy": "yen_ksp_1",
+          "node_count": 94,
+          "distance_km": 4.595,
+          "cost": 4932.54,
+          "detour_ratio": 1.0003,
+          "overlap_ratio_pct": 95.44,
+          "jaccard_similarity": 0.913,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 2,
+          "strategy": "yen_ksp_2",
+          "node_count": 96,
+          "distance_km": 4.597,
+          "cost": 4933.97,
+          "detour_ratio": 1.0006,
+          "overlap_ratio_pct": 96.24,
+          "jaccard_similarity": 0.9281,
+          "survives_70pct_filter": false
+        },
+        {
+          "route_index": 3,
+          "strategy": "yen_ksp_3",
+          "node_count": 99,
+          "distance_km": 4.6,
+          "cost": 4936.75,
+          "detour_ratio": 1.0013,
+          "overlap_ratio_pct": 93.94,
+          "jaccard_similarity": 0.8867,
+          "survives_70pct_filter": false
+        }
+      ]
+    }
+  }
+]

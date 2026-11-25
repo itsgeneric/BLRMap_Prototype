@@ -1,0 +1,18 @@
+# Phase 2 freeze manifest
+
+Frozen on author approval. Any change to these files requires an explicit new approval.
+Final anonymisation scan: passed (benign hits only: the generic word MongoDB, a timezone constant in the script, and digits inside metre coordinates).
+Original GPX files: not modified (27 of 27 checksums verified against the handover manifest); held in the private research archive, never published.
+
+```
+4d2d2970d541bd74357096ebd6b2edd416db22dc908875b75dd00d4b51151d8f  PHASE2_METHODOLOGY_NOTE.md
+aeb801a664599c91039b1f93cbad23970ef30db3d8ba9443a13755b750b66e9d  PILOT_PROTOCOL_ANONYMISED.md
+17199f5088a98e75ead396b5f51416bf1d676e51ba5fe6371afc2e389208ac38  pilot_pairs_anonymised.csv
+cf12b9e4b18fc217485ea755839b44be6fb45152ad0d09b492e14a677f69b1a8  strava_ride_summary.csv
+68b562809bf6f6754d3a294ec7f72bcffe6e10901ccffff076544bbd61241124  strava_consistency.csv
+fee0f39730f6ef73a69b744d40cc1b262225c748d5595831dd4a11bec1072a36  strava_sensitivity.csv
+adc0fb932e1f70bd93ccf273f11ebac46c20016d41a94e788346714d10ca3327  strava_points_supplement_anonymised.csv
+c153c340d77ee0b331b4a21703ae0798547980b912978a4ec0f5e2273df1daf3  fig_strava_phase2.png
+f4b845e3a6ba0917077920c0f3759bc1eaa0e07dfc835f96207d5d46fea78004  fig_strava_phase2.pdf
+5ecd868f66fda1805b2b240d3a58d3c4cf9e5b7d8e50f4e582a55235c6d4f3dc  phase2_strava_analysis.py
+```

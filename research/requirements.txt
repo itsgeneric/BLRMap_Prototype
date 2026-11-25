@@ -1,0 +1,7 @@
+# Extra dependencies for research experiments, analysis and figure scripts.
+# Install the backend first: pip install -r backend/requirements.txt
+numpy>=1.26
+pandas>=2.0
+scipy>=1.11
+matplotlib>=3.8
+pytest>=8.0

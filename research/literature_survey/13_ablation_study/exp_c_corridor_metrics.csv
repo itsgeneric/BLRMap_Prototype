@@ -1,0 +1,101 @@
+corridor_id,corridor_name,dist_cat,config,runtime_ms,distance_km,impedance_cost,sharp_turns,moderate_turns,total_turns
+OD_01,BNMIT to MG Road,Long (10.1 km),C0_Zero_Turn_Penalties,864.32,10.19,12737.61,39,13,52
+OD_01,BNMIT to MG Road,Long (10.1 km),C1_Low_Turn_Penalties,1020.39,10.214,12662.45,35,13,48
+OD_01,BNMIT to MG Road,Long (10.1 km),C2_Baseline_Turn_Penalties,1071.13,10.065,12652.51,33,13,46
+OD_01,BNMIT to MG Road,Long (10.1 km),C3_High_Turn_Penalties,1022.34,10.182,12660.46,30,14,44
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),C0_Zero_Turn_Penalties,95.98,6.354,6628.11,32,9,41
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),C1_Low_Turn_Penalties,104.98,6.363,6530.4,27,9,36
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),C2_Baseline_Turn_Penalties,116.01,6.38,6460.97,18,12,30
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),C3_High_Turn_Penalties,125.22,6.472,6501.77,16,13,29
+OD_03,Electronic City to Silk Board,Long (9.5 km),C0_Zero_Turn_Penalties,244.39,9.535,11248.45,5,9,14
+OD_03,Electronic City to Silk Board,Long (9.5 km),C1_Low_Turn_Penalties,231.46,9.512,11212.6,4,7,11
+OD_03,Electronic City to Silk Board,Long (9.5 km),C2_Baseline_Turn_Penalties,227.29,9.505,11209.25,3,6,9
+OD_03,Electronic City to Silk Board,Long (9.5 km),C3_High_Turn_Penalties,205.55,9.505,11209.25,3,6,9
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),C0_Zero_Turn_Penalties,135.25,8.786,11535.7,27,8,35
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),C1_Low_Turn_Penalties,142.75,8.804,11501.63,25,8,33
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),C2_Baseline_Turn_Penalties,151.38,8.814,11493.93,24,9,33
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),C3_High_Turn_Penalties,165.82,8.814,11493.93,24,9,33
+OD_05,Hebbal to Majestic,Long (9.9 km),C0_Zero_Turn_Penalties,473.83,9.995,11757.59,37,12,49
+OD_05,Hebbal to Majestic,Long (9.9 km),C1_Low_Turn_Penalties,492.54,9.945,11571.47,29,12,41
+OD_05,Hebbal to Majestic,Long (9.9 km),C2_Baseline_Turn_Penalties,508.06,9.944,11536.13,24,14,38
+OD_05,Hebbal to Majestic,Long (9.9 km),C3_High_Turn_Penalties,540.37,10.081,11544.84,20,14,34
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),C0_Zero_Turn_Penalties,811.51,12.722,14597.35,62,16,78
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),C1_Low_Turn_Penalties,910.46,12.544,14195.69,45,14,59
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),C2_Baseline_Turn_Penalties,984.05,12.447,14153.24,38,12,50
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),C3_High_Turn_Penalties,1121.98,12.587,14177.51,36,12,48
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),C0_Zero_Turn_Penalties,51.27,5.799,6571.01,20,1,21
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),C1_Low_Turn_Penalties,58.3,5.793,6526.85,18,1,19
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),C2_Baseline_Turn_Penalties,59.52,5.807,6505.39,16,1,17
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),C3_High_Turn_Penalties,63.02,5.812,6534.93,11,2,13
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),C0_Zero_Turn_Penalties,1679.97,15.818,19488.03,90,21,111
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),C1_Low_Turn_Penalties,1778.16,14.673,18565.38,44,20,64
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),C2_Baseline_Turn_Penalties,1818.82,14.554,18507.46,35,22,57
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),C3_High_Turn_Penalties,1893.77,14.596,18532.39,34,20,54
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),C0_Zero_Turn_Penalties,293.5,8.356,9491.42,41,6,47
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),C1_Low_Turn_Penalties,322.2,8.329,9245.82,30,6,36
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),C2_Baseline_Turn_Penalties,345.13,8.29,9199.77,25,7,32
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),C3_High_Turn_Penalties,394.04,8.333,9205.5,24,6,30
+OD_10,BTM Layout to Domlur,Medium (7.8 km),C0_Zero_Turn_Penalties,158.91,7.736,9448.08,40,14,54
+OD_10,BTM Layout to Domlur,Medium (7.8 km),C1_Low_Turn_Penalties,191.15,7.776,9363.1,35,16,51
+OD_10,BTM Layout to Domlur,Medium (7.8 km),C2_Baseline_Turn_Penalties,207.5,7.784,9337.4,33,13,46
+OD_10,BTM Layout to Domlur,Medium (7.8 km),C3_High_Turn_Penalties,263.32,7.876,9378.2,31,14,45
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),C0_Zero_Turn_Penalties,1195.35,11.424,16781.92,57,16,73
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),C1_Low_Turn_Penalties,1270.33,11.425,16604.66,49,16,65
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),C2_Baseline_Turn_Penalties,1354.31,11.425,16604.66,49,16,65
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),C3_High_Turn_Penalties,1509.54,11.493,16636.22,48,15,63
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),C0_Zero_Turn_Penalties,26.43,2.673,3187.77,24,4,28
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),C1_Low_Turn_Penalties,32.16,2.671,2994.31,16,2,18
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),C2_Baseline_Turn_Penalties,38.24,2.735,2979.43,12,2,14
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),C3_High_Turn_Penalties,39.85,2.727,2980.52,8,5,13
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),C0_Zero_Turn_Penalties,280.46,7.94,10300.99,57,2,59
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),C1_Low_Turn_Penalties,339.63,7.849,10020.6,43,2,45
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),C2_Baseline_Turn_Penalties,373.75,7.851,9996.39,41,2,43
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),C3_High_Turn_Penalties,462.72,7.857,10003.76,39,2,41
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),C0_Zero_Turn_Penalties,632.61,7.191,9225.93,31,9,40
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),C1_Low_Turn_Penalties,660.65,7.204,9029.85,22,6,28
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),C2_Baseline_Turn_Penalties,656.07,7.186,9005.61,18,8,26
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),C3_High_Turn_Penalties,694.59,7.257,9049.59,15,6,21
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),C0_Zero_Turn_Penalties,66.94,8.724,9390.83,12,3,15
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),C1_Low_Turn_Penalties,67.52,8.67,9315.45,8,2,10
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),C2_Baseline_Turn_Penalties,66.25,8.67,9315.45,8,2,10
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),C3_High_Turn_Penalties,66.44,8.67,9315.45,8,2,10
+OD_16,Bellandur to Whitefield,Long (15.0 km),C0_Zero_Turn_Penalties,347.47,15.35,16126.34,21,11,32
+OD_16,Bellandur to Whitefield,Long (15.0 km),C1_Low_Turn_Penalties,358.46,15.35,16096.75,19,11,30
+OD_16,Bellandur to Whitefield,Long (15.0 km),C2_Baseline_Turn_Penalties,358.32,15.036,16052.26,13,11,24
+OD_16,Bellandur to Whitefield,Long (15.0 km),C3_High_Turn_Penalties,362.97,14.985,16069.38,11,12,23
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),C0_Zero_Turn_Penalties,46.27,3.437,3509.16,15,1,16
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),C1_Low_Turn_Penalties,50.73,3.422,3414.15,10,1,11
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),C2_Baseline_Turn_Penalties,51.04,3.422,3414.15,10,1,11
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),C3_High_Turn_Penalties,54.56,3.422,3414.15,10,1,11
+OD_18,Indiranagar to MG Road,Medium (5.9 km),C0_Zero_Turn_Penalties,162.31,5.851,8531.01,23,6,29
+OD_18,Indiranagar to MG Road,Medium (5.9 km),C1_Low_Turn_Penalties,163.06,5.876,8512.03,22,6,28
+OD_18,Indiranagar to MG Road,Medium (5.9 km),C2_Baseline_Turn_Penalties,165.48,5.876,8512.03,22,6,28
+OD_18,Indiranagar to MG Road,Medium (5.9 km),C3_High_Turn_Penalties,170.04,5.774,8556.78,18,7,25
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),C0_Zero_Turn_Penalties,22.53,2.013,2877.03,7,1,8
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),C1_Low_Turn_Penalties,22.02,2.013,2877.03,7,1,8
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),C2_Baseline_Turn_Penalties,21.25,2.013,2877.03,7,1,8
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),C3_High_Turn_Penalties,20.07,2.013,2877.03,7,1,8
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),C0_Zero_Turn_Penalties,549.23,12.423,14329.7,58,17,75
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),C1_Low_Turn_Penalties,592.98,12.417,14087.23,46,17,63
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),C2_Baseline_Turn_Penalties,633.05,12.327,14045.44,41,18,59
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),C3_High_Turn_Penalties,707.81,12.517,14081.05,38,17,55
+OD_21,RT Nagar to Cantonment,Short (5.0 km),C0_Zero_Turn_Penalties,102.64,4.991,5936.83,31,5,36
+OD_21,RT Nagar to Cantonment,Short (5.0 km),C1_Low_Turn_Penalties,114.61,4.987,5844.31,27,5,32
+OD_21,RT Nagar to Cantonment,Short (5.0 km),C2_Baseline_Turn_Penalties,129.55,4.984,5798.38,21,7,28
+OD_21,RT Nagar to Cantonment,Short (5.0 km),C3_High_Turn_Penalties,151.45,4.965,5840.57,19,6,25
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),C0_Zero_Turn_Penalties,106.45,7.7,8533.54,31,12,43
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),C1_Low_Turn_Penalties,112.01,7.667,8253.86,20,9,29
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),C2_Baseline_Turn_Penalties,117.54,7.727,8248.15,17,10,27
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),C3_High_Turn_Penalties,123.46,7.727,8248.15,17,10,27
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),C0_Zero_Turn_Penalties,0.97,1.353,2994.96,5,0,5
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),C1_Low_Turn_Penalties,0.99,1.353,2994.96,5,0,5
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),C2_Baseline_Turn_Penalties,1.02,1.353,2994.96,5,0,5
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),C3_High_Turn_Penalties,1.09,1.353,2994.96,5,0,5
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),C0_Zero_Turn_Penalties,29.21,2.321,2820.69,20,1,21
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),C1_Low_Turn_Penalties,35.16,2.398,2674.31,9,2,11
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),C2_Baseline_Turn_Penalties,34.38,2.398,2674.31,9,2,11
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),C3_High_Turn_Penalties,34.45,2.398,2674.31,9,2,11
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),C0_Zero_Turn_Penalties,91.84,4.398,5096.79,28,4,32
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),C1_Low_Turn_Penalties,110.56,4.451,4998.49,21,6,27
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),C2_Baseline_Turn_Penalties,115.97,4.594,4934.12,14,6,20
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),C3_High_Turn_Penalties,125.45,4.594,4934.12,14,6,20

@@ -1,0 +1,382 @@
+[
+  {
+    "id": "OD_01",
+    "name": "BNMIT to MG Road",
+    "start_node": 7479665259,
+    "end_node": 11961205354,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 213,
+        "distance_km": 10.065,
+        "cost": 12652.51,
+        "expanded_states": 169313,
+        "expanded_nodes": 64893,
+        "explored_transitions": 491952,
+        "runtime_ms": 4831.5,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 213,
+        "distance_km": 10.065,
+        "cost": 12652.51,
+        "expanded_states": 64076,
+        "expanded_nodes": 24414,
+        "explored_transitions": 186435,
+        "runtime_ms": 1004.08,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 213,
+        "distance_km": 10.065,
+        "cost": 12652.51,
+        "expanded_states": 34609,
+        "expanded_nodes": 12830,
+        "explored_transitions": 99580,
+        "runtime_ms": 509.62,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_02",
+    "name": "Koramangala to Indiranagar",
+    "start_node": 309592695,
+    "end_node": 448306395,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 105,
+        "distance_km": 6.38,
+        "cost": 6460.97,
+        "expanded_states": 25735,
+        "expanded_nodes": 10111,
+        "explored_transitions": 73821,
+        "runtime_ms": 386.42,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 105,
+        "distance_km": 6.38,
+        "cost": 6460.97,
+        "expanded_states": 8677,
+        "expanded_nodes": 3333,
+        "explored_transitions": 25052,
+        "runtime_ms": 128.12,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 105,
+        "distance_km": 6.38,
+        "cost": 6460.97,
+        "expanded_states": 4573,
+        "expanded_nodes": 1257,
+        "explored_transitions": 13349,
+        "runtime_ms": 69.49,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_03",
+    "name": "Electronic City to Silk Board",
+    "start_node": 12450442633,
+    "end_node": 9968184749,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 174,
+        "distance_km": 9.505,
+        "cost": 11204.93,
+        "expanded_states": 59213,
+        "expanded_nodes": 25209,
+        "explored_transitions": 162803,
+        "runtime_ms": 890.48,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 174,
+        "distance_km": 9.505,
+        "cost": 11204.93,
+        "expanded_states": 17612,
+        "expanded_nodes": 7759,
+        "explored_transitions": 47949,
+        "runtime_ms": 264.99,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 174,
+        "distance_km": 9.505,
+        "cost": 11204.93,
+        "expanded_states": 3515,
+        "expanded_nodes": 1549,
+        "explored_transitions": 9586,
+        "runtime_ms": 48.0,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_04",
+    "name": "Whitefield to Marathahalli",
+    "start_node": 1104250513,
+    "end_node": 343334152,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 186,
+        "distance_km": 8.814,
+        "cost": 11468.77,
+        "expanded_states": 27860,
+        "expanded_nodes": 12746,
+        "explored_transitions": 72870,
+        "runtime_ms": 385.25,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 186,
+        "distance_km": 8.814,
+        "cost": 11468.77,
+        "expanded_states": 12396,
+        "expanded_nodes": 5781,
+        "explored_transitions": 32039,
+        "runtime_ms": 166.64,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 186,
+        "distance_km": 8.814,
+        "cost": 11468.77,
+        "expanded_states": 7937,
+        "expanded_nodes": 3605,
+        "explored_transitions": 20308,
+        "runtime_ms": 108.32,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_05",
+    "name": "Hebbal to Majestic",
+    "start_node": 2460383180,
+    "end_node": 3755675128,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 189,
+        "distance_km": 9.944,
+        "cost": 11536.13,
+        "expanded_states": 115783,
+        "expanded_nodes": 45918,
+        "explored_transitions": 332157,
+        "runtime_ms": 1866.91,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 189,
+        "distance_km": 9.944,
+        "cost": 11536.13,
+        "expanded_states": 37764,
+        "expanded_nodes": 14681,
+        "explored_transitions": 110232,
+        "runtime_ms": 569.39,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 189,
+        "distance_km": 9.944,
+        "cost": 11536.13,
+        "expanded_states": 18602,
+        "expanded_nodes": 6480,
+        "explored_transitions": 54255,
+        "runtime_ms": 279.03,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_06",
+    "name": "Jayanagar 4th Block to Malleshwaram",
+    "start_node": 303923398,
+    "end_node": 610181412,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 252,
+        "distance_km": 12.447,
+        "cost": 14153.24,
+        "expanded_states": 193295,
+        "expanded_nodes": 74693,
+        "explored_transitions": 558483,
+        "runtime_ms": 3139.88,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 252,
+        "distance_km": 12.447,
+        "cost": 14153.24,
+        "expanded_states": 71735,
+        "expanded_nodes": 26964,
+        "explored_transitions": 211795,
+        "runtime_ms": 1099.4,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 256,
+        "distance_km": 12.402,
+        "cost": 14177.89,
+        "expanded_states": 40348,
+        "expanded_nodes": 12231,
+        "explored_transitions": 120693,
+        "runtime_ms": 649.34,
+        "optimality_gap_pct": 0.1742
+      }
+    }
+  },
+  {
+    "id": "OD_07",
+    "name": "HSR Layout to Bellandur",
+    "start_node": 11178931802,
+    "end_node": 4824673767,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 105,
+        "distance_km": 5.807,
+        "cost": 6505.39,
+        "expanded_states": 20457,
+        "expanded_nodes": 8404,
+        "explored_transitions": 57626,
+        "runtime_ms": 293.91,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 105,
+        "distance_km": 5.807,
+        "cost": 6505.39,
+        "expanded_states": 4707,
+        "expanded_nodes": 1891,
+        "explored_transitions": 13485,
+        "runtime_ms": 75.85,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 105,
+        "distance_km": 5.807,
+        "cost": 6505.39,
+        "expanded_states": 2021,
+        "expanded_nodes": 758,
+        "explored_transitions": 6025,
+        "runtime_ms": 36.35,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_08",
+    "name": "Banashankari to Yeshwanthpur",
+    "start_node": 7410528383,
+    "end_node": 12193906419,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 322,
+        "distance_km": 14.554,
+        "cost": 18507.46,
+        "expanded_states": 294000,
+        "expanded_nodes": 113342,
+        "explored_transitions": 851942,
+        "runtime_ms": 4662.01,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 322,
+        "distance_km": 14.554,
+        "cost": 18507.46,
+        "expanded_states": 129619,
+        "expanded_nodes": 47855,
+        "explored_transitions": 385575,
+        "runtime_ms": 2070.12,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 322,
+        "distance_km": 14.554,
+        "cost": 18507.46,
+        "expanded_states": 112501,
+        "expanded_nodes": 27917,
+        "explored_transitions": 344637,
+        "runtime_ms": 1766.47,
+        "optimality_gap_pct": 0.0
+      }
+    }
+  },
+  {
+    "id": "OD_09",
+    "name": "Rajajinagar to Commercial Street",
+    "start_node": 6753406912,
+    "end_node": 429415637,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 168,
+        "distance_km": 8.29,
+        "cost": 9199.77,
+        "expanded_states": 106948,
+        "expanded_nodes": 39328,
+        "explored_transitions": 319931,
+        "runtime_ms": 1652.48,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 168,
+        "distance_km": 8.29,
+        "cost": 9199.77,
+        "expanded_states": 25311,
+        "expanded_nodes": 9284,
+        "explored_transitions": 76110,
+        "runtime_ms": 380.01,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 167,
+        "distance_km": 8.269,
+        "cost": 9205.97,
+        "expanded_states": 14808,
+        "expanded_nodes": 3754,
+        "explored_transitions": 46269,
+        "runtime_ms": 239.43,
+        "optimality_gap_pct": 0.0673
+      }
+    }
+  },
+  {
+    "id": "OD_10",
+    "name": "BTM Layout to Domlur",
+    "start_node": 10123822801,
+    "end_node": 11337845996,
+    "modes": {
+      "dijkstra": {
+        "route_len_nodes": 131,
+        "distance_km": 7.784,
+        "cost": 9337.4,
+        "expanded_states": 77028,
+        "expanded_nodes": 30558,
+        "explored_transitions": 219757,
+        "runtime_ms": 1163.49,
+        "optimality_gap_pct": 0.0
+      },
+      "admissible": {
+        "route_len_nodes": 131,
+        "distance_km": 7.784,
+        "cost": 9337.4,
+        "expanded_states": 15766,
+        "expanded_nodes": 6364,
+        "explored_transitions": 44706,
+        "runtime_ms": 232.11,
+        "optimality_gap_pct": 0.0
+      },
+      "aggressive": {
+        "route_len_nodes": 126,
+        "distance_km": 7.876,
+        "cost": 9378.2,
+        "expanded_states": 6964,
+        "expanded_nodes": 2690,
+        "explored_transitions": 20330,
+        "runtime_ms": 102.41,
+        "optimality_gap_pct": 0.437
+      }
+    }
+  }
+]

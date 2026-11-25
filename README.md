@@ -1,157 +1,175 @@
-python download_graph_full.py
+# BLRMap — Two-Wheeler Routing for Bengaluru
 
-# BLR Map Prototype
+BLRMap is a routing engine and navigation app for two-wheelers in Bengaluru. It keeps the full
+OpenStreetMap road graph locally and runs a custom A* with a two-wheeler cost model (road-class
+penalties, turn/roundabout modifiers, congestion-aware rerouting and alternative routes), so the
+routing logic is fully editable instead of being outsourced to a map provider.
 
-This project experiments with Bengaluru two-wheeler routing by keeping the full road graph locally and controlling the routing logic in `api_server.py`.
+The repository holds both the **application** and the **research/paper work** built on top of it.
+They are kept in separate top-level folders:
 
-The goal is not to copy Google Maps behavior. The goal is to build a route engine that can be tuned for Bengaluru traffic patterns, where the best motorcycle route is often not the route that looks best for cars.
+| Folder       | What it is                                                                 |
+|--------------|----------------------------------------------------------------------------|
+| `backend/`   | **Core:** FastAPI routing server, algorithms, config, data access          |
+| `frontend/`  | **Core:** Next.js navigation UI + Capacitor Android app                    |
+| `tests/`     | Application tests (pytest) for the routing engine                          |
+| `research/`  | Experiments, evaluation pipelines, results, field-study data, audits       |
+| `paper/`     | Manuscripts (LaTeX), paper planning, literature and drafts                 |
+| `docs/`      | Changelog and repository documentation                                     |
 
-## Core Idea
+## Repository layout
 
-The backend loads a Bengaluru road graph from OpenStreetMap and then runs custom graph search on top of it.
+```
+BLRMap_Prototype/
+├── backend/                      # ── Application: routing server ──
+│   ├── api_server.py             # FastAPI entry point (port 8000)
+│   ├── core/config.py            # Settings, env vars, data-file paths, cost-model constants
+│   ├── routing/                  # algorithms.py (A*, penalties, alternatives), graph_manager.py
+│   ├── services/external_api.py  # Google Places / Routes API calls
+│   ├── database/                 # MongoDB (motor) client, models, operations
+│   ├── data/learning_layer.py    # Route-decision logging (SQLite / MongoDB)
+│   ├── scripts/                  # download_graph_full.py, debug_graph.py, debug_places.py
+│   ├── router.py                 # Offline CLI route check (no server needed)
+│   ├── data_assets/              # Road graph .graphml + .pkl cache   (git-ignored, ~750 MB)
+│   ├── route_decisions.db        # Local SQLite learning log          (git-ignored)
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── frontend/                     # ── Application: UI ──
+│   ├── app/ components/ hooks/ lib/   # Next.js 15 + React 19 + Google Maps
+│   ├── android/                  # Capacitor Android project (webDir = out/)
+│   ├── legacy/leaflet_index.html # Original single-file Leaflet test UI
+│   ├── package.json, next.config.mjs, tsconfig.json, tailwind.config.js, capacitor.config.ts
+│   └── .env.example
+│
+├── tests/                        # pytest suite for backend routing
+│
+├── research/                     # ── Research (see research/README.md) ──
+│   ├── experiments/              # Benchmark / evaluation / robustness scripts
+│   ├── literature_survey/        # Phase 03–13 research log, results & frozen ablation study
+│   ├── field_study/              # Strava rides, Exp. E, pilot protocol, route screenshots
+│   ├── audits/                   # Stand-alone verification reports
+│   └── handover_package/         # Self-contained research handover (SHA-256 manifest)
+│
+├── paper/                        # ── Papers ──
+│   ├── paper1/  latex/  blueprint/  literature/  manuscript_drafts/
+│   └── paper2/  latex/
+│
+├── docs/   CHANGES.md, PATH_MIGRATION.md
+└── .agents/skills/               # Research-protocol & evidence-integrity agent skills
+```
 
-The current implementation uses three routing ideas:
+## Setup
 
-1. Plain shortest path on the full graph.
-2. Inner-road biased routing for local roads.
-3. Two-wheeler smart routing that scores routes with road-type penalties and tries route splitting for longer trips.
+### Prerequisites
+- Python 3.11+ (developed on 3.13)
+- Node.js 20+
+- The Bengaluru road graph in `backend/data_assets/` (see below)
 
-The important part is that the graph is kept broad, so the algorithm can decide which roads to prefer instead of being locked into one narrow map view.
+### 1. Backend
 
-## Routing Logic
+```bash
+pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env      # then fill in your keys
+cd backend
+python api_server.py                       # add --reload for auto-reload
+```
 
-### 1. Full graph routing
+The server listens on `http://127.0.0.1:8000`. On first start it loads
+`data_assets/bengaluru_roads_extended.graphml`, filters it, and writes the processed graph to
+`data_assets/bengaluru_graph.pkl`. Later starts load the `.pkl` in a few seconds.
 
-The file `api_server.py` loads `bengaluru_roads_full.graphml` and uses A* search with road length as the base metric.
+**Road graph data.** The graph files are too large for git. Put them in `backend/data_assets/`,
+or regenerate the GraphML:
 
-This gives a baseline shortest route and is useful for comparison.
+```bash
+cd backend/data_assets
+python ../scripts/download_graph_full.py   # writes bengaluru_roads_extended.graphml here
+```
 
-### 2. Inner-road routing
+You can also point at a graph elsewhere with `GRAPH_FILE_PATH=/path/to/file.graphml`.
 
-The inner-road mode builds a subgraph from road types like:
+**Environment variables** (`backend/.env`, or a `.env` at the repo root; both are found):
 
-- residential
-- living_street
-- unclassified
-- service
-- tertiary
-- tertiary_link
+| Variable                  | Purpose                                                    |
+|---------------------------|------------------------------------------------------------|
+| `GOOGLE_PLACES_API_KEY`   | Place search                                               |
+| `GOOGLE_MAPS_API_KEY`     | Google Routes API (live traffic); falls back to Places key |
+| `MONGODB_URI`             | Optional. Journey/decision storage; disabled when unset    |
+| `GRAPH_FILE_PATH`, `DECISIONS_DB`, `MAX_SNAPPING_DISTANCE_M` | Optional overrides       |
 
-It then routes through that reduced graph first and falls back to the full graph if a segment cannot be found.
+Quick offline check without the server: `cd backend && python router.py`.
 
-This is useful for testing the idea that two-wheelers in Bengaluru can benefit from smaller roads instead of staying on large main roads.
+### 2. Frontend
 
-### 3. Two-wheeler smart routing
+```bash
+cd frontend
+npm install
+cp .env.example .env.local                 # NEXT_PUBLIC_GOOGLE_MAPS_KEY, NEXT_PUBLIC_STADIA_KEY
+npm run dev                                # http://localhost:3000
+```
 
-The new `two-wheeler-route` endpoint adds a custom cost model on top of A*.
+Routes are drawn on Google's own road geometry using the **Roads API**, so enable "Roads API"
+for the Google Maps key (otherwise the OSM geometry is drawn and the console shows one warning;
+set `NEXT_PUBLIC_SNAP_ROUTES=0` to turn it off).
 
-Instead of using only road length, each edge gets a weighted cost based on road type:
+The frontend calls the backend at `http://127.0.0.1:8000` by default. To use the app on a
+phone, set `NEXT_PUBLIC_API_BASE=http://<your-PC-LAN-IP>:8000` in `frontend/.env.local`.
 
-- main roads get higher penalties
-- local roads get lower penalties
-- service and residential roads are favored more strongly
-- roundabouts get a small adjustment
+**Testing navigation on a desktop:** open `http://localhost:3000/?simulate=40` and start
+navigating from "My Location": a simulated rider follows the route at ~40 km/h, so you can watch
+the camera, turn banner and voice prompts. Add `&detour=20` to make the rider leave the route
+after 20 s and trigger a reroute.
 
-This means the route optimizer can prefer shorter, more local paths even if the raw distance is slightly longer.
+**Android (Capacitor):**
 
-### 4. Route splitting
+```bash
+cd frontend
+npm run build          # static export to frontend/out/
+npx cap sync android
+npx cap open android
+```
 
-For longer trips, the backend does not only try one direct A* route.
+`frontend/legacy/leaflet_index.html` is the original Leaflet test page. Open it directly in a
+browser while the backend is running.
 
-It also generates split candidates and compares them against the direct path.
+## API
 
-The current version uses a segment-length control from the frontend. That control decides how aggressively the trip should be split into subroutes.
+| Method | Endpoint                             | Description                                        |
+|--------|--------------------------------------|----------------------------------------------------|
+| GET    | `/`                                  | Health check                                       |
+| GET    | `/search?q=`                         | Place search                                       |
+| GET    | `/route?from_lat&from_lng&to_lat&to_lng`         | Shortest path (A*) with maneuvers      |
+| GET    | `/dynamic-route?from_lat&from_lng&to_lat&to_lng` | Traffic-aware two-wheeler A* route     |
+| POST   | `/journeys/{id}/start`               | Log journey start                                  |
+| POST   | `/journeys/{id}/complete`            | Log journey completion                             |
+| POST   | `/journeys/{id}/reroute`             | Log an off-route reroute event                     |
 
-The idea is:
+Interactive docs: `http://127.0.0.1:8000/docs`.
 
-- long congested trip from A to B
-- split into smaller pieces
-- route each piece with the local cost model
-- stitch the pieces back together
-- compare the result against the direct path
+## Tests
 
-This is the main experimental logic behind the project.
+From the repository root:
 
-## API Modes
+```bash
+python -m pytest tests research/experiments/robustness_testing/test_synthetic_graphs.py
+```
 
-The backend exposes the following routing endpoints:
+`tests/` holds the routing regression and mathematical-validation tests. `test_synthetic_graphs.py`
+runs the robustness suite on synthetic graphs. Most tests load the real road graph, so
+`backend/data_assets/` must be populated.
 
-- `/route` - shortest path on the full graph
-- `/inner-route` - inner-road biased routing with waypoint-based segmentation
-- `/traffic-route` - Google Directions comparison route, currently using `mode=driving`
-- `/two-wheeler-route` - custom route evaluator with road penalties and split candidates
+## Research and papers
 
-The frontend in `index.html` lets you switch between these modes.
+See [`research/README.md`](research/README.md) for how the experiments are organised and run.
 
-## Frontend Behavior
+> **Frozen data.** `research/literature_survey/13_ablation_study/` holds the officially frozen
+> Phase 13.4 ablation dataset. Its files are read-only and stay at their original path.
+> Do not edit, move or re-run them without explicit authorisation
+> (see `.agents/skills/evidence-integrity-audit/SKILL.md`).
 
-`index.html` is a single-page Leaflet UI that:
+LaTeX sources for the papers are in `paper/paper1/latex/` and `paper/paper2/latex/` and are
+Overleaf-ready.
 
-- searches places through the backend
-- lets you click start and end points on the map
-- sends the selected mode to the API
-- draws the returned route on the map
-- shows candidate route scores for the smart two-wheeler mode
-
-The two-wheeler mode also exposes tuning controls for:
-
-- main road penalty
-- inner-road preference
-- service-road preference
-- segment length used for route splitting
-
-## Current Run Steps
-
-
-0. pip install geopandas shapely --break-system-packages
-1. Install dependencies:
-
-   ```bash
-   pip install osmnx networkx fastapi uvicorn geopandas httpx python-dotenv
-
-   ```
-
-2. Make sure `bengaluru_roads_full.graphml` exists.
-
-   If you need to regenerate it, run:
-
-   ```bash
-   python download_graph_full.py
-   ```
-
-3. Add your Google API key in a `.env` file:
-
-   ```env
-   GOOGLE_PLACES_API_KEY=your_key_here
-   ```
-
-4. Start the backend:
-
-   ```bash
-   python api_server.py
-   ```
-
-5. Open `index.html` in the browser.
-
-## What This Project Is Testing
-
-The main question is whether Bengaluru two-wheeler routing can be improved by combining:
-
-- local road preference
-- reduced penalty on main-road bias
-- route splitting for long congested trips
-- comparison against Google Directions for calibration only
-
-The implementation is intentionally experimental. The important part is that the routing logic is now editable locally instead of being fully outsourced to a map provider.
-
-## Notes
-
-- `api_server.py` is the main algorithm file.
-- `router.py` and the debug scripts are legacy helpers.
-- The current two-wheeler logic is still a work in progress and will likely need tuning on real Bengaluru origin-destination pairs.
-
-
-
-
-
-
+If you are looking for a file by its old location, see
+[`docs/PATH_MIGRATION.md`](docs/PATH_MIGRATION.md).

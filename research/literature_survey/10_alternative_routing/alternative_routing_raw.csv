@@ -1,0 +1,182 @@
+corridor_id,corridor_name,method,route_type,strategy,node_count,distance_km,cost,detour_ratio,overlap_pct,jaccard_similarity,runtime_ms,candidates_generated,candidates_rejected,surviving_alternatives,pairwise_diversity
+OD_01,BNMIT to MG Road,Perpendicular_Offset,Primary,direct,213,10.065,12652.51,1.0,100.0,1.0,17317.64,12,8,3,0.6641
+OD_01,BNMIT to MG Road,Perpendicular_Offset,Alt_1,line_split,259,10.311,13503.87,1.0244,19.3,0.1083,17317.64,12,8,3,0.6641
+OD_01,BNMIT to MG Road,Perpendicular_Offset,Alt_2,line_split,228,10.664,13807.44,1.0595,51.35,0.359,17317.64,12,8,3,0.6641
+OD_01,BNMIT to MG Road,Perpendicular_Offset,Alt_3,line_split,240,11.206,14579.39,1.1134,48.86,0.3467,17317.64,12,8,3,0.6641
+OD_01,BNMIT to MG Road,Yens_KSP_Raw,Primary,yen_ksp_0,213,10.065,12652.51,1.0,100.0,1.0,192996.97,425,132,0,0.0764
+OD_01,BNMIT to MG Road,Yens_KSP_Raw,Alt_1,yen_ksp_1,209,10.12,12654.91,1.0055,95.55,0.9195,192996.97,425,132,0,0.0764
+OD_01,BNMIT to MG Road,Yens_KSP_Raw,Alt_2,yen_ksp_2,215,10.062,12654.98,0.9997,98.2,0.9645,192996.97,425,132,0,0.0764
+OD_01,BNMIT to MG Road,Yens_KSP_Raw,Alt_3,yen_ksp_3,211,10.117,12657.38,1.0052,93.76,0.8868,192996.97,425,132,0,0.0764
+OD_02,Koramangala to Indiranagar,Perpendicular_Offset,Primary,direct,105,6.38,6460.97,1.0,100.0,1.0,10037.59,12,11,1,0.5135
+OD_02,Koramangala to Indiranagar,Perpendicular_Offset,Alt_1,line_split,110,6.694,6935.95,1.0492,63.92,0.4865,10037.59,12,11,1,0.5135
+OD_02,Koramangala to Indiranagar,Yens_KSP_Raw,Primary,yen_ksp_0,105,6.38,6460.97,1.0,100.0,1.0,12177.48,257,105,0,0.2392
+OD_02,Koramangala to Indiranagar,Yens_KSP_Raw,Alt_1,yen_ksp_1,108,6.371,6478.38,0.9985,93.34,0.8739,12177.48,257,105,0,0.2392
+OD_02,Koramangala to Indiranagar,Yens_KSP_Raw,Alt_2,yen_ksp_2,104,6.378,6483.73,0.9997,97.08,0.943,12177.48,257,105,0,0.2392
+OD_02,Koramangala to Indiranagar,Yens_KSP_Raw,Alt_3,yen_ksp_3,112,6.377,6483.75,0.9996,80.45,0.6727,12177.48,257,105,0,0.2392
+OD_03,Electronic City to Silk Board,Perpendicular_Offset,Primary,direct,174,9.505,11204.93,1.0,100.0,1.0,13273.05,12,10,2,0.5669
+OD_03,Electronic City to Silk Board,Perpendicular_Offset,Alt_1,line_split,196,10.341,12779.04,1.088,27.77,0.1692,13273.05,12,10,2,0.5669
+OD_03,Electronic City to Silk Board,Perpendicular_Offset,Alt_2,line_split,211,10.735,13270.6,1.1294,26.79,0.1655,13273.05,12,10,2,0.5669
+OD_03,Electronic City to Silk Board,Yens_KSP_Raw,Primary,yen_ksp_0,174,9.505,11204.93,1.0,100.0,1.0,24720.82,190,34,0,0.0717
+OD_03,Electronic City to Silk Board,Yens_KSP_Raw,Alt_1,yen_ksp_1,173,9.512,11208.29,1.0007,97.13,0.9449,24720.82,190,34,0,0.0717
+OD_03,Electronic City to Silk Board,Yens_KSP_Raw,Alt_2,yen_ksp_2,175,9.529,11229.8,1.0025,97.1,0.946,24720.82,190,34,0,0.0717
+OD_03,Electronic City to Silk Board,Yens_KSP_Raw,Alt_3,yen_ksp_3,174,9.536,11233.16,1.0033,94.24,0.8939,24720.82,190,34,0,0.0717
+OD_04,Whitefield to Marathahalli,Perpendicular_Offset,Primary,direct,186,8.814,11468.77,1.0,100.0,1.0,12424.48,12,12,0,0.0
+OD_04,Whitefield to Marathahalli,Yens_KSP_Raw,Primary,yen_ksp_0,186,8.814,11468.77,1.0,100.0,1.0,8864.44,131,62,0,0.0399
+OD_04,Whitefield to Marathahalli,Yens_KSP_Raw,Alt_1,yen_ksp_1,185,8.821,11470.77,1.0008,98.67,0.9745,8864.44,131,62,0,0.0399
+OD_04,Whitefield to Marathahalli,Yens_KSP_Raw,Alt_2,yen_ksp_2,191,8.804,11476.47,0.9988,98.28,0.9651,8864.44,131,62,0,0.0399
+OD_04,Whitefield to Marathahalli,Yens_KSP_Raw,Alt_3,yen_ksp_3,190,8.811,11478.47,0.9996,96.95,0.9405,8864.44,131,62,0,0.0399
+OD_05,Hebbal to Majestic,Perpendicular_Offset,Primary,direct,189,9.944,11536.13,1.0,100.0,1.0,13487.0,12,8,3,0.6413
+OD_05,Hebbal to Majestic,Perpendicular_Offset,Alt_1,line_split,197,9.573,14134.75,0.9627,37.12,0.2226,13487.0,12,8,3,0.6413
+OD_05,Hebbal to Majestic,Perpendicular_Offset,Alt_2,line_split,184,10.871,14314.97,1.0932,24.33,0.1455,13487.0,12,8,3,0.6413
+OD_05,Hebbal to Majestic,Perpendicular_Offset,Alt_3,line_split,193,11.253,14741.94,1.1316,23.5,0.1425,13487.0,12,8,3,0.6413
+OD_05,Hebbal to Majestic,Yens_KSP_Raw,Primary,yen_ksp_0,189,9.944,11536.13,1.0,100.0,1.0,96996.44,399,25,0,0.193
+OD_05,Hebbal to Majestic,Yens_KSP_Raw,Alt_1,yen_ksp_1,187,10.0,11536.47,1.0056,97.76,0.9614,96996.44,399,25,0,0.193
+OD_05,Hebbal to Majestic,Yens_KSP_Raw,Alt_2,yen_ksp_2,183,10.025,11544.49,1.0081,84.96,0.7437,96996.44,399,25,0,0.193
+OD_05,Hebbal to Majestic,Yens_KSP_Raw,Alt_3,yen_ksp_3,181,10.081,11544.84,1.0137,82.82,0.715,96996.44,399,25,0,0.193
+OD_06,Jayanagar 4th Block to Malleshwaram,Perpendicular_Offset,Primary,direct,252,12.447,14153.24,1.0,100.0,1.0,19175.83,12,5,3,0.3692
+OD_06,Jayanagar 4th Block to Malleshwaram,Perpendicular_Offset,Alt_1,line_split,257,12.265,14418.49,0.9854,51.84,0.3464,19175.83,12,5,3,0.3692
+OD_06,Jayanagar 4th Block to Malleshwaram,Perpendicular_Offset,Alt_2,line_split,254,12.27,14493.45,0.9857,51.82,0.3464,19175.83,12,5,3,0.3692
+OD_06,Jayanagar 4th Block to Malleshwaram,Perpendicular_Offset,Alt_3,line_split,260,12.389,14529.83,0.9953,51.33,0.3441,19175.83,12,5,3,0.3692
+OD_06,Jayanagar 4th Block to Malleshwaram,Yens_KSP_Raw,Primary,yen_ksp_0,252,12.447,14153.24,1.0,100.0,1.0,307870.61,608,309,0,0.0387
+OD_06,Jayanagar 4th Block to Malleshwaram,Yens_KSP_Raw,Alt_1,yen_ksp_1,254,12.449,14154.86,1.0001,99.06,0.9816,307870.61,608,309,0,0.0387
+OD_06,Jayanagar 4th Block to Malleshwaram,Yens_KSP_Raw,Alt_2,yen_ksp_2,252,12.449,14155.05,1.0002,97.95,0.96,307870.61,608,309,0,0.0387
+OD_06,Jayanagar 4th Block to Malleshwaram,Yens_KSP_Raw,Alt_3,yen_ksp_3,254,12.451,14156.67,1.0003,97.01,0.9423,307870.61,608,309,0,0.0387
+OD_07,HSR Layout to Bellandur,Perpendicular_Offset,Primary,direct,105,5.807,6505.39,1.0,100.0,1.0,14326.12,12,9,3,0.5178
+OD_07,HSR Layout to Bellandur,Perpendicular_Offset,Alt_1,line_split,104,6.066,6773.32,1.0447,62.93,0.4739,14326.12,12,9,3,0.5178
+OD_07,HSR Layout to Bellandur,Perpendicular_Offset,Alt_2,line_split,95,6.521,7264.4,1.123,64.3,0.5154,14326.12,12,9,3,0.5178
+OD_07,HSR Layout to Bellandur,Perpendicular_Offset,Alt_3,line_split,97,6.677,7429.82,1.1499,62.8,0.5057,14326.12,12,9,3,0.5178
+OD_07,HSR Layout to Bellandur,Yens_KSP_Raw,Primary,yen_ksp_0,105,5.807,6505.39,1.0,100.0,1.0,6525.46,182,103,0,0.1315
+OD_07,HSR Layout to Bellandur,Yens_KSP_Raw,Alt_1,yen_ksp_1,108,5.81,6510.0,1.0005,92.14,0.8547,6525.46,182,103,0,0.1315
+OD_07,HSR Layout to Bellandur,Yens_KSP_Raw,Alt_2,yen_ksp_2,106,5.812,6513.64,1.0009,98.36,0.9686,6525.46,182,103,0,0.1315
+OD_07,HSR Layout to Bellandur,Yens_KSP_Raw,Alt_3,yen_ksp_3,108,5.808,6516.24,1.0002,90.22,0.8219,6525.46,182,103,0,0.1315
+OD_08,Banashankari to Yeshwanthpur,Perpendicular_Offset,Primary,direct,322,14.554,18507.46,1.0,100.0,1.0,45112.1,12,10,2,0.5168
+OD_08,Banashankari to Yeshwanthpur,Perpendicular_Offset,Alt_1,line_split,298,14.954,18942.32,1.0275,48.74,0.328,45112.1,12,10,2,0.5168
+OD_08,Banashankari to Yeshwanthpur,Perpendicular_Offset,Alt_2,line_split,316,14.862,18990.37,1.0212,49.04,0.3294,45112.1,12,10,2,0.5168
+OD_08,Banashankari to Yeshwanthpur,Yens_KSP_Raw,Primary,yen_ksp_0,322,14.554,18507.46,1.0,100.0,1.0,688234.83,722,244,0,0.0363
+OD_08,Banashankari to Yeshwanthpur,Yens_KSP_Raw,Alt_1,yen_ksp_1,323,14.556,18508.95,1.0001,99.06,0.9815,688234.83,722,244,0,0.0363
+OD_08,Banashankari to Yeshwanthpur,Yens_KSP_Raw,Alt_2,yen_ksp_2,322,14.553,18510.64,0.9999,98.37,0.9679,688234.83,722,244,0,0.0363
+OD_08,Banashankari to Yeshwanthpur,Yens_KSP_Raw,Alt_3,yen_ksp_3,322,14.535,18511.33,0.9987,98.92,0.9774,688234.83,722,244,0,0.0363
+OD_09,Rajajinagar to Commercial Street,Perpendicular_Offset,Primary,direct,168,8.29,9199.77,1.0,100.0,1.0,12907.41,12,4,3,0.665
+OD_09,Rajajinagar to Commercial Street,Perpendicular_Offset,Alt_1,line_split,195,9.171,11100.59,1.1063,62.45,0.4881,12907.41,12,4,3,0.665
+OD_09,Rajajinagar to Commercial Street,Perpendicular_Offset,Alt_2,line_split,189,9.898,11109.62,1.1939,41.95,0.2958,12907.41,12,4,3,0.665
+OD_09,Rajajinagar to Commercial Street,Perpendicular_Offset,Alt_3,line_split,206,9.345,11414.55,1.1272,43.83,0.3026,12907.41,12,4,3,0.665
+OD_09,Rajajinagar to Commercial Street,Yens_KSP_Raw,Primary,yen_ksp_0,168,8.29,9199.77,1.0,100.0,1.0,52488.41,407,199,0,0.0823
+OD_09,Rajajinagar to Commercial Street,Yens_KSP_Raw,Alt_1,yen_ksp_1,165,8.333,9205.5,1.0052,95.84,0.9246,52488.41,407,199,0,0.0823
+OD_09,Rajajinagar to Commercial Street,Yens_KSP_Raw,Alt_2,yen_ksp_2,167,8.269,9205.97,0.9974,96.54,0.9308,52488.41,407,199,0,0.0823
+OD_09,Rajajinagar to Commercial Street,Yens_KSP_Raw,Alt_3,yen_ksp_3,168,8.297,9206.06,1.0008,97.78,0.9574,52488.41,407,199,0,0.0823
+OD_10,BTM Layout to Domlur,Perpendicular_Offset,Primary,direct,131,7.784,9337.4,1.0,100.0,1.0,11342.37,12,11,1,0.413
+OD_10,BTM Layout to Domlur,Perpendicular_Offset,Alt_1,line_split,156,9.064,11077.15,1.1645,68.75,0.587,11342.37,12,11,1,0.413
+OD_10,BTM Layout to Domlur,Yens_KSP_Raw,Primary,yen_ksp_0,131,7.784,9337.4,1.0,100.0,1.0,23611.91,302,93,0,0.068
+OD_10,BTM Layout to Domlur,Yens_KSP_Raw,Alt_1,yen_ksp_1,130,7.785,9338.23,1.0001,98.81,0.9765,23611.91,302,93,0,0.068
+OD_10,BTM Layout to Domlur,Yens_KSP_Raw,Alt_2,yen_ksp_2,129,7.8,9341.73,1.0021,95.76,0.9205,23611.91,302,93,0,0.068
+OD_10,BTM Layout to Domlur,Yens_KSP_Raw,Alt_3,yen_ksp_3,128,7.801,9342.56,1.0022,94.57,0.8989,23611.91,302,93,0,0.068
+OD_11,Basavanagudi to Ulsoor,Perpendicular_Offset,Primary,direct,258,11.425,16585.88,1.0,100.0,1.0,19751.13,12,10,2,0.5674
+OD_11,Basavanagudi to Ulsoor,Perpendicular_Offset,Alt_1,line_split,257,12.942,18054.77,1.1328,40.56,0.2745,19751.13,12,10,2,0.5674
+OD_11,Basavanagudi to Ulsoor,Perpendicular_Offset,Alt_2,line_split,286,13.352,18384.4,1.1687,66.58,0.5596,19751.13,12,10,2,0.5674
+OD_11,Basavanagudi to Ulsoor,Yens_KSP_Raw,Primary,yen_ksp_0,258,11.425,16585.88,1.0,100.0,1.0,280134.31,503,137,0,0.0516
+OD_11,Basavanagudi to Ulsoor,Yens_KSP_Raw,Alt_1,yen_ksp_1,258,11.426,16586.81,1.0001,99.2,0.9842,280134.31,503,137,0,0.0516
+OD_11,Basavanagudi to Ulsoor,Yens_KSP_Raw,Alt_2,yen_ksp_2,254,11.432,16592.36,1.0006,96.28,0.9289,280134.31,503,137,0,0.0516
+OD_11,Basavanagudi to Ulsoor,Yens_KSP_Raw,Alt_3,yen_ksp_3,260,11.436,16592.95,1.0009,99.09,0.9828,280134.31,503,137,0,0.0516
+OD_12,Frazer Town to Shivajinagar,Perpendicular_Offset,Primary,direct,67,2.735,2979.43,1.0,100.0,1.0,8653.38,12,8,3,0.6389
+OD_12,Frazer Town to Shivajinagar,Perpendicular_Offset,Alt_1,line_split,64,2.763,3142.46,1.0102,42.35,0.2704,8653.38,12,8,3,0.6389
+OD_12,Frazer Town to Shivajinagar,Perpendicular_Offset,Alt_2,line_split,78,3.131,3623.83,1.1445,63.09,0.5076,8653.38,12,8,3,0.6389
+OD_12,Frazer Town to Shivajinagar,Perpendicular_Offset,Alt_3,line_split,65,2.92,3650.13,1.0676,57.34,0.4206,8653.38,12,8,3,0.6389
+OD_12,Frazer Town to Shivajinagar,Yens_KSP_Raw,Primary,yen_ksp_0,67,2.735,2979.43,1.0,100.0,1.0,2587.3,159,67,2,0.432
+OD_12,Frazer Town to Shivajinagar,Yens_KSP_Raw,Alt_1,yen_ksp_1,67,2.727,2980.52,0.997,53.57,0.3651,2587.3,159,67,2,0.432
+OD_12,Frazer Town to Shivajinagar,Yens_KSP_Raw,Alt_2,yen_ksp_2,68,2.735,2987.11,0.9999,58.48,0.4132,2587.3,159,67,2,0.432
+OD_12,Frazer Town to Shivajinagar,Yens_KSP_Raw,Alt_3,yen_ksp_3,65,2.727,2988.52,0.997,83.68,0.7174,2587.3,159,67,2,0.432
+OD_13,JP Nagar 6th Phase to Koramangala,Perpendicular_Offset,Primary,direct,165,7.851,9996.39,1.0,100.0,1.0,13522.5,12,10,2,0.71
+OD_13,JP Nagar 6th Phase to Koramangala,Perpendicular_Offset,Alt_1,line_split,161,8.12,10569.7,1.0342,69.11,0.5417,13522.5,12,10,2,0.71
+OD_13,JP Nagar 6th Phase to Koramangala,Perpendicular_Offset,Alt_2,line_split,172,9.152,12295.16,1.1657,22.98,0.1411,13522.5,12,10,2,0.71
+OD_13,JP Nagar 6th Phase to Koramangala,Yens_KSP_Raw,Primary,yen_ksp_0,165,7.851,9996.39,1.0,100.0,1.0,59674.34,388,122,0,0.0919
+OD_13,JP Nagar 6th Phase to Koramangala,Yens_KSP_Raw,Alt_1,yen_ksp_1,163,7.855,10000.47,1.0006,94.65,0.8989,59674.34,388,122,0,0.0919
+OD_13,JP Nagar 6th Phase to Koramangala,Yens_KSP_Raw,Alt_2,yen_ksp_2,166,7.854,10001.9,1.0004,97.59,0.9534,59674.34,388,122,0,0.0919
+OD_13,JP Nagar 6th Phase to Koramangala,Yens_KSP_Raw,Alt_3,yen_ksp_3,165,7.859,10003.22,1.001,97.94,0.9604,59674.34,388,122,0,0.0919
+OD_14,Vijayanagar to Majestic,Perpendicular_Offset,Primary,direct,160,7.186,9005.61,1.0,100.0,1.0,14334.66,12,4,3,0.4979
+OD_14,Vijayanagar to Majestic,Perpendicular_Offset,Alt_1,line_split,134,7.272,9199.2,1.0119,66.49,0.5025,14334.66,12,4,3,0.4979
+OD_14,Vijayanagar to Majestic,Perpendicular_Offset,Alt_2,line_split,136,7.241,9262.07,1.0077,58.85,0.4192,14334.66,12,4,3,0.4979
+OD_14,Vijayanagar to Majestic,Perpendicular_Offset,Alt_3,line_split,148,7.298,9589.63,1.0156,60.29,0.4363,14334.66,12,4,3,0.4979
+OD_14,Vijayanagar to Majestic,Yens_KSP_Raw,Primary,yen_ksp_0,160,7.186,9005.61,1.0,100.0,1.0,115767.97,375,129,0,0.1357
+OD_14,Vijayanagar to Majestic,Yens_KSP_Raw,Alt_1,yen_ksp_1,165,7.197,9015.25,1.0015,96.94,0.942,115767.97,375,129,0,0.1357
+OD_14,Vijayanagar to Majestic,Yens_KSP_Raw,Alt_2,yen_ksp_2,148,7.215,9017.27,1.004,90.24,0.8252,115767.97,375,129,0,0.1357
+OD_14,Vijayanagar to Majestic,Yens_KSP_Raw,Alt_3,yen_ksp_3,162,7.202,9019.52,1.0022,97.58,0.9547,115767.97,375,129,0,0.1357
+OD_15,Yelahanka to Hebbal,Perpendicular_Offset,Primary,direct,62,8.67,9315.45,1.0,100.0,1.0,13466.66,12,12,0,0.0
+OD_15,Yelahanka to Hebbal,Yens_KSP_Raw,Primary,yen_ksp_0,62,8.67,9315.45,1.0,100.0,1.0,5392.02,129,48,0,0.0673
+OD_15,Yelahanka to Hebbal,Yens_KSP_Raw,Alt_1,yen_ksp_1,62,8.676,9345.83,1.0007,97.77,0.9571,5392.02,129,48,0,0.0673
+OD_15,Yelahanka to Hebbal,Yens_KSP_Raw,Alt_2,yen_ksp_2,63,8.705,9347.6,1.0041,95.33,0.9143,5392.02,129,48,0,0.0673
+OD_15,Yelahanka to Hebbal,Yens_KSP_Raw,Alt_3,yen_ksp_3,66,8.701,9353.51,1.0037,96.18,0.9296,5392.02,129,48,0,0.0673
+OD_16,Bellandur to Whitefield,Perpendicular_Offset,Primary,direct,333,15.036,16052.26,1.0,100.0,1.0,11363.61,12,3,3,0.5999
+OD_16,Bellandur to Whitefield,Perpendicular_Offset,Alt_1,line_split,261,12.032,16291.23,0.8002,42.07,0.23,11363.61,12,3,3,0.5999
+OD_16,Bellandur to Whitefield,Perpendicular_Offset,Alt_2,line_split,261,12.279,16459.47,0.8166,41.23,0.2275,11363.61,12,3,3,0.5999
+OD_16,Bellandur to Whitefield,Perpendicular_Offset,Alt_3,line_split,260,12.951,16673.45,0.8613,17.92,0.0904,11363.61,12,3,3,0.5999
+OD_16,Bellandur to Whitefield,Yens_KSP_Raw,Primary,yen_ksp_0,333,15.036,16052.26,1.0,100.0,1.0,28433.58,278,101,0,0.0818
+OD_16,Bellandur to Whitefield,Yens_KSP_Raw,Alt_1,yen_ksp_1,335,14.985,16069.38,0.9966,93.78,0.88,28433.58,278,101,0,0.0818
+OD_16,Bellandur to Whitefield,Yens_KSP_Raw,Alt_2,yen_ksp_2,331,15.025,16080.03,0.9992,98.9,0.9776,28433.58,278,101,0,0.0818
+OD_16,Bellandur to Whitefield,Yens_KSP_Raw,Alt_3,yen_ksp_3,329,15.046,16081.49,1.0007,98.28,0.9669,28433.58,278,101,0,0.0818
+OD_17,Malleshwaram to Rajajinagar,Perpendicular_Offset,Primary,direct,56,3.422,3414.15,1.0,100.0,1.0,8883.5,12,4,3,0.7327
+OD_17,Malleshwaram to Rajajinagar,Perpendicular_Offset,Alt_1,line_split,73,3.597,3746.0,1.0513,17.68,0.0996,8883.5,12,4,3,0.7327
+OD_17,Malleshwaram to Rajajinagar,Perpendicular_Offset,Alt_2,line_split,74,3.659,3826.23,1.0692,17.38,0.0987,8883.5,12,4,3,0.7327
+OD_17,Malleshwaram to Rajajinagar,Perpendicular_Offset,Alt_3,line_split,79,3.859,3882.13,1.1276,69.05,0.5771,8883.5,12,4,3,0.7327
+OD_17,Malleshwaram to Rajajinagar,Yens_KSP_Raw,Primary,yen_ksp_0,56,3.422,3414.15,1.0,100.0,1.0,2864.69,131,30,0,0.2801
+OD_17,Malleshwaram to Rajajinagar,Yens_KSP_Raw,Alt_1,yen_ksp_1,55,3.444,3433.99,1.0064,88.94,0.8054,2864.69,131,30,0,0.2801
+OD_17,Malleshwaram to Rajajinagar,Yens_KSP_Raw,Alt_2,yen_ksp_2,58,3.42,3443.22,0.9995,93.61,0.8795,2864.69,131,30,0,0.2801
+OD_17,Malleshwaram to Rajajinagar,Yens_KSP_Raw,Alt_3,yen_ksp_3,58,3.448,3443.55,1.0075,80.05,0.6716,2864.69,131,30,0,0.2801
+OD_18,Indiranagar to MG Road,Perpendicular_Offset,Primary,direct,117,5.876,8512.03,1.0,100.0,1.0,12502.12,12,8,3,0.412
+OD_18,Indiranagar to MG Road,Perpendicular_Offset,Alt_1,line_split,132,6.025,8960.68,1.0252,52.52,0.3621,12502.12,12,8,3,0.412
+OD_18,Indiranagar to MG Road,Perpendicular_Offset,Alt_2,line_split,139,6.262,9135.63,1.0657,50.52,0.3525,12502.12,12,8,3,0.412
+OD_18,Indiranagar to MG Road,Perpendicular_Offset,Alt_3,line_split,138,6.264,9237.37,1.0659,50.51,0.3525,12502.12,12,8,3,0.412
+OD_18,Indiranagar to MG Road,Yens_KSP_Raw,Primary,yen_ksp_0,117,5.876,8512.03,1.0,100.0,1.0,89344.19,147,76,0,0.0667
+OD_18,Indiranagar to MG Road,Yens_KSP_Raw,Alt_1,yen_ksp_1,120,5.877,8516.83,1.0001,95.75,0.9186,89344.19,147,76,0,0.0667
+OD_18,Indiranagar to MG Road,Yens_KSP_Raw,Alt_2,yen_ksp_2,116,5.879,8518.83,1.0004,99.01,0.9806,89344.19,147,76,0,0.0667
+OD_18,Indiranagar to MG Road,Yens_KSP_Raw,Alt_3,yen_ksp_3,119,5.879,8523.63,1.0004,94.76,0.9008,89344.19,147,76,0,0.0667
+OD_19,Silk Board to BTM 2nd Stage,Perpendicular_Offset,Primary,direct,45,2.013,2877.03,1.0,100.0,1.0,8516.22,12,9,3,0.7198
+OD_19,Silk Board to BTM 2nd Stage,Perpendicular_Offset,Alt_1,line_split,42,2.084,2931.71,1.0352,68.39,0.5334,8516.22,12,9,3,0.7198
+OD_19,Silk Board to BTM 2nd Stage,Perpendicular_Offset,Alt_2,line_split,57,2.314,3116.39,1.1493,28.31,0.1784,8516.22,12,9,3,0.7198
+OD_19,Silk Board to BTM 2nd Stage,Perpendicular_Offset,Alt_3,line_split,52,2.329,3201.05,1.1569,51.68,0.3835,8516.22,12,9,3,0.7198
+OD_19,Silk Board to BTM 2nd Stage,Yens_KSP_Raw,Primary,yen_ksp_0,45,2.013,2877.03,1.0,100.0,1.0,1581.95,89,25,0,0.1986
+OD_19,Silk Board to BTM 2nd Stage,Yens_KSP_Raw,Alt_1,yen_ksp_1,46,2.021,2891.14,1.0037,94.59,0.9005,1581.95,89,25,0,0.1986
+OD_19,Silk Board to BTM 2nd Stage,Yens_KSP_Raw,Alt_2,yen_ksp_2,50,2.084,2920.9,1.0352,89.51,0.8358,1581.95,89,25,0,0.1986
+OD_19,Silk Board to BTM 2nd Stage,Yens_KSP_Raw,Alt_3,yen_ksp_3,51,2.097,2923.64,1.0417,85.75,0.7778,1581.95,89,25,0,0.1986
+OD_20,Kengeri to Satellite Bus Station,Perpendicular_Offset,Primary,direct,238,12.327,13978.45,1.0,100.0,1.0,15687.61,12,10,2,0.4378
+OD_20,Kengeri to Satellite Bus Station,Perpendicular_Offset,Alt_1,line_split,210,11.11,14752.12,0.9013,54.88,0.3516,15687.61,12,10,2,0.4378
+OD_20,Kengeri to Satellite Bus Station,Perpendicular_Offset,Alt_2,line_split,214,11.262,14925.79,0.9136,54.13,0.3485,15687.61,12,10,2,0.4378
+OD_20,Kengeri to Satellite Bus Station,Yens_KSP_Raw,Primary,yen_ksp_0,238,12.327,13978.45,1.0,100.0,1.0,131341.88,409,87,0,0.0527
+OD_20,Kengeri to Satellite Bus Station,Yens_KSP_Raw,Alt_1,yen_ksp_1,239,12.329,13979.98,1.0001,98.75,0.9755,131341.88,409,87,0,0.0527
+OD_20,Kengeri to Satellite Bus Station,Yens_KSP_Raw,Alt_2,yen_ksp_2,239,12.331,13982.45,1.0004,98.83,0.9773,131341.88,409,87,0,0.0527
+OD_20,Kengeri to Satellite Bus Station,Yens_KSP_Raw,Alt_3,yen_ksp_3,234,12.36,13982.69,1.0027,96.81,0.9406,131341.88,409,87,0,0.0527
+OD_21,RT Nagar to Cantonment,Perpendicular_Offset,Primary,direct,129,4.984,5798.38,1.0,100.0,1.0,9363.78,12,10,2,0.4313
+OD_21,RT Nagar to Cantonment,Perpendicular_Offset,Alt_1,line_split,108,4.805,6431.8,0.9641,63.84,0.4564,9363.78,12,10,2,0.4313
+OD_21,RT Nagar to Cantonment,Perpendicular_Offset,Alt_2,line_split,111,4.918,6533.24,0.9869,62.37,0.4488,9363.78,12,10,2,0.4313
+OD_21,RT Nagar to Cantonment,Yens_KSP_Raw,Primary,yen_ksp_0,129,4.984,5798.38,1.0,100.0,1.0,15085.47,266,123,0,0.1072
+OD_21,RT Nagar to Cantonment,Yens_KSP_Raw,Alt_1,yen_ksp_1,128,4.985,5808.96,1.0003,96.68,0.9361,15085.47,266,123,0,0.1072
+OD_21,RT Nagar to Cantonment,Yens_KSP_Raw,Alt_2,yen_ksp_2,129,4.987,5810.76,1.0006,95.36,0.9119,15085.47,266,123,0,0.1072
+OD_21,RT Nagar to Cantonment,Yens_KSP_Raw,Alt_3,yen_ksp_3,129,5.001,5813.76,1.0034,96.34,0.9324,15085.47,266,123,0,0.1072
+OD_22,Marathahalli to HAL Airport Road,Perpendicular_Offset,Primary,direct,150,7.727,8248.15,1.0,100.0,1.0,9629.35,12,7,3,0.5089
+OD_22,Marathahalli to HAL Airport Road,Perpendicular_Offset,Alt_1,line_split,124,8.439,9041.37,1.0922,64.05,0.5024,9629.35,12,7,3,0.5089
+OD_22,Marathahalli to HAL Airport Road,Perpendicular_Offset,Alt_2,line_split,129,8.473,9138.69,1.0966,63.8,0.5008,9629.35,12,7,3,0.5089
+OD_22,Marathahalli to HAL Airport Road,Perpendicular_Offset,Alt_3,line_split,131,7.23,9340.18,0.9357,44.97,0.2778,9629.35,12,7,3,0.5089
+OD_22,Marathahalli to HAL Airport Road,Yens_KSP_Raw,Primary,yen_ksp_0,150,7.727,8248.15,1.0,100.0,1.0,11345.22,281,121,0,0.0695
+OD_22,Marathahalli to HAL Airport Road,Yens_KSP_Raw,Alt_1,yen_ksp_1,153,7.667,8253.86,0.9922,96.27,0.9212,11345.22,281,121,0,0.0695
+OD_22,Marathahalli to HAL Airport Road,Yens_KSP_Raw,Alt_2,yen_ksp_2,157,7.68,8255.07,0.9939,95.12,0.9017,11345.22,281,121,0,0.0695
+OD_22,Marathahalli to HAL Airport Road,Yens_KSP_Raw,Alt_3,yen_ksp_3,155,7.678,8261.27,0.9936,95.15,0.902,11345.22,281,121,0,0.0695
+OD_23,Richmond Town to Brigade Road,Perpendicular_Offset,Primary,direct,29,1.353,2994.96,1.0,100.0,1.0,10582.48,12,12,0,0.0
+OD_23,Richmond Town to Brigade Road,Yens_KSP_Raw,Primary,yen_ksp_0,29,1.353,2994.96,1.0,100.0,1.0,111.04,19,15,0,0.2774
+OD_23,Richmond Town to Brigade Road,Yens_KSP_Raw,Alt_1,yen_ksp_1,30,1.52,3250.04,1.1236,83.58,0.7929,111.04,19,15,0,0.2774
+OD_23,Richmond Town to Brigade Road,Yens_KSP_Raw,Alt_2,yen_ksp_2,32,1.594,3293.74,1.1786,81.21,0.7837,111.04,19,15,0,0.2774
+OD_23,Richmond Town to Brigade Road,Yens_KSP_Raw,Alt_3,yen_ksp_3,33,1.597,3555.64,1.1807,82.62,0.8095,111.04,19,15,0,0.2774
+OD_24,Banaswadi to Kammanahalli,Perpendicular_Offset,Primary,direct,61,2.398,2674.31,1.0,100.0,1.0,8571.15,12,3,3,0.5709
+OD_24,Banaswadi to Kammanahalli,Perpendicular_Offset,Alt_1,line_split,60,2.394,2764.57,0.9984,54.6,0.3751,8571.15,12,3,3,0.5709
+OD_24,Banaswadi to Kammanahalli,Perpendicular_Offset,Alt_2,line_split,62,2.404,2779.39,1.0026,56.14,0.391,8571.15,12,3,3,0.5709
+OD_24,Banaswadi to Kammanahalli,Perpendicular_Offset,Alt_3,line_split,55,2.438,2828.4,1.0168,43.67,0.2824,8571.15,12,3,3,0.5709
+OD_24,Banaswadi to Kammanahalli,Yens_KSP_Raw,Primary,yen_ksp_0,61,2.398,2674.31,1.0,100.0,1.0,2236.64,151,63,0,0.2025
+OD_24,Banaswadi to Kammanahalli,Yens_KSP_Raw,Alt_1,yen_ksp_1,61,2.409,2706.87,1.0045,84.83,0.7395,2236.64,151,63,0,0.2025
+OD_24,Banaswadi to Kammanahalli,Yens_KSP_Raw,Alt_2,yen_ksp_2,62,2.407,2711.0,1.0038,86.65,0.767,2236.64,151,63,0,0.2025
+OD_24,Banaswadi to Kammanahalli,Yens_KSP_Raw,Alt_3,yen_ksp_3,61,2.398,2724.31,1.0,94.04,0.8875,2236.64,151,63,0,0.2025
+OD_25,Padmanabhanagar to Gandhi Bazaar,Perpendicular_Offset,Primary,direct,95,4.594,4931.48,1.0,100.0,1.0,9187.37,12,7,3,0.6352
+OD_25,Padmanabhanagar to Gandhi Bazaar,Perpendicular_Offset,Alt_1,line_split,88,4.93,5001.33,1.0732,57.97,0.4287,9187.37,12,7,3,0.6352
+OD_25,Padmanabhanagar to Gandhi Bazaar,Perpendicular_Offset,Alt_2,line_split,97,4.642,5002.93,1.0104,60.51,0.437,9187.37,12,7,3,0.6352
+OD_25,Padmanabhanagar to Gandhi Bazaar,Perpendicular_Offset,Alt_3,line_split,101,4.71,5106.75,1.0253,59.63,0.4324,9187.37,12,7,3,0.6352
+OD_25,Padmanabhanagar to Gandhi Bazaar,Yens_KSP_Raw,Primary,yen_ksp_0,95,4.594,4931.48,1.0,100.0,1.0,12203.48,234,138,0,0.1182
+OD_25,Padmanabhanagar to Gandhi Bazaar,Yens_KSP_Raw,Alt_1,yen_ksp_1,94,4.595,4932.54,1.0003,95.44,0.913,12203.48,234,138,0,0.1182
+OD_25,Padmanabhanagar to Gandhi Bazaar,Yens_KSP_Raw,Alt_2,yen_ksp_2,96,4.597,4933.97,1.0006,96.24,0.9281,12203.48,234,138,0,0.1182
+OD_25,Padmanabhanagar to Gandhi Bazaar,Yens_KSP_Raw,Alt_3,yen_ksp_3,99,4.6,4936.75,1.0013,93.94,0.8867,12203.48,234,138,0,0.1182

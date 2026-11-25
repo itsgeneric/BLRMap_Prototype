@@ -1,0 +1,2129 @@
+{
+  "metadata": {
+    "title": "Phase 13.1 Stage 2B Full Ablation Study Results",
+    "start_time": "2026-11-05T07:29:49Z",
+    "completion_time": "2026-11-05T08:15:05Z",
+    "elapsed_seconds": 2715.81,
+    "total_corridors": 25,
+    "yen_selected_corridors": [
+      "OD_23",
+      "OD_02",
+      "OD_04",
+      "OD_03",
+      "OD_01"
+    ],
+    "repetition_protocol": {
+      "exp_a": 5,
+      "exp_b": 5,
+      "exp_c": 5,
+      "exp_d": 5,
+      "exp_e1": 3,
+      "exp_e2_yen": 3,
+      "exp_e3_yen": 3
+    },
+    "production_parameters": {
+      "TURN_PENALTY_SHARP": 25.0,
+      "TURN_PENALTY_MODERATE": 8.0,
+      "main_road_penalty": 1.5,
+      "inner_road_multiplier": 0.9,
+      "bridge_discount_main_roads": 0.8,
+      "roundabout_multiplier": 0.95,
+      "max_detour": 1.2,
+      "max_overlap": 0.7
+    }
+  },
+  "descriptive_statistics": {
+    "Experiment_A": {
+      "A0_Turn_Aware": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 382.9808,
+          "std": 464.4785,
+          "median": 174.93,
+          "min": 1.01,
+          "max": 1829.18,
+          "q25": 68.15,
+          "q75": 507.23,
+          "iqr": 439.08
+        },
+        "expanded_states": {
+          "n": 25,
+          "mean": 27843.72,
+          "std": 32790.3242,
+          "median": 13192.0,
+          "min": 119.0,
+          "max": 129619.0,
+          "q25": 5263.0,
+          "q75": 37764.0,
+          "iqr": 32501.0
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6475,
+          "std": 3.7894,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 9.944,
+          "iqr": 4.96
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9140.3368,
+          "std": 4577.4167,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 11536.13,
+          "iqr": 5737.75
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 21.44,
+          "std": 12.6658,
+          "median": 18.0,
+          "min": 3.0,
+          "max": 49.0,
+          "q25": 12.0,
+          "q75": 33.0,
+          "iqr": 21.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 29.48,
+          "std": 17.3352,
+          "median": 28.0,
+          "min": 5.0,
+          "max": 65.0,
+          "q25": 14.0,
+          "q75": 43.0,
+          "iqr": 29.0
+        }
+      },
+      "A1_Turn_Unaware_StateExpanded": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 341.6336,
+          "std": 420.1701,
+          "median": 154.69,
+          "min": 0.98,
+          "max": 1692.3,
+          "q25": 69.4,
+          "q75": 469.22,
+          "iqr": 399.82
+        },
+        "expanded_states": {
+          "n": 25,
+          "mean": 24967.2,
+          "std": 29838.4351,
+          "median": 12136.0,
+          "min": 112.0,
+          "max": 120926.0,
+          "q25": 5305.0,
+          "q75": 35055.0,
+          "iqr": 29750.0
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.7232,
+          "std": 3.9566,
+          "median": 7.736,
+          "min": 1.353,
+          "max": 15.818,
+          "q25": 4.991,
+          "q75": 9.995,
+          "iqr": 5.004
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9325.8736,
+          "std": 4681.8304,
+          "median": 9390.83,
+          "min": 2820.69,
+          "max": 19488.03,
+          "q25": 5936.83,
+          "q75": 11757.59,
+          "iqr": 5820.76
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 32.52,
+          "std": 20.1786,
+          "median": 31.0,
+          "min": 5.0,
+          "max": 90.0,
+          "q25": 20.0,
+          "q75": 40.0,
+          "iqr": 20.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 40.56,
+          "std": 24.9284,
+          "median": 36.0,
+          "min": 5.0,
+          "max": 111.0,
+          "q25": 21.0,
+          "q75": 52.0,
+          "iqr": 31.0
+        }
+      },
+      "A2_Turn_Unaware_NodeLevel": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 88.2532,
+          "std": 108.4827,
+          "median": 40.88,
+          "min": 0.36,
+          "max": 423.67,
+          "q25": 17.18,
+          "q75": 119.41,
+          "iqr": 102.23
+        },
+        "expanded_states": {
+          "n": 25,
+          "mean": 11447.2,
+          "std": 13448.3442,
+          "median": 5747.0,
+          "min": 75.0,
+          "max": 54264.0,
+          "q25": 2589.0,
+          "q75": 16157.0,
+          "iqr": 13568.0
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.7232,
+          "std": 3.9566,
+          "median": 7.736,
+          "min": 1.353,
+          "max": 15.818,
+          "q25": 4.991,
+          "q75": 9.995,
+          "iqr": 5.004
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9325.8736,
+          "std": 4681.8304,
+          "median": 9390.83,
+          "min": 2820.69,
+          "max": 19488.03,
+          "q25": 5936.83,
+          "q75": 11757.59,
+          "iqr": 5820.76
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 32.52,
+          "std": 20.1786,
+          "median": 31.0,
+          "min": 5.0,
+          "max": 90.0,
+          "q25": 20.0,
+          "q75": 40.0,
+          "iqr": 20.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 40.56,
+          "std": 24.9284,
+          "median": 36.0,
+          "min": 5.0,
+          "max": 111.0,
+          "q25": 21.0,
+          "q75": 52.0,
+          "iqr": 31.0
+        }
+      }
+    },
+    "Experiment_B": {
+      "B0_Production_2W": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 387.9204,
+          "std": 469.7118,
+          "median": 165.07,
+          "min": 1.01,
+          "max": 1798.49,
+          "q25": 66.73,
+          "q75": 512.34,
+          "iqr": 445.61
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6475,
+          "std": 3.7894,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 9.944,
+          "iqr": 4.96
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9140.3368,
+          "std": 4577.4167,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 11536.13,
+          "iqr": 5737.75
+        },
+        "arterial_pct": {
+          "n": 25,
+          "mean": 13.8376,
+          "std": 18.287,
+          "median": 8.6,
+          "min": 0.0,
+          "max": 82.05,
+          "q25": 4.88,
+          "q75": 11.64,
+          "iqr": 6.76
+        },
+        "collector_pct": {
+          "n": 25,
+          "mean": 37.13,
+          "std": 22.1933,
+          "median": 36.95,
+          "min": 8.69,
+          "max": 89.1,
+          "q25": 17.74,
+          "q75": 48.73,
+          "iqr": 30.99
+        },
+        "residential_pct": {
+          "n": 25,
+          "mean": 44.2416,
+          "std": 20.8043,
+          "median": 44.72,
+          "min": 0.0,
+          "max": 85.63,
+          "q25": 39.38,
+          "q75": 53.48,
+          "iqr": 14.1
+        },
+        "service_pct": {
+          "n": 25,
+          "mean": 4.7912,
+          "std": 9.9153,
+          "median": 0.65,
+          "min": 0.0,
+          "max": 37.8,
+          "q25": 0.0,
+          "q75": 4.34,
+          "iqr": 4.34
+        }
+      },
+      "B1_Neutral_Road_Class": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 182.8312,
+          "std": 224.0781,
+          "median": 81.0,
+          "min": 1.2,
+          "max": 1024.76,
+          "q25": 47.91,
+          "q75": 276.12,
+          "iqr": 228.21
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 6.6196,
+          "std": 3.2632,
+          "median": 6.403,
+          "min": 1.353,
+          "max": 14.852,
+          "q25": 4.388,
+          "q75": 8.855,
+          "iqr": 4.467
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 15235.1964,
+          "std": 9182.1285,
+          "median": 14868.6,
+          "min": 2994.96,
+          "max": 40596.68,
+          "q25": 8719.76,
+          "q75": 19661.88,
+          "iqr": 10942.12
+        },
+        "arterial_pct": {
+          "n": 25,
+          "mean": 65.0524,
+          "std": 25.8574,
+          "median": 67.38,
+          "min": 0.0,
+          "max": 100.0,
+          "q25": 51.14,
+          "q75": 85.83,
+          "iqr": 34.69
+        },
+        "collector_pct": {
+          "n": 25,
+          "mean": 19.3436,
+          "std": 24.117,
+          "median": 11.35,
+          "min": 0.0,
+          "max": 94.44,
+          "q25": 0.89,
+          "q75": 27.41,
+          "iqr": 26.52
+        },
+        "residential_pct": {
+          "n": 25,
+          "mean": 13.512,
+          "std": 13.9666,
+          "median": 9.48,
+          "min": 0.0,
+          "max": 43.87,
+          "q25": 3.71,
+          "q75": 17.68,
+          "iqr": 13.97
+        },
+        "service_pct": {
+          "n": 25,
+          "mean": 2.092,
+          "std": 6.9584,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 33.72,
+          "q25": 0.0,
+          "q75": 0.12,
+          "iqr": 0.12
+        }
+      },
+      "B2_Physical_Distance_Ref": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 17.6484,
+          "std": 28.725,
+          "median": 6.4,
+          "min": 0.23,
+          "max": 142.83,
+          "q25": 3.6,
+          "q75": 21.73,
+          "iqr": 18.13
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 6.5774,
+          "std": 3.2185,
+          "median": 6.403,
+          "min": 1.353,
+          "max": 14.373,
+          "q25": 4.377,
+          "q75": 8.8,
+          "iqr": 4.423
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 14709.3576,
+          "std": 8368.4729,
+          "median": 14748.64,
+          "min": 2994.96,
+          "max": 33025.86,
+          "q25": 8456.22,
+          "q75": 19661.88,
+          "iqr": 11205.66
+        },
+        "arterial_pct": {
+          "n": 25,
+          "mean": 59.3516,
+          "std": 26.7765,
+          "median": 59.81,
+          "min": 0.0,
+          "max": 100.0,
+          "q25": 50.79,
+          "q75": 82.03,
+          "iqr": 31.24
+        },
+        "collector_pct": {
+          "n": 25,
+          "mean": 19.1056,
+          "std": 18.773,
+          "median": 16.59,
+          "min": 0.0,
+          "max": 78.98,
+          "q25": 5.59,
+          "q75": 27.47,
+          "iqr": 21.88
+        },
+        "residential_pct": {
+          "n": 25,
+          "mean": 19.4504,
+          "std": 16.7907,
+          "median": 14.17,
+          "min": 0.0,
+          "max": 52.86,
+          "q25": 4.77,
+          "q75": 31.32,
+          "iqr": 26.55
+        },
+        "service_pct": {
+          "n": 25,
+          "mean": 2.0916,
+          "std": 6.9489,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 33.67,
+          "q25": 0.0,
+          "q75": 0.12,
+          "iqr": 0.12
+        }
+      }
+    },
+    "Experiment_C": {
+      "C0_Zero_Turn_Penalties": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 338.7856,
+          "std": 417.3181,
+          "median": 158.91,
+          "min": 0.97,
+          "max": 1679.97,
+          "q25": 66.94,
+          "q75": 473.83,
+          "iqr": 406.89
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.7232,
+          "std": 3.9566,
+          "median": 7.736,
+          "min": 1.353,
+          "max": 15.818,
+          "q25": 4.991,
+          "q75": 9.995,
+          "iqr": 5.004
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9325.8736,
+          "std": 4681.8304,
+          "median": 9390.83,
+          "min": 2820.69,
+          "max": 19488.03,
+          "q25": 5936.83,
+          "q75": 11757.59,
+          "iqr": 5820.76
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 32.52,
+          "std": 20.1786,
+          "median": 31.0,
+          "min": 5.0,
+          "max": 90.0,
+          "q25": 20.0,
+          "q75": 40.0,
+          "iqr": 20.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 40.56,
+          "std": 24.9284,
+          "median": 36.0,
+          "min": 5.0,
+          "max": 111.0,
+          "q25": 21.0,
+          "q75": 52.0,
+          "iqr": 31.0
+        }
+      },
+      "C1_Low_Turn_Penalties": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 367.3304,
+          "std": 449.5396,
+          "median": 163.06,
+          "min": 0.99,
+          "max": 1778.16,
+          "q25": 67.52,
+          "q75": 492.54,
+          "iqr": 425.02
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6682,
+          "std": 3.847,
+          "median": 7.776,
+          "min": 1.353,
+          "max": 15.35,
+          "q25": 4.987,
+          "q75": 9.945,
+          "iqr": 4.958
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9163.7352,
+          "std": 4583.6052,
+          "median": 9245.82,
+          "min": 2674.31,
+          "max": 18565.38,
+          "q25": 5844.31,
+          "q75": 11571.47,
+          "iqr": 5727.16
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 24.64,
+          "std": 13.7049,
+          "median": 22.0,
+          "min": 4.0,
+          "max": 49.0,
+          "q25": 16.0,
+          "q75": 35.0,
+          "iqr": 19.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 32.32,
+          "std": 18.5376,
+          "median": 30.0,
+          "min": 5.0,
+          "max": 65.0,
+          "q25": 18.0,
+          "q75": 45.0,
+          "iqr": 27.0
+        }
+      },
+      "C2_Baseline_Turn_Penalties": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 384.2044,
+          "std": 468.1644,
+          "median": 165.48,
+          "min": 1.02,
+          "max": 1818.82,
+          "q25": 66.25,
+          "q75": 508.06,
+          "iqr": 441.81
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6475,
+          "std": 3.7894,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 9.944,
+          "iqr": 4.96
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9140.3368,
+          "std": 4577.4167,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 11536.13,
+          "iqr": 5737.75
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 21.44,
+          "std": 12.6658,
+          "median": 18.0,
+          "min": 3.0,
+          "max": 49.0,
+          "q25": 12.0,
+          "q75": 33.0,
+          "iqr": 21.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 29.48,
+          "std": 17.3352,
+          "median": 28.0,
+          "min": 5.0,
+          "max": 65.0,
+          "q25": 14.0,
+          "q75": 43.0,
+          "iqr": 29.0
+        }
+      },
+      "C3_High_Turn_Penalties": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 412.7968,
+          "std": 497.4005,
+          "median": 170.04,
+          "min": 1.09,
+          "max": 1893.77,
+          "q25": 66.44,
+          "q75": 540.37,
+          "iqr": 473.93
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6804,
+          "std": 3.8171,
+          "median": 7.857,
+          "min": 1.353,
+          "max": 14.985,
+          "q25": 4.965,
+          "q75": 10.081,
+          "iqr": 5.116
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9156.5928,
+          "std": 4582.7112,
+          "median": 9205.5,
+          "min": 2674.31,
+          "max": 18532.39,
+          "q25": 5840.57,
+          "q75": 11544.84,
+          "iqr": 5704.27
+        },
+        "sharp_turns": {
+          "n": 25,
+          "mean": 19.8,
+          "std": 12.278,
+          "median": 17.0,
+          "min": 3.0,
+          "max": 48.0,
+          "q25": 10.0,
+          "q75": 30.0,
+          "iqr": 20.0
+        },
+        "total_turns": {
+          "n": 25,
+          "mean": 27.88,
+          "std": 16.594,
+          "median": 25.0,
+          "min": 5.0,
+          "max": 63.0,
+          "q25": 13.0,
+          "q75": 41.0,
+          "iqr": 28.0
+        }
+      }
+    },
+    "Experiment_D": {
+      "D1_Bridge_Off_Roundabout_Off": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 382.8008,
+          "std": 448.5005,
+          "median": 187.62,
+          "min": 1.02,
+          "max": 1765.86,
+          "q25": 109.18,
+          "q75": 508.4,
+          "iqr": 399.22
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.7591,
+          "std": 3.8472,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 10.065,
+          "iqr": 5.081
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9261.2548,
+          "std": 4620.5582,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 12072.2,
+          "iqr": 6273.82
+        },
+        "bridge_length_m": {
+          "n": 25,
+          "mean": 159.6776,
+          "std": 232.5944,
+          "median": 63.58,
+          "min": 0.0,
+          "max": 930.58,
+          "q25": 16.74,
+          "q75": 136.86,
+          "iqr": 120.12
+        },
+        "bridge_pct": {
+          "n": 25,
+          "mean": 1.848,
+          "std": 2.5909,
+          "median": 0.81,
+          "min": 0.0,
+          "max": 10.85,
+          "q25": 0.27,
+          "q75": 1.98,
+          "iqr": 1.71
+        },
+        "roundabout_length_m": {
+          "n": 25,
+          "mean": 2.5192,
+          "std": 12.596,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 62.98,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        },
+        "roundabout_pct": {
+          "n": 25,
+          "mean": 0.0204,
+          "std": 0.102,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.51,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        }
+      },
+      "D2_Bridge_On_Roundabout_Off": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 380.9784,
+          "std": 462.3974,
+          "median": 165.24,
+          "min": 1.01,
+          "max": 1825.72,
+          "q25": 64.07,
+          "q75": 513.6,
+          "iqr": 449.53
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6475,
+          "std": 3.7894,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 9.944,
+          "iqr": 4.96
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9140.3368,
+          "std": 4577.4167,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 11536.13,
+          "iqr": 5737.75
+        },
+        "bridge_length_m": {
+          "n": 25,
+          "mean": 397.4416,
+          "std": 1173.0701,
+          "median": 63.58,
+          "min": 0.0,
+          "max": 5901.14,
+          "q25": 16.74,
+          "q75": 243.25,
+          "iqr": 226.51
+        },
+        "bridge_pct": {
+          "n": 25,
+          "mean": 4.6416,
+          "std": 13.5141,
+          "median": 0.81,
+          "min": 0.0,
+          "max": 68.07,
+          "q25": 0.27,
+          "q75": 2.56,
+          "iqr": 2.29
+        },
+        "roundabout_length_m": {
+          "n": 25,
+          "mean": 2.5192,
+          "std": 12.596,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 62.98,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        },
+        "roundabout_pct": {
+          "n": 25,
+          "mean": 0.0204,
+          "std": 0.102,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.51,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        }
+      },
+      "D3_Bridge_Off_Roundabout_On": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 381.2092,
+          "std": 446.9695,
+          "median": 183.62,
+          "min": 1.0,
+          "max": 1762.08,
+          "q25": 106.25,
+          "q75": 495.83,
+          "iqr": 389.58
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.7591,
+          "std": 3.8472,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 10.065,
+          "iqr": 5.081
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9261.2548,
+          "std": 4620.5582,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 12072.2,
+          "iqr": 6273.82
+        },
+        "bridge_length_m": {
+          "n": 25,
+          "mean": 159.6776,
+          "std": 232.5944,
+          "median": 63.58,
+          "min": 0.0,
+          "max": 930.58,
+          "q25": 16.74,
+          "q75": 136.86,
+          "iqr": 120.12
+        },
+        "bridge_pct": {
+          "n": 25,
+          "mean": 1.848,
+          "std": 2.5909,
+          "median": 0.81,
+          "min": 0.0,
+          "max": 10.85,
+          "q25": 0.27,
+          "q75": 1.98,
+          "iqr": 1.71
+        },
+        "roundabout_length_m": {
+          "n": 25,
+          "mean": 2.5192,
+          "std": 12.596,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 62.98,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        },
+        "roundabout_pct": {
+          "n": 25,
+          "mean": 0.0204,
+          "std": 0.102,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.51,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        }
+      },
+      "D4_Bridge_On_Roundabout_On": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 380.4432,
+          "std": 462.372,
+          "median": 162.83,
+          "min": 1.02,
+          "max": 1818.7,
+          "q25": 65.08,
+          "q75": 513.16,
+          "iqr": 448.08
+        },
+        "distance_km": {
+          "n": 25,
+          "mean": 7.6475,
+          "std": 3.7894,
+          "median": 7.784,
+          "min": 1.353,
+          "max": 15.036,
+          "q25": 4.984,
+          "q75": 9.944,
+          "iqr": 4.96
+        },
+        "impedance_cost": {
+          "n": 25,
+          "mean": 9140.3368,
+          "std": 4577.4167,
+          "median": 9199.77,
+          "min": 2674.31,
+          "max": 18507.46,
+          "q25": 5798.38,
+          "q75": 11536.13,
+          "iqr": 5737.75
+        },
+        "bridge_length_m": {
+          "n": 25,
+          "mean": 397.4416,
+          "std": 1173.0701,
+          "median": 63.58,
+          "min": 0.0,
+          "max": 5901.14,
+          "q25": 16.74,
+          "q75": 243.25,
+          "iqr": 226.51
+        },
+        "bridge_pct": {
+          "n": 25,
+          "mean": 4.6416,
+          "std": 13.5141,
+          "median": 0.81,
+          "min": 0.0,
+          "max": 68.07,
+          "q25": 0.27,
+          "q75": 2.56,
+          "iqr": 2.29
+        },
+        "roundabout_length_m": {
+          "n": 25,
+          "mean": 2.5192,
+          "std": 12.596,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 62.98,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        },
+        "roundabout_pct": {
+          "n": 25,
+          "mean": 0.0204,
+          "std": 0.102,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.51,
+          "q25": 0.0,
+          "q75": 0.0,
+          "iqr": 0.0
+        }
+      }
+    },
+    "Experiment_E": {
+      "E1_Perpendicular_Offset": {
+        "runtime_ms": {
+          "n": 25,
+          "mean": 10520.7744,
+          "std": 3513.1986,
+          "median": 9088.83,
+          "min": 7363.33,
+          "max": 22541.49,
+          "q25": 8211.89,
+          "q75": 11995.19,
+          "iqr": 3783.3
+        },
+        "surviving_count": {
+          "n": 25,
+          "mean": 2.24,
+          "std": 1.052,
+          "median": 3.0,
+          "min": 0.0,
+          "max": 3.0,
+          "q25": 2.0,
+          "q75": 3.0,
+          "iqr": 1.0
+        },
+        "pairwise_diversity": {
+          "n": 25,
+          "mean": 0.4932,
+          "std": 0.2114,
+          "median": 0.5178,
+          "min": 0.0,
+          "max": 0.7327,
+          "q25": 0.4313,
+          "q75": 0.6389,
+          "iqr": 0.2076
+        }
+      },
+      "E2_Raw_Yen_KSP": {
+        "runtime_ms": {
+          "n": 5,
+          "mean": 42606.354,
+          "std": 73606.5099,
+          "median": 10357.04,
+          "min": 102.64,
+          "max": 173583.21,
+          "q25": 7801.42,
+          "q75": 21187.46,
+          "iqr": 13386.04
+        },
+        "surviving_count": {
+          "n": 5,
+          "mean": 3.0,
+          "std": 0.0,
+          "median": 3.0,
+          "min": 3.0,
+          "max": 3.0,
+          "q25": 3.0,
+          "q75": 3.0,
+          "iqr": 0.0
+        },
+        "pairwise_diversity": {
+          "n": 5,
+          "mean": 0.1409,
+          "std": 0.1089,
+          "median": 0.0764,
+          "min": 0.0399,
+          "max": 0.2774,
+          "q25": 0.0717,
+          "q75": 0.2392,
+          "iqr": 0.1675
+        }
+      },
+      "E3_Filtered_Yen_KSP": {
+        "runtime_ms": {
+          "n": 5,
+          "mean": 42261.83,
+          "std": 71651.2137,
+          "median": 9966.72,
+          "min": 36.09,
+          "max": 169594.53,
+          "q25": 8734.24,
+          "q75": 22977.57,
+          "iqr": 14243.33
+        },
+        "surviving_count": {
+          "n": 5,
+          "mean": 2.4,
+          "std": 1.3416,
+          "median": 3.0,
+          "min": 0.0,
+          "max": 3.0,
+          "q25": 3.0,
+          "q75": 3.0,
+          "iqr": 0.0
+        },
+        "pairwise_diversity": {
+          "n": 5,
+          "mean": 0.2662,
+          "std": 0.1722,
+          "median": 0.2931,
+          "min": 0.0,
+          "max": 0.4812,
+          "q25": 0.263,
+          "q75": 0.2936,
+          "iqr": 0.0306
+        }
+      }
+    }
+  },
+  "statistical_tests": [
+    {
+      "family": "Family_A_Turns",
+      "metric": "sharp_turns",
+      "comparison": "A0 vs A1",
+      "treatment": "A0",
+      "control": "A1",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": -11.08,
+      "median_diff": -10.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.5e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 2.7e-05,
+      "t_stat": -5.033,
+      "t_pvalue": 3.8e-05,
+      "cohens_dz": -1.0066,
+      "cohens_dz_95ci": [
+        -1.4194,
+        -0.5938
+      ],
+      "rank_biserial_r": -1.0,
+      "hodges_lehmann": -9.5,
+      "hodges_lehmann_95ci": [
+        -13.0,
+        -7.0
+      ],
+      "p_adjusted_holm": 4.5e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Turns",
+      "metric": "sharp_turns",
+      "comparison": "A0 vs A2",
+      "treatment": "A0",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": -11.08,
+      "median_diff": -10.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.5e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 2.7e-05,
+      "t_stat": -5.033,
+      "t_pvalue": 3.8e-05,
+      "cohens_dz": -1.0066,
+      "cohens_dz_95ci": [
+        -1.4194,
+        -0.5938
+      ],
+      "rank_biserial_r": -1.0,
+      "hodges_lehmann": -9.5,
+      "hodges_lehmann_95ci": [
+        -13.0,
+        -7.0
+      ],
+      "p_adjusted_holm": 4.5e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Turns",
+      "metric": "sharp_turns",
+      "comparison": "A1 vs A2",
+      "treatment": "A1",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 25,
+      "mean_diff": 0.0,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 1.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "cohens_dz": 0.0,
+      "cohens_dz_95ci": [
+        0.0,
+        0.0
+      ],
+      "rank_biserial_r": 0.0,
+      "hodges_lehmann": 0.0,
+      "hodges_lehmann_95ci": [
+        0.0,
+        0.0
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_A_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "A0 vs A1",
+      "treatment": "A0",
+      "control": "A1",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 41.3472,
+      "median_diff": 21.21,
+      "wilcoxon_pratt_stat": 17.0,
+      "p_raw_pratt": 1.2e-05,
+      "wilcoxon_wilcox_stat": 17.0,
+      "p_raw_wilcox": 1.2e-05,
+      "t_stat": 3.9736,
+      "t_pvalue": 0.000563,
+      "cohens_dz": 0.7947,
+      "cohens_dz_95ci": [
+        0.3819,
+        1.2075
+      ],
+      "rank_biserial_r": 0.8954,
+      "hodges_lehmann": 30.425,
+      "hodges_lehmann_95ci": [
+        12.27,
+        59.465
+      ],
+      "p_adjusted_holm": 1.2e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "A0 vs A2",
+      "treatment": "A0",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 294.7276,
+      "median_diff": 132.74,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.0,
+      "t_stat": 4.1294,
+      "t_pvalue": 0.00038,
+      "cohens_dz": 0.8259,
+      "cohens_dz_95ci": [
+        0.4131,
+        1.2387
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 214.58,
+      "hodges_lehmann_95ci": [
+        103.87,
+        397.945
+      ],
+      "p_adjusted_holm": 0.0,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "A1 vs A2",
+      "treatment": "A1",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 253.3804,
+      "median_diff": 113.81,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.0,
+      "t_stat": 4.0575,
+      "t_pvalue": 0.000456,
+      "cohens_dz": 0.8115,
+      "cohens_dz_95ci": [
+        0.3987,
+        1.2243
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 185.095,
+      "hodges_lehmann_95ci": [
+        90.985,
+        335.54
+      ],
+      "p_adjusted_holm": 0.0,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Expansions",
+      "metric": "expanded_states",
+      "comparison": "A0 vs A1",
+      "treatment": "A0",
+      "control": "A1",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 2876.52,
+      "median_diff": 1394.0,
+      "wilcoxon_pratt_stat": 18.0,
+      "p_raw_pratt": 1.5e-05,
+      "wilcoxon_wilcox_stat": 18.0,
+      "p_raw_wilcox": 1.5e-05,
+      "t_stat": 4.005,
+      "t_pvalue": 0.00052,
+      "cohens_dz": 0.801,
+      "cohens_dz_95ci": [
+        0.3882,
+        1.2138
+      ],
+      "rank_biserial_r": 0.8892,
+      "hodges_lehmann": 2120.5,
+      "hodges_lehmann_95ci": [
+        938.0,
+        4248.0
+      ],
+      "p_adjusted_holm": 1.5e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Expansions",
+      "metric": "expanded_states",
+      "comparison": "A0 vs A2",
+      "treatment": "A0",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 16396.52,
+      "median_diff": 7068.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.0,
+      "t_stat": 4.2272,
+      "t_pvalue": 0.000296,
+      "cohens_dz": 0.8454,
+      "cohens_dz_95ci": [
+        0.4327,
+        1.2582
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 12135.0,
+      "hodges_lehmann_95ci": [
+        5999.5,
+        22057.5
+      ],
+      "p_adjusted_holm": 0.0,
+      "significant_005": true
+    },
+    {
+      "family": "Family_A_Expansions",
+      "metric": "expanded_states",
+      "comparison": "A1 vs A2",
+      "treatment": "A1",
+      "control": "A2",
+      "n": 25,
+      "zero_differences": 0,
+      "mean_diff": 13520.0,
+      "median_diff": 6389.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.0,
+      "t_stat": 4.1229,
+      "t_pvalue": 0.000386,
+      "cohens_dz": 0.8246,
+      "cohens_dz_95ci": [
+        0.4118,
+        1.2374
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 10011.5,
+      "hodges_lehmann_95ci": [
+        5024.5,
+        17559.5
+      ],
+      "p_adjusted_holm": 0.0,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Arterial",
+      "metric": "arterial_pct",
+      "comparison": "B0 vs B1",
+      "treatment": "B0",
+      "control": "B1",
+      "n": 25,
+      "zero_differences": 3,
+      "mean_diff": -51.2148,
+      "median_diff": -58.9,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 2.8e-05,
+      "wilcoxon_wilcox_stat": 1.0,
+      "p_raw_wilcox": 4.6e-05,
+      "t_stat": -8.8577,
+      "t_pvalue": 0.0,
+      "cohens_dz": -1.7715,
+      "cohens_dz_95ci": [
+        -2.1843,
+        -1.3588
+      ],
+      "rank_biserial_r": -0.9921,
+      "hodges_lehmann": -54.55,
+      "hodges_lehmann_95ci": [
+        -64.025,
+        -40.62
+      ],
+      "p_adjusted_holm": 8.4e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Arterial",
+      "metric": "arterial_pct",
+      "comparison": "B0 vs B2",
+      "treatment": "B0",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 3,
+      "mean_diff": -45.514,
+      "median_diff": -51.05,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 2.8e-05,
+      "wilcoxon_wilcox_stat": 1.0,
+      "p_raw_wilcox": 4.6e-05,
+      "t_stat": -7.931,
+      "t_pvalue": 0.0,
+      "cohens_dz": -1.5862,
+      "cohens_dz_95ci": [
+        -1.999,
+        -1.1734
+      ],
+      "rank_biserial_r": -0.9921,
+      "hodges_lehmann": -46.305,
+      "hodges_lehmann_95ci": [
+        -58.745,
+        -33.37
+      ],
+      "p_adjusted_holm": 8.4e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Arterial",
+      "metric": "arterial_pct",
+      "comparison": "B1 vs B2",
+      "treatment": "B1",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 13,
+      "mean_diff": 5.7008,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 48.0,
+      "p_raw_pratt": 0.044257,
+      "wilcoxon_wilcox_stat": 9.0,
+      "p_raw_wilcox": 0.018603,
+      "t_stat": 2.4437,
+      "t_pvalue": 0.022263,
+      "cohens_dz": 0.4887,
+      "cohens_dz_95ci": [
+        0.076,
+        0.9015
+      ],
+      "rank_biserial_r": 0.7692,
+      "hodges_lehmann": 1.585,
+      "hodges_lehmann_95ci": [
+        0.0,
+        7.51
+      ],
+      "p_adjusted_holm": 0.044257,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Residential",
+      "metric": "residential_pct",
+      "comparison": "B0 vs B1",
+      "treatment": "B0",
+      "control": "B1",
+      "n": 25,
+      "zero_differences": 3,
+      "mean_diff": 30.7296,
+      "median_diff": 34.07,
+      "wilcoxon_pratt_stat": 9.0,
+      "p_raw_pratt": 5e-05,
+      "wilcoxon_wilcox_stat": 3.0,
+      "p_raw_wilcox": 6.1e-05,
+      "t_stat": 7.6168,
+      "t_pvalue": 0.0,
+      "cohens_dz": 1.5234,
+      "cohens_dz_95ci": [
+        1.1106,
+        1.9361
+      ],
+      "rank_biserial_r": 0.9763,
+      "hodges_lehmann": 31.295,
+      "hodges_lehmann_95ci": [
+        21.895,
+        41.05
+      ],
+      "p_adjusted_holm": 0.00015,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Residential",
+      "metric": "residential_pct",
+      "comparison": "B0 vs B2",
+      "treatment": "B0",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 3,
+      "mean_diff": 24.7912,
+      "median_diff": 28.78,
+      "wilcoxon_pratt_stat": 15.0,
+      "p_raw_pratt": 9.9e-05,
+      "wilcoxon_wilcox_stat": 6.0,
+      "p_raw_wilcox": 9.1e-05,
+      "t_stat": 6.2666,
+      "t_pvalue": 2e-06,
+      "cohens_dz": 1.2533,
+      "cohens_dz_95ci": [
+        0.8405,
+        1.6661
+      ],
+      "rank_biserial_r": 0.9526,
+      "hodges_lehmann": 24.015,
+      "hodges_lehmann_95ci": [
+        17.37,
+        34.76
+      ],
+      "p_adjusted_holm": 0.000198,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Residential",
+      "metric": "residential_pct",
+      "comparison": "B1 vs B2",
+      "treatment": "B1",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 12,
+      "mean_diff": -5.9384,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 14.0,
+      "p_raw_pratt": 0.001709,
+      "wilcoxon_wilcox_stat": 2.0,
+      "p_raw_wilcox": 0.002366,
+      "t_stat": -3.0023,
+      "t_pvalue": 0.006172,
+      "cohens_dz": -0.6005,
+      "cohens_dz_95ci": [
+        -1.0132,
+        -0.1877
+      ],
+      "rank_biserial_r": -0.956,
+      "hodges_lehmann": -3.78,
+      "hodges_lehmann_95ci": [
+        -6.965,
+        0.0
+      ],
+      "p_adjusted_holm": 0.001709,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Distance",
+      "metric": "distance_km",
+      "comparison": "B0 vs B1",
+      "treatment": "B0",
+      "control": "B1",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": 1.0279,
+      "median_diff": 0.632,
+      "wilcoxon_pratt_stat": 7.0,
+      "p_raw_pratt": 3.4e-05,
+      "wilcoxon_wilcox_stat": 5.0,
+      "p_raw_wilcox": 5.2e-05,
+      "t_stat": 4.6231,
+      "t_pvalue": 0.000108,
+      "cohens_dz": 0.9246,
+      "cohens_dz_95ci": [
+        0.5118,
+        1.3374
+      ],
+      "rank_biserial_r": 0.9638,
+      "hodges_lehmann": 0.8605,
+      "hodges_lehmann_95ci": [
+        0.4785,
+        1.379
+      ],
+      "p_adjusted_holm": 6.8e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Distance",
+      "metric": "distance_km",
+      "comparison": "B0 vs B2",
+      "treatment": "B0",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": 1.0701,
+      "median_diff": 0.649,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.5e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 2.7e-05,
+      "t_stat": 4.9264,
+      "t_pvalue": 5e-05,
+      "cohens_dz": 0.9853,
+      "cohens_dz_95ci": [
+        0.5725,
+        1.398
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 0.9155,
+      "hodges_lehmann_95ci": [
+        0.5585,
+        1.3845
+      ],
+      "p_adjusted_holm": 4.5e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_B_Distance",
+      "metric": "distance_km",
+      "comparison": "B1 vs B2",
+      "treatment": "B1",
+      "control": "B2",
+      "n": 25,
+      "zero_differences": 12,
+      "mean_diff": 0.0422,
+      "median_diff": 0.006,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.000404,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.001474,
+      "t_stat": 2.1718,
+      "t_pvalue": 0.039982,
+      "cohens_dz": 0.4344,
+      "cohens_dz_95ci": [
+        0.0216,
+        0.8471
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 0.0165,
+      "hodges_lehmann_95ci": [
+        0.0055,
+        0.0465
+      ],
+      "p_adjusted_holm": 0.000404,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_SharpTurns",
+      "metric": "sharp_turns",
+      "comparison": "C0 vs C2",
+      "treatment": "C0",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": 11.08,
+      "median_diff": 10.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.5e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 2.7e-05,
+      "t_stat": 5.033,
+      "t_pvalue": 3.8e-05,
+      "cohens_dz": 1.0066,
+      "cohens_dz_95ci": [
+        0.5938,
+        1.4194
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 9.5,
+      "hodges_lehmann_95ci": [
+        7.0,
+        13.0
+      ],
+      "p_adjusted_holm": 4.5e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_SharpTurns",
+      "metric": "sharp_turns",
+      "comparison": "C1 vs C2",
+      "treatment": "C1",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 7,
+      "mean_diff": 3.2,
+      "median_diff": 2.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 5.1e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.00019,
+      "t_stat": 5.409,
+      "t_pvalue": 1.5e-05,
+      "cohens_dz": 1.0818,
+      "cohens_dz_95ci": [
+        0.669,
+        1.4946
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 3.0,
+      "hodges_lehmann_95ci": [
+        2.0,
+        4.5
+      ],
+      "p_adjusted_holm": 0.000102,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_SharpTurns",
+      "metric": "sharp_turns",
+      "comparison": "C3 vs C2",
+      "treatment": "C3",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 9,
+      "mean_diff": -1.64,
+      "median_diff": -2.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.000106,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.000394,
+      "t_stat": -5.1965,
+      "t_pvalue": 2.5e-05,
+      "cohens_dz": -1.0393,
+      "cohens_dz_95ci": [
+        -1.4521,
+        -0.6265
+      ],
+      "rank_biserial_r": -1.0,
+      "hodges_lehmann": -1.5,
+      "hodges_lehmann_95ci": [
+        -2.5,
+        -1.0
+      ],
+      "p_adjusted_holm": 0.000106,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_TotalTurns",
+      "metric": "total_turns",
+      "comparison": "C0 vs C2",
+      "treatment": "C0",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 2,
+      "mean_diff": 11.08,
+      "median_diff": 8.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.4e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 2.6e-05,
+      "t_stat": 5.0487,
+      "t_pvalue": 3.7e-05,
+      "cohens_dz": 1.0097,
+      "cohens_dz_95ci": [
+        0.597,
+        1.4225
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 9.5,
+      "hodges_lehmann_95ci": [
+        6.5,
+        12.5
+      ],
+      "p_adjusted_holm": 4.2e-05,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_TotalTurns",
+      "metric": "total_turns",
+      "comparison": "C1 vs C2",
+      "treatment": "C1",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 8,
+      "mean_diff": 2.84,
+      "median_diff": 2.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 7.2e-05,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.000267,
+      "t_stat": 5.3142,
+      "t_pvalue": 1.9e-05,
+      "cohens_dz": 1.0628,
+      "cohens_dz_95ci": [
+        0.6501,
+        1.4756
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 3.0,
+      "hodges_lehmann_95ci": [
+        1.5,
+        4.0
+      ],
+      "p_adjusted_holm": 0.000144,
+      "significant_005": true
+    },
+    {
+      "family": "Family_C_TotalTurns",
+      "metric": "total_turns",
+      "comparison": "C3 vs C2",
+      "treatment": "C3",
+      "control": "C2",
+      "n": 25,
+      "zero_differences": 9,
+      "mean_diff": -1.6,
+      "median_diff": -1.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.000107,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.000402,
+      "t_stat": -5.0596,
+      "t_pvalue": 3.6e-05,
+      "cohens_dz": -1.0119,
+      "cohens_dz_95ci": [
+        -1.4247,
+        -0.5991
+      ],
+      "rank_biserial_r": -1.0,
+      "hodges_lehmann": -1.5,
+      "hodges_lehmann_95ci": [
+        -2.0,
+        -1.0
+      ],
+      "p_adjusted_holm": 0.000144,
+      "significant_005": true
+    },
+    {
+      "family": "Family_D_Cost",
+      "metric": "impedance_cost",
+      "comparison": "D1 vs D4",
+      "treatment": "D1",
+      "control": "D4",
+      "n": 25,
+      "zero_differences": 23,
+      "mean_diff": 120.918,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.157386,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.179712,
+      "t_stat": 1.0959,
+      "t_pvalue": 0.284014,
+      "cohens_dz": 0.2192,
+      "cohens_dz_95ci": [
+        -0.1936,
+        0.632
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 0.0,
+      "hodges_lehmann_95ci": [
+        0.0,
+        0.0
+      ],
+      "p_adjusted_holm": 0.472158,
+      "significant_005": false
+    },
+    {
+      "family": "Family_D_Cost",
+      "metric": "impedance_cost",
+      "comparison": "D2 vs D4",
+      "treatment": "D2",
+      "control": "D4",
+      "n": 25,
+      "zero_differences": 25,
+      "mean_diff": 0.0,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 1.0,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 1.0,
+      "t_stat": 0.0,
+      "t_pvalue": 1.0,
+      "cohens_dz": 0.0,
+      "cohens_dz_95ci": [
+        0.0,
+        0.0
+      ],
+      "rank_biserial_r": 0.0,
+      "hodges_lehmann": 0.0,
+      "hodges_lehmann_95ci": [
+        0.0,
+        0.0
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_D_Cost",
+      "metric": "impedance_cost",
+      "comparison": "D3 vs D4",
+      "treatment": "D3",
+      "control": "D4",
+      "n": 25,
+      "zero_differences": 23,
+      "mean_diff": 120.918,
+      "median_diff": 0.0,
+      "wilcoxon_pratt_stat": 0.0,
+      "p_raw_pratt": 0.157386,
+      "wilcoxon_wilcox_stat": 0.0,
+      "p_raw_wilcox": 0.179712,
+      "t_stat": 1.0959,
+      "t_pvalue": 0.284014,
+      "cohens_dz": 0.2192,
+      "cohens_dz_95ci": [
+        -0.1936,
+        0.632
+      ],
+      "rank_biserial_r": 1.0,
+      "hodges_lehmann": 0.0,
+      "hodges_lehmann_95ci": [
+        0.0,
+        0.0
+      ],
+      "p_adjusted_holm": 0.472158,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "E1 vs E2",
+      "treatment": "E1",
+      "control": "E2",
+      "n": 5,
+      "zero_differences": 0,
+      "mean_diff": -33108.756,
+      "median_diff": -2141.99,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 0.4375,
+      "wilcoxon_wilcox_stat": 4.0,
+      "p_raw_wilcox": 0.4375,
+      "t_stat": -1.0419,
+      "t_pvalue": 0.356305,
+      "cohens_dz": -0.4659,
+      "cohens_dz_95ci": [
+        -1.7076,
+        0.7757
+      ],
+      "rank_biserial_r": -0.4667,
+      "hodges_lehmann": -5528.665,
+      "hodges_lehmann_95ci": [
+        -159605.15,
+        7260.69
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "E1 vs E3",
+      "treatment": "E1",
+      "control": "E3",
+      "n": 5,
+      "zero_differences": 0,
+      "mean_diff": -32764.232,
+      "median_diff": -1751.67,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 0.4375,
+      "wilcoxon_wilcox_stat": 4.0,
+      "p_raw_wilcox": 0.4375,
+      "t_stat": -1.0603,
+      "t_pvalue": 0.348802,
+      "cohens_dz": -0.4742,
+      "cohens_dz_95ci": [
+        -1.7158,
+        0.7675
+      ],
+      "rank_biserial_r": -0.4667,
+      "hodges_lehmann": -6890.13,
+      "hodges_lehmann_95ci": [
+        -155616.47,
+        7327.24
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Runtime",
+      "metric": "runtime_ms",
+      "comparison": "E2 vs E3",
+      "treatment": "E2",
+      "control": "E3",
+      "n": 5,
+      "zero_differences": 0,
+      "mean_diff": 344.524,
+      "median_diff": 66.55,
+      "wilcoxon_pratt_stat": 7.0,
+      "p_raw_pratt": 1.0,
+      "wilcoxon_wilcox_stat": 7.0,
+      "p_raw_wilcox": 1.0,
+      "t_stat": 0.3485,
+      "t_pvalue": 0.745042,
+      "cohens_dz": 0.1558,
+      "cohens_dz_95ci": [
+        -1.0858,
+        1.3975
+      ],
+      "rank_biserial_r": 0.0667,
+      "hodges_lehmann": 66.55,
+      "hodges_lehmann_95ci": [
+        -1790.11,
+        3988.68
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Diversity",
+      "metric": "pairwise_diversity",
+      "comparison": "E1 vs E2",
+      "treatment": "E1",
+      "control": "E2",
+      "n": 5,
+      "zero_differences": 0,
+      "mean_diff": 0.208,
+      "median_diff": 0.2743,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 0.4375,
+      "wilcoxon_wilcox_stat": 4.0,
+      "p_raw_wilcox": 0.4375,
+      "t_stat": 1.2799,
+      "t_pvalue": 0.269775,
+      "cohens_dz": 0.5724,
+      "cohens_dz_95ci": [
+        -0.6693,
+        1.814
+      ],
+      "rank_biserial_r": 0.4667,
+      "hodges_lehmann": 0.2276,
+      "hodges_lehmann_95ci": [
+        -0.2774,
+        0.5877
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Diversity",
+      "metric": "pairwise_diversity",
+      "comparison": "E1 vs E3",
+      "treatment": "E1",
+      "control": "E3",
+      "n": 5,
+      "zero_differences": 1,
+      "mean_diff": 0.0827,
+      "median_diff": 0.0857,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 0.5,
+      "wilcoxon_wilcox_stat": 3.0,
+      "p_raw_wilcox": 0.625,
+      "t_stat": 0.7142,
+      "t_pvalue": 0.514553,
+      "cohens_dz": 0.3194,
+      "cohens_dz_95ci": [
+        -0.9223,
+        1.5611
+      ],
+      "rank_biserial_r": 0.4,
+      "hodges_lehmann": 0.0857,
+      "hodges_lehmann_95ci": [
+        -0.2931,
+        0.4011
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    },
+    {
+      "family": "Family_E_Diversity",
+      "metric": "pairwise_diversity",
+      "comparison": "E2 vs E3",
+      "treatment": "E2",
+      "control": "E3",
+      "n": 5,
+      "zero_differences": 0,
+      "mean_diff": -0.1253,
+      "median_diff": -0.1866,
+      "wilcoxon_pratt_stat": 4.0,
+      "p_raw_pratt": 0.4375,
+      "wilcoxon_wilcox_stat": 4.0,
+      "p_raw_wilcox": 0.4375,
+      "t_stat": -1.0819,
+      "t_pvalue": 0.340154,
+      "cohens_dz": -0.4838,
+      "cohens_dz_95ci": [
+        -1.7255,
+        0.7578
+      ],
+      "rank_biserial_r": -0.4667,
+      "hodges_lehmann": -0.1538,
+      "hodges_lehmann_95ci": [
+        -0.4095,
+        0.2774
+      ],
+      "p_adjusted_holm": 1.0,
+      "significant_005": false
+    }
+  ]
+}

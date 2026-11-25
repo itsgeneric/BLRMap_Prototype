@@ -1,0 +1,1046 @@
+{
+  "timestamp": "2026-11-04T18:52:42Z",
+  "corridor": {
+    "id": "OD_01",
+    "name": "BNMIT to MG Road",
+    "dist_cat": "Long (10.1 km)",
+    "from_lat": 12.9237,
+    "from_lng": 77.5714,
+    "to_lat": 12.9756,
+    "to_lng": 77.6066,
+    "start_node": 7479665259,
+    "end_node": 11961205354
+  },
+  "corpus_validation": {
+    "all_distinct": true,
+    "all_connected": true,
+    "total_corridors": 25
+  },
+  "experiments": {
+    "Experiment_A": {
+      "A0_Turn_Aware": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1145.89,
+        "expanded_states": 64076
+      },
+      "A1_Turn_Unaware_StateExpanded": {
+        "node_count": 218,
+        "distance_m": 10190.05,
+        "distance_km": 10.19,
+        "impedance_cost": 12737.61,
+        "turns": {
+          "total_nodes": 218,
+          "sharp_turns": 39,
+          "moderate_turns": 13,
+          "straight_or_gentle": 164,
+          "total_turns": 52,
+          "turn_penalty_cost": 1079.0
+        },
+        "road_classes": {
+          "total_length_m": 10190.05,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 584.77,
+            "secondary": 525.74,
+            "tertiary": 3037.66,
+            "residential": 5439.78,
+            "living_street": 82.83,
+            "service": 355.28,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 5.74,
+            "secondary": 5.16,
+            "tertiary": 29.81,
+            "residential": 53.38,
+            "living_street": 0.81,
+            "service": 3.49,
+            "unclassified": 1.61,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1110.5,
+            "collector_m": 3037.66,
+            "residential_m": 5686.6,
+            "service_m": 355.28,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 10.9,
+            "collector_pct": 29.81,
+            "residential_pct": 55.81,
+            "service_pct": 3.49,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1113.73,
+        "expanded_states": 58511
+      },
+      "A2_Turn_Unaware_NodeLevel": {
+        "node_count": 218,
+        "distance_m": 10190.05,
+        "distance_km": 10.19,
+        "impedance_cost": 12737.61,
+        "turns": {
+          "total_nodes": 218,
+          "sharp_turns": 39,
+          "moderate_turns": 13,
+          "straight_or_gentle": 164,
+          "total_turns": 52,
+          "turn_penalty_cost": 1079.0
+        },
+        "road_classes": {
+          "total_length_m": 10190.05,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 584.77,
+            "secondary": 525.74,
+            "tertiary": 3037.66,
+            "residential": 5439.78,
+            "living_street": 82.83,
+            "service": 355.28,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 5.74,
+            "secondary": 5.16,
+            "tertiary": 29.81,
+            "residential": 53.38,
+            "living_street": 0.81,
+            "service": 3.49,
+            "unclassified": 1.61,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1110.5,
+            "collector_m": 3037.66,
+            "residential_m": 5686.6,
+            "service_m": 355.28,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 10.9,
+            "collector_pct": 29.81,
+            "residential_pct": 55.81,
+            "service_pct": 3.49,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 312.67,
+        "expanded_states": 26677
+      }
+    },
+    "Experiment_B": {
+      "B0_Production_2W": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 3922.0
+      },
+      "B1_Neutral_Road_Class": {
+        "node_count": 173,
+        "distance_m": 8831.96,
+        "distance_km": 8.832,
+        "impedance_cost": 20529.47,
+        "turns": {
+          "total_nodes": 173,
+          "sharp_turns": 14,
+          "moderate_turns": 13,
+          "straight_or_gentle": 144,
+          "total_turns": 27,
+          "turn_penalty_cost": 454.0
+        },
+        "road_classes": {
+          "total_length_m": 8831.96,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 3475.78,
+            "secondary": 2703.26,
+            "tertiary": 1653.39,
+            "residential": 824.68,
+            "living_street": 0.0,
+            "service": 10.86,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 39.35,
+            "secondary": 30.61,
+            "tertiary": 18.72,
+            "residential": 9.34,
+            "living_street": 0.0,
+            "service": 0.12,
+            "unclassified": 1.86,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 6179.03,
+            "collector_m": 1653.39,
+            "residential_m": 988.68,
+            "service_m": 10.86,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 69.96,
+            "collector_pct": 18.72,
+            "residential_pct": 11.19,
+            "service_pct": 0.12,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 19.63,
+          "bridge_pct": 0.22,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 19.63,
+          "arterial_bridge_pct": 0.22
+        },
+        "roundabout": {
+          "roundabout_length_m": 267.12,
+          "roundabout_pct": 3.02,
+          "roundabout_edge_count": 8
+        },
+        "runtime_ms": 495.68
+      },
+      "B2_Physical_Distance_Ref": {
+        "node_count": 171,
+        "distance_m": 8800.49,
+        "distance_km": 8.8,
+        "impedance_cost": 20220.97,
+        "turns": {
+          "total_nodes": 171,
+          "sharp_turns": 20,
+          "moderate_turns": 11,
+          "straight_or_gentle": 138,
+          "total_turns": 31,
+          "turn_penalty_cost": 588.0
+        },
+        "road_classes": {
+          "total_length_m": 8800.49,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 3475.78,
+            "secondary": 2402.36,
+            "tertiary": 1594.32,
+            "residential": 1153.17,
+            "living_street": 0.0,
+            "service": 10.86,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 39.5,
+            "secondary": 27.3,
+            "tertiary": 18.12,
+            "residential": 13.1,
+            "living_street": 0.0,
+            "service": 0.12,
+            "unclassified": 1.86,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 5878.14,
+            "collector_m": 1594.32,
+            "residential_m": 1317.17,
+            "service_m": 10.86,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 66.79,
+            "collector_pct": 18.12,
+            "residential_pct": 14.97,
+            "service_pct": 0.12,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 19.63,
+          "bridge_pct": 0.22,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 19.63,
+          "arterial_bridge_pct": 0.22
+        },
+        "roundabout": {
+          "roundabout_length_m": 267.12,
+          "roundabout_pct": 3.04,
+          "roundabout_edge_count": 8
+        },
+        "runtime_ms": 50.95
+      }
+    },
+    "Experiment_C": {
+      "C0_Zero_Turn_Penalties": {
+        "node_count": 218,
+        "distance_m": 10190.05,
+        "distance_km": 10.19,
+        "impedance_cost": 12737.61,
+        "turns": {
+          "total_nodes": 218,
+          "sharp_turns": 39,
+          "moderate_turns": 13,
+          "straight_or_gentle": 164,
+          "total_turns": 52,
+          "turn_penalty_cost": 1079.0
+        },
+        "road_classes": {
+          "total_length_m": 10190.05,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 584.77,
+            "secondary": 525.74,
+            "tertiary": 3037.66,
+            "residential": 5439.78,
+            "living_street": 82.83,
+            "service": 355.28,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 5.74,
+            "secondary": 5.16,
+            "tertiary": 29.81,
+            "residential": 53.38,
+            "living_street": 0.81,
+            "service": 3.49,
+            "unclassified": 1.61,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1110.5,
+            "collector_m": 3037.66,
+            "residential_m": 5686.6,
+            "service_m": 355.28,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 10.9,
+            "collector_pct": 29.81,
+            "residential_pct": 55.81,
+            "service_pct": 3.49,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1097.3,
+        "expanded_states": 58511
+      },
+      "C1_Low_Turn_Penalties": {
+        "node_count": 219,
+        "distance_m": 10214.18,
+        "distance_km": 10.214,
+        "impedance_cost": 12662.45,
+        "turns": {
+          "total_nodes": 219,
+          "sharp_turns": 35,
+          "moderate_turns": 13,
+          "straight_or_gentle": 169,
+          "total_turns": 48,
+          "turn_penalty_cost": 979.0
+        },
+        "road_classes": {
+          "total_length_m": 10214.18,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 584.77,
+            "secondary": 525.74,
+            "tertiary": 3088.09,
+            "residential": 5372.52,
+            "living_street": 82.83,
+            "service": 396.24,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 5.73,
+            "secondary": 5.15,
+            "tertiary": 30.23,
+            "residential": 52.6,
+            "living_street": 0.81,
+            "service": 3.88,
+            "unclassified": 1.61,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1110.5,
+            "collector_m": 3088.09,
+            "residential_m": 5619.35,
+            "service_m": 396.24,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 10.87,
+            "collector_pct": 30.23,
+            "residential_pct": 55.02,
+            "service_pct": 3.88,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1132.82,
+        "expanded_states": 61651
+      },
+      "C2_Baseline_Turn_Penalties": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1281.79,
+        "expanded_states": 64076
+      },
+      "C3_High_Turn_Penalties": {
+        "node_count": 211,
+        "distance_m": 10181.66,
+        "distance_km": 10.182,
+        "impedance_cost": 12660.46,
+        "turns": {
+          "total_nodes": 211,
+          "sharp_turns": 30,
+          "moderate_turns": 14,
+          "straight_or_gentle": 165,
+          "total_turns": 44,
+          "turn_penalty_cost": 862.0
+        },
+        "road_classes": {
+          "total_length_m": 10181.66,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 2925.35,
+            "residential": 5626.15,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.38,
+            "secondary": 5.12,
+            "tertiary": 28.73,
+            "residential": 55.26,
+            "living_street": 0.81,
+            "service": 2.08,
+            "unclassified": 1.61,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 2925.35,
+            "residential_m": 5872.98,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.5,
+            "collector_pct": 28.73,
+            "residential_pct": 57.68,
+            "service_pct": 2.08,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1424.15,
+        "expanded_states": 67627
+      }
+    },
+    "Experiment_D": {
+      "D1_Bridge_Off_Roundabout_Off": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1314.2
+      },
+      "D2_Bridge_On_Roundabout_Off": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1352.48
+      },
+      "D3_Bridge_Off_Roundabout_On": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1338.33
+      },
+      "D4_Bridge_On_Roundabout_On": {
+        "node_count": 213,
+        "distance_m": 10065.07,
+        "distance_km": 10.065,
+        "impedance_cost": 12652.51,
+        "turns": {
+          "total_nodes": 213,
+          "sharp_turns": 33,
+          "moderate_turns": 13,
+          "straight_or_gentle": 165,
+          "total_turns": 46,
+          "turn_penalty_cost": 929.0
+        },
+        "road_classes": {
+          "total_length_m": 10065.07,
+          "breakdown_m": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 649.44,
+            "secondary": 521.64,
+            "tertiary": 3147.42,
+            "residential": 5287.49,
+            "living_street": 82.83,
+            "service": 212.25,
+            "unclassified": 164.0,
+            "other": 0.0
+          },
+          "breakdown_pct": {
+            "motorway": 0.0,
+            "trunk": 0.0,
+            "primary": 6.45,
+            "secondary": 5.18,
+            "tertiary": 31.27,
+            "residential": 52.53,
+            "living_street": 0.82,
+            "service": 2.11,
+            "unclassified": 1.63,
+            "other": 0.0
+          },
+          "macro_m": {
+            "arterial_m": 1171.08,
+            "collector_m": 3147.42,
+            "residential_m": 5534.32,
+            "service_m": 212.25,
+            "other_m": 0.0
+          },
+          "macro_pct": {
+            "arterial_pct": 11.64,
+            "collector_pct": 31.27,
+            "residential_pct": 54.99,
+            "service_pct": 2.11,
+            "other_pct": 0.0
+          }
+        },
+        "bridge": {
+          "bridge_length_m": 44.73,
+          "bridge_pct": 0.44,
+          "bridge_edge_count": 1,
+          "arterial_bridge_length_m": 0.0,
+          "arterial_bridge_pct": 0.0
+        },
+        "roundabout": {
+          "roundabout_length_m": 0.0,
+          "roundabout_pct": 0.0,
+          "roundabout_edge_count": 0
+        },
+        "runtime_ms": 1172.77
+      }
+    },
+    "Experiment_E": {
+      "E1_Perpendicular_Offset": {
+        "runtime_ms": 17904.4,
+        "surviving_count": 3,
+        "generated_count": 12,
+        "pairwise_diversity": 0.6641,
+        "routes_count": 4,
+        "detour_ratios": [
+          1.0,
+          1.0244,
+          1.0595,
+          1.1134
+        ],
+        "overlap_ratios": [
+          1.0,
+          0.193,
+          0.5135,
+          0.4886
+        ]
+      },
+      "E2_Raw_Yen_KSP": {
+        "runtime_ms": 254382.48,
+        "paths_found": 4,
+        "candidates_generated": 425,
+        "pairwise_diversity": 0.0764,
+        "detour_ratios": [
+          1.0,
+          1.0055,
+          0.9997,
+          1.0052
+        ],
+        "overlap_ratios": [
+          1.0,
+          0.9555,
+          0.982,
+          0.9376
+        ]
+      },
+      "E3_Filtered_Yen_KSP": {
+        "runtime_ms": 247770.93,
+        "paths_found": 4,
+        "candidates_generated": 453,
+        "rejected_overlap": 143,
+        "pairwise_diversity": 0.263,
+        "detour_ratios": [
+          1.0,
+          1.1176,
+          1.1179,
+          1.1195
+        ],
+        "overlap_ratios": [
+          1.0,
+          0.6791,
+          0.6789,
+          0.6779
+        ]
+      }
+    }
+  }
+}

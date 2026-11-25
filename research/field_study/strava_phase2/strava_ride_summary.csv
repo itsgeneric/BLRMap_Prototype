@@ -1,0 +1,6 @@
+ride_id,label,direction,n_points,median_sample_interval_s,n_gaps_gt5s,max_gap_s,distance_km,elapsed_min,stopped_min,moving_min,avg_speed_elapsed_kmh,avg_speed_moving_kmh,median_sampled_speed_kmh,stop_events,gap_while_moving_s
+D1_AM,Day 1 AM,Point 1 -> Point 2,1809,1.0,2,48.0,11.84,31.1,2.05,29.05,22.8,24.4,24.1,23,0.0
+D1_PM,Day 1 PM,Point 2 -> Point 1,1874,1.0,7,26.0,12.201,33.18,3.47,29.72,22.1,24.6,23.1,23,14.0
+D2_AM,Day 2 AM,Point 1 -> Point 2,2005,1.0,5,26.0,12.191,34.78,4.93,29.85,21.0,24.4,20.7,26,26.0
+D3_AM,Day 3 AM,Point 1 -> Point 2,1697,1.0,0,4.0,11.686,28.37,1.35,27.02,24.7,25.9,25.0,13,0.0
+D3_PM,Day 3 PM,Point 2 -> Point 1,1932,1.0,5,42.0,12.287,33.97,6.13,27.83,21.7,26.4,23.4,21,0.0

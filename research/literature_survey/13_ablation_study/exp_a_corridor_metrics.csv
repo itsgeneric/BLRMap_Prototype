@@ -1,0 +1,76 @@
+corridor_id,corridor_name,dist_cat,config,runtime_ms,expanded_states,distance_km,impedance_cost,sharp_turns,moderate_turns,total_turns
+OD_01,BNMIT to MG Road,Long (10.1 km),A0_Turn_Aware,972.96,64076,10.065,12652.51,33,13,46
+OD_01,BNMIT to MG Road,Long (10.1 km),A1_Turn_Unaware_StateExpanded,889.73,58511,10.19,12737.61,39,13,52
+OD_01,BNMIT to MG Road,Long (10.1 km),A2_Turn_Unaware_NodeLevel,270.87,26677,10.19,12737.61,39,13,52
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),A0_Turn_Aware,116.47,8677,6.38,6460.97,18,12,30
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),A1_Turn_Unaware_StateExpanded,95.26,7283,6.354,6628.11,32,9,41
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),A2_Turn_Unaware_NodeLevel,22.67,3334,6.354,6628.11,32,9,41
+OD_03,Electronic City to Silk Board,Long (9.5 km),A0_Turn_Aware,228.76,17612,9.505,11209.25,3,6,9
+OD_03,Electronic City to Silk Board,Long (9.5 km),A1_Turn_Unaware_StateExpanded,245.2,19192,9.535,11248.45,5,9,14
+OD_03,Electronic City to Silk Board,Long (9.5 km),A2_Turn_Unaware_NodeLevel,63.88,9242,9.535,11248.45,5,9,14
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),A0_Turn_Aware,151.22,12396,8.814,11493.93,24,9,33
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),A1_Turn_Unaware_StateExpanded,141.69,11366,8.786,11535.7,27,8,35
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),A2_Turn_Unaware_NodeLevel,37.28,5680,8.786,11535.7,27,8,35
+OD_05,Hebbal to Majestic,Long (9.9 km),A0_Turn_Aware,507.23,37764,9.944,11536.13,24,14,38
+OD_05,Hebbal to Majestic,Long (9.9 km),A1_Turn_Unaware_StateExpanded,469.22,35055,9.995,11757.59,37,12,49
+OD_05,Hebbal to Majestic,Long (9.9 km),A2_Turn_Unaware_NodeLevel,119.41,16157,9.995,11757.59,37,12,49
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),A0_Turn_Aware,996.95,71735,12.447,14153.24,38,12,50
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),A1_Turn_Unaware_StateExpanded,822.83,59703,12.722,14597.35,62,16,78
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),A2_Turn_Unaware_NodeLevel,211.32,27335,12.722,14597.35,62,16,78
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),A0_Turn_Aware,60.49,4707,5.807,6505.39,16,1,17
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),A1_Turn_Unaware_StateExpanded,52.45,4078,5.799,6571.01,20,1,21
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),A2_Turn_Unaware_NodeLevel,12.37,1899,5.799,6571.01,20,1,21
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),A0_Turn_Aware,1829.18,129619,14.554,18507.46,35,22,57
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),A1_Turn_Unaware_StateExpanded,1692.3,120926,15.818,19488.03,90,21,111
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),A2_Turn_Unaware_NodeLevel,423.67,54264,15.818,19488.03,90,21,111
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),A0_Turn_Aware,341.13,25311,8.29,9199.77,25,7,32
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),A1_Turn_Unaware_StateExpanded,296.18,21892,8.356,9491.42,41,6,47
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),A2_Turn_Unaware_NodeLevel,72.62,9750,8.356,9491.42,41,6,47
+OD_10,BTM Layout to Domlur,Medium (7.8 km),A0_Turn_Aware,207.5,15766,7.784,9337.4,33,13,46
+OD_10,BTM Layout to Domlur,Medium (7.8 km),A1_Turn_Unaware_StateExpanded,154.69,12136,7.736,9448.08,40,14,54
+OD_10,BTM Layout to Domlur,Medium (7.8 km),A2_Turn_Unaware_NodeLevel,40.88,5747,7.736,9448.08,40,14,54
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),A0_Turn_Aware,1353.65,97726,11.425,16604.66,49,16,65
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),A1_Turn_Unaware_StateExpanded,1194.88,86700,11.424,16781.92,57,16,73
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),A2_Turn_Unaware_NodeLevel,300.04,39589,11.424,16781.92,57,16,73
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),A0_Turn_Aware,39.38,2941,2.735,2979.43,12,2,14
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),A1_Turn_Unaware_StateExpanded,27.38,2036,2.673,3187.77,24,4,28
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),A2_Turn_Unaware_NodeLevel,6.9,993,2.673,3187.77,24,4,28
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),A0_Turn_Aware,379.72,28438,7.851,9996.39,41,2,43
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),A1_Turn_Unaware_StateExpanded,284.71,21336,7.94,10300.99,57,2,59
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),A2_Turn_Unaware_NodeLevel,72.59,9940,7.94,10300.99,57,2,59
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),A0_Turn_Aware,665.07,47871,7.186,9005.61,18,8,26
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),A1_Turn_Unaware_StateExpanded,615.93,44901,7.191,9225.93,31,9,40
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),A2_Turn_Unaware_NodeLevel,151.89,19732,7.191,9225.93,31,9,40
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),A0_Turn_Aware,68.15,5263,8.67,9315.45,8,2,10
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),A1_Turn_Unaware_StateExpanded,69.4,5305,8.724,9390.83,12,3,15
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),A2_Turn_Unaware_NodeLevel,17.18,2589,8.724,9390.83,12,3,15
+OD_16,Bellandur to Whitefield,Long (15.0 km),A0_Turn_Aware,374.8,28959,15.036,16052.26,13,11,24
+OD_16,Bellandur to Whitefield,Long (15.0 km),A1_Turn_Unaware_StateExpanded,363.02,28137,15.35,16126.34,21,11,32
+OD_16,Bellandur to Whitefield,Long (15.0 km),A2_Turn_Unaware_NodeLevel,101.43,13735,15.35,16126.34,21,11,32
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),A0_Turn_Aware,53.27,4007,3.422,3414.15,10,1,11
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),A1_Turn_Unaware_StateExpanded,47.13,3674,3.437,3509.16,15,1,16
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),A2_Turn_Unaware_NodeLevel,11.93,1726,3.437,3509.16,15,1,16
+OD_18,Indiranagar to MG Road,Medium (5.9 km),A0_Turn_Aware,174.93,13192,5.876,8512.03,22,6,28
+OD_18,Indiranagar to MG Road,Medium (5.9 km),A1_Turn_Unaware_StateExpanded,167.93,12948,5.851,8531.01,23,6,29
+OD_18,Indiranagar to MG Road,Medium (5.9 km),A2_Turn_Unaware_NodeLevel,42.19,6124,5.851,8531.01,23,6,29
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),A0_Turn_Aware,21.1,1706,2.013,2877.03,7,1,8
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),A1_Turn_Unaware_StateExpanded,22.19,1805,2.013,2877.03,7,1,8
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),A2_Turn_Unaware_NodeLevel,5.5,862,2.013,2877.03,7,1,8
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),A0_Turn_Aware,636.38,47672,12.327,14045.44,41,18,59
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),A1_Turn_Unaware_StateExpanded,557.24,41666,12.423,14329.7,58,17,75
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),A2_Turn_Unaware_NodeLevel,139.28,18942,12.423,14329.7,58,17,75
+OD_21,RT Nagar to Cantonment,Short (5.0 km),A0_Turn_Aware,128.7,9802,4.984,5798.38,21,7,28
+OD_21,RT Nagar to Cantonment,Short (5.0 km),A1_Turn_Unaware_StateExpanded,104.78,7938,4.991,5936.83,31,5,36
+OD_21,RT Nagar to Cantonment,Short (5.0 km),A2_Turn_Unaware_NodeLevel,24.28,3575,4.991,5936.83,31,5,36
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),A0_Turn_Aware,118.29,9157,7.727,8248.15,17,10,27
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),A1_Turn_Unaware_StateExpanded,108.95,8415,7.7,8533.54,31,12,43
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),A2_Turn_Unaware_NodeLevel,29.56,4015,7.7,8533.54,31,12,43
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),A0_Turn_Aware,1.01,119,1.353,2994.96,5,0,5
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),A1_Turn_Unaware_StateExpanded,0.98,112,1.353,2994.96,5,0,5
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),A2_Turn_Unaware_NodeLevel,0.36,75,1.353,2994.96,5,0,5
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),A0_Turn_Aware,34.78,2696,2.398,2674.31,9,2,11
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),A1_Turn_Unaware_StateExpanded,27.88,2214,2.321,2820.69,20,1,21
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),A2_Turn_Unaware_NodeLevel,7.5,1089,2.321,2820.69,20,1,21
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),A0_Turn_Aware,113.4,8881,4.594,4934.12,14,6,20
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),A1_Turn_Unaware_StateExpanded,88.89,6851,4.398,5096.79,28,4,32
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),A2_Turn_Unaware_NodeLevel,20.73,3109,4.398,5096.79,28,4,32

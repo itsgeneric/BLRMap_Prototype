@@ -1,0 +1,76 @@
+corridor_id,corridor_name,dist_cat,config,runtime_ms,distance_km,impedance_cost,arterial_pct,collector_pct,residential_pct,service_pct
+OD_01,BNMIT to MG Road,Long (10.1 km),B0_Production_2W,1139.27,10.065,12652.51,11.64,31.27,54.99,2.11
+OD_01,BNMIT to MG Road,Long (10.1 km),B1_Neutral_Road_Class,461.26,8.832,20529.47,69.96,18.72,11.19,0.12
+OD_01,BNMIT to MG Road,Long (10.1 km),B2_Physical_Distance_Ref,40.53,8.8,20220.97,66.79,18.12,14.97,0.12
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),B0_Production_2W,113.46,6.38,6460.97,1.05,27.6,33.55,37.8
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),B1_Neutral_Road_Class,81.0,5.435,15790.83,93.66,1.57,4.77,0.0
+OD_02,Koramangala to Indiranagar,Medium (6.4 km),B2_Physical_Distance_Ref,6.4,5.435,15790.83,93.66,1.57,4.77,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),B0_Production_2W,226.06,9.505,11209.25,4.59,78.98,16.43,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),B1_Neutral_Road_Class,113.71,9.505,11209.25,4.59,78.98,16.43,0.0
+OD_03,Electronic City to Silk Board,Long (9.5 km),B2_Physical_Distance_Ref,3.21,9.505,11209.25,4.59,78.98,16.43,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),B0_Production_2W,152.52,8.814,11493.93,18.74,36.95,44.31,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),B1_Neutral_Road_Class,38.11,6.403,19661.88,100.0,0.0,0.0,0.0
+OD_04,Whitefield to Marathahalli,Medium (8.8 km),B2_Physical_Distance_Ref,2.46,6.403,19661.88,100.0,0.0,0.0,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),B0_Production_2W,512.34,9.944,11536.13,10.02,26.06,44.21,19.71
+OD_05,Hebbal to Majestic,Long (9.9 km),B1_Neutral_Road_Class,276.37,8.855,17494.43,50.66,31.67,17.68,0.0
+OD_05,Hebbal to Majestic,Long (9.9 km),B2_Physical_Distance_Ref,21.73,8.762,17566.46,35.64,33.83,30.52,0.0
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),B0_Production_2W,991.59,12.447,14153.24,6.31,45.95,46.62,1.12
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),B1_Neutral_Road_Class,506.77,10.543,23686.01,72.78,24.26,2.95,0.0
+OD_06,Jayanagar 4th Block to Malleshwaram,Long (12.4 km),B2_Physical_Distance_Ref,39.98,10.51,23450.62,73.3,16.59,10.11,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),B0_Production_2W,61.18,5.807,6505.39,6.45,46.65,46.9,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),B1_Neutral_Road_Class,42.65,5.498,12863.78,65.35,34.65,0.0,0.0
+OD_07,HSR Layout to Bellandur,Medium (5.8 km),B2_Physical_Distance_Ref,4.42,5.467,14748.64,65.71,27.47,6.82,0.0
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),B0_Production_2W,1798.49,14.554,18507.46,8.6,48.88,41.87,0.65
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),B1_Neutral_Road_Class,1024.76,14.852,40596.68,97.0,0.0,2.37,0.63
+OD_08,Banashankari to Yeshwanthpur,Long (14.6 km),B2_Physical_Distance_Ref,142.83,14.373,30774.74,51.51,17.79,30.04,0.66
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),B0_Production_2W,345.21,8.29,9199.77,6.97,44.34,48.69,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),B1_Neutral_Road_Class,276.12,7.777,16938.41,67.38,22.84,9.78,0.0
+OD_09,Rajajinagar to Commercial Street,Medium (8.3 km),B2_Physical_Distance_Ref,23.99,7.777,17006.43,67.38,24.59,8.03,0.0
+OD_10,BTM Layout to Domlur,Medium (7.8 km),B0_Production_2W,207.71,7.784,9337.4,8.04,16.26,44.72,30.98
+OD_10,BTM Layout to Domlur,Medium (7.8 km),B1_Neutral_Road_Class,216.48,7.152,14462.29,50.67,9.73,5.88,33.72
+OD_10,BTM Layout to Domlur,Medium (7.8 km),B2_Physical_Distance_Ref,16.85,7.135,14505.41,50.79,5.59,9.96,33.67
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),B0_Production_2W,1339.41,11.425,16604.66,24.77,9.44,65.79,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),B1_Neutral_Road_Class,335.27,9.217,23234.4,86.35,9.94,3.71,0.0
+OD_11,Basavanagudi to Ulsoor,Long (11.4 km),B2_Physical_Distance_Ref,29.68,9.211,25361.84,86.34,9.95,3.71,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),B0_Production_2W,37.86,2.735,2979.43,0.0,60.62,39.38,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),B1_Neutral_Road_Class,41.22,2.708,3031.84,0.0,94.44,5.56,0.0
+OD_12,Frazer Town to Shivajinagar,Short (2.7 km),B2_Physical_Distance_Ref,3.6,2.642,3043.64,0.0,54.7,45.3,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),B0_Production_2W,381.63,7.851,9996.39,10.87,12.33,76.8,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),B1_Neutral_Road_Class,213.14,6.764,18406.27,77.71,0.14,22.15,0.0
+OD_13,JP Nagar 6th Phase to Koramangala,Medium (7.9 km),B2_Physical_Distance_Ref,20.99,6.734,15854.89,59.81,8.87,31.32,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),B0_Production_2W,675.18,7.186,9005.61,9.54,42.83,42.05,5.59
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),B1_Neutral_Road_Class,290.03,6.122,14868.6,70.12,16.35,13.53,0.0
+OD_14,Vijayanagar to Majestic,Medium (7.2 km),B2_Physical_Distance_Ref,27.8,6.017,12925.5,60.59,25.73,13.68,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),B0_Production_2W,66.73,8.67,9315.45,82.05,13.86,4.09,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),B1_Neutral_Road_Class,47.91,8.658,9917.21,82.03,13.87,4.1,0.0
+OD_15,Yelahanka to Hebbal,Medium (8.7 km),B2_Physical_Distance_Ref,11.01,8.658,9917.21,82.03,13.87,4.1,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),B0_Production_2W,364.5,15.036,16052.26,0.87,89.1,8.85,1.17
+OD_16,Bellandur to Whitefield,Long (15.0 km),B1_Neutral_Road_Class,122.95,10.764,23952.61,59.1,40.9,0.0,0.0
+OD_16,Bellandur to Whitefield,Long (15.0 km),B2_Physical_Distance_Ref,11.25,10.764,23952.61,59.1,40.9,0.0,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),B0_Production_2W,51.78,3.422,3414.15,10.85,24.58,64.57,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),B1_Neutral_Road_Class,65.62,3.351,4290.6,32.36,27.41,40.23,0.0
+OD_17,Malleshwaram to Rajajinagar,Short (3.4 km),B2_Physical_Distance_Ref,5.3,3.306,3800.71,19.36,27.78,52.86,0.0
+OD_18,Indiranagar to MG Road,Medium (5.9 km),B0_Production_2W,165.07,5.876,8512.03,23.23,21.51,53.48,1.77
+OD_18,Indiranagar to MG Road,Medium (5.9 km),B1_Neutral_Road_Class,52.46,4.527,9470.64,51.14,8.52,40.1,0.24
+OD_18,Indiranagar to MG Road,Medium (5.9 km),B2_Physical_Distance_Ref,2.95,4.527,9470.64,51.14,8.52,40.1,0.24
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),B0_Production_2W,21.17,2.013,2877.03,21.42,70.3,0.0,8.28
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),B1_Neutral_Road_Class,7.61,1.708,7084.11,90.24,0.0,0.0,9.76
+OD_19,Silk Board to BTM 2nd Stage,Short (2.0 km),B2_Physical_Distance_Ref,0.61,1.708,7084.11,90.24,0.0,0.0,9.76
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),B0_Production_2W,644.06,12.327,14045.44,4.88,38.92,51.86,4.34
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),B1_Neutral_Road_Class,124.9,9.24,33025.86,94.26,0.0,3.83,1.91
+OD_20,Kengeri to Satellite Bus Station,Long (12.3 km),B2_Physical_Distance_Ref,7.57,9.24,33025.86,94.26,0.0,3.83,1.91
+OD_21,RT Nagar to Cantonment,Short (5.0 km),B0_Production_2W,132.77,4.984,5798.38,9.44,17.74,67.76,5.06
+OD_21,RT Nagar to Cantonment,Short (5.0 km),B1_Neutral_Road_Class,71.61,4.388,8719.76,49.92,34.69,9.48,5.92
+OD_21,RT Nagar to Cantonment,Short (5.0 km),B2_Physical_Distance_Ref,6.12,4.377,8456.22,44.64,27.7,21.72,5.93
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),B0_Production_2W,118.58,7.727,8248.15,1.83,48.73,48.24,1.2
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),B1_Neutral_Road_Class,50.09,5.565,16536.47,85.83,0.0,14.17,0.0
+OD_22,Marathahalli to HAL Airport Road,Medium (7.7 km),B2_Physical_Distance_Ref,4.15,5.565,16536.47,85.83,0.0,14.17,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),B0_Production_2W,1.01,1.353,2994.96,55.76,11.35,32.89,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),B1_Neutral_Road_Class,1.2,1.353,2994.96,55.76,11.35,32.89,0.0
+OD_23,Richmond Town to Brigade Road,Short (1.4 km),B2_Physical_Distance_Ref,0.23,1.353,2994.96,55.76,11.35,32.89,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),B0_Production_2W,35.56,2.398,2674.31,2.34,55.31,42.36,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),B1_Neutral_Road_Class,28.6,2.121,4524.39,53.46,2.67,43.87,0.0
+OD_24,Banaswadi to Kammanahalli,Short (2.4 km),B2_Physical_Distance_Ref,1.92,2.121,4524.39,53.46,2.67,43.87,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),B0_Production_2W,114.87,4.594,4934.12,5.68,8.69,85.63,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),B1_Neutral_Road_Class,80.94,4.152,7589.16,65.98,0.89,33.13,0.0
+OD_25,Padmanabhanagar to Gandhi Bazaar,Short (4.6 km),B2_Physical_Distance_Ref,5.63,4.044,5849.66,31.86,21.07,47.06,0.0
