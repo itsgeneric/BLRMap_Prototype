@@ -73,3 +73,6 @@ edge_blacklist.json
 bengaluru_graph.pkl
 out/
 *.apk
+
+# Roads blocked by hand
+edge_blacklist_manual.json

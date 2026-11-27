@@ -1,122 +1,93 @@
 'use client';
 
 import React from 'react';
-import { Crosshair, X, Gauge } from 'lucide-react';
-import { formatDistance, formatDuration, formatSpeed, calculateETA } from '@/lib/geo';
+import { Crosshair, X } from 'lucide-react';
+import { formatDistance } from '@/lib/geo';
+import { formatClock, formatRemaining } from '@/lib/eta';
 
 interface NavigationFooterProps {
-  currentSpeedMps?: number | null;
-  remainingMeters?: number;
+  /** remaining time in seconds (counts down every second) */
+  remainingSeconds: number;
+  /** estimated arrival, epoch milliseconds (0 = not known yet) */
+  arrivalMs: number;
+  remainingMeters: number;
+  /** smoothed speed, whole km/h */
+  speedKmh: number;
   isFollowingCamera?: boolean;
   onRecenter?: () => void;
   onEndNavigation?: () => void;
 }
 
+/** Bottom bar while navigating: arrival time, time left, distance left and a speedometer, the way Google Maps lays them out. */
 export const NavigationFooter: React.FC<NavigationFooterProps> = ({
-  currentSpeedMps,
-  remainingMeters = 0,
+  remainingSeconds,
+  arrivalMs,
+  remainingMeters,
+  speedKmh,
   isFollowingCamera = true,
   onRecenter,
   onEndNavigation,
 }) => {
-  const displayDist = formatDistance(remainingMeters);
-  const etaTime = calculateETA(remainingMeters, currentSpeedMps ?? null);
+  const hasEta = arrivalMs > 0;
 
-  // Steady Bengaluru urban 2-wheeler baseline: 26 km/h.
-  // Only adapt if rider is steadily cruising at sustained high speed (> 22 km/h / 6.0 m/s).
-  // This completely eliminates ETA flip-flopping when stopped at traffic lights or turning corners.
-  let effectiveSpeedKmh = 26.0;
-  if (currentSpeedMps && currentSpeedMps > 6.0) {
-    effectiveSpeedKmh = Math.min(45.0, 0.7 * (currentSpeedMps * 3.6) + 0.3 * 26.0);
-  }
-  const durationRemaining = formatDuration(
-    Math.max(30, (remainingMeters / 1000 / effectiveSpeedKmh) * 3600)
-  );
-  const speedText = formatSpeed(currentSpeedMps ?? null);
+  const recenter = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (typeof window !== 'undefined') {
+      if ('vibrate' in navigator) navigator.vibrate(12);
+      window.dispatchEvent(new CustomEvent('recenter-map'));
+    }
+    onRecenter?.();
+  };
 
   return (
-    <div className="fixed bottom-2.5 sm:bottom-4 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[1000] font-sans pb-[env(safe-area-inset-bottom)] animate-in fade-in slide-in-from-bottom-2 duration-200">
-      {/* Floating Google Maps Re-center Button (pops up when user drags / explores map) */}
+    <div className="fixed bottom-2.5 sm:bottom-4 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-[1000] font-sans pb-[env(safe-area-inset-bottom)]">
+      {/* Re-center pill: appears after the rider drags the map away from their position */}
       {!isFollowingCamera && (
-        <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-[1002] animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute -top-14 left-1/2 -translate-x-1/2 z-[1002]">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              if (typeof window !== 'undefined') {
-                if ('vibrate' in navigator) navigator.vibrate(12);
-                window.dispatchEvent(new CustomEvent('recenter-map'));
-              }
-              if (onRecenter) onRecenter();
-            }}
-            className="bg-white hover:bg-slate-50 active:scale-95 text-[#1a73e8] px-5 py-2.5 rounded-full shadow-2xl shadow-black/30 border border-slate-200 flex items-center gap-2 font-bold text-sm tracking-wide transition cursor-pointer"
+            onClick={recenter}
+            className="bg-white active:bg-slate-100 text-[#1a73e8] px-5 min-h-[44px] rounded-full shadow-2xl shadow-black/30 border border-slate-200 flex items-center gap-2 font-bold text-sm"
           >
-            <Crosshair className="w-4 h-4 text-[#1a73e8]" />
+            <Crosshair className="w-4 h-4" />
             <span>Re-center</span>
           </button>
         </div>
       )}
 
-      {/* Google Maps Authentic Navigation Footer Card */}
-      <div className="bg-white rounded-3xl p-3.5 sm:p-4 text-slate-900 flex items-center justify-between gap-3 shadow-2xl shadow-black/25 border border-slate-200">
-        {/* ETA & Distance Info */}
+      <div className="bg-white rounded-3xl px-4 py-3 text-slate-900 flex items-center gap-3 shadow-2xl shadow-black/25 border border-slate-200">
+        {/* Speedometer */}
+        <div className="shrink-0 w-[60px] h-[60px] rounded-full border-[3px] border-slate-200 flex flex-col items-center justify-center bg-slate-50" aria-label="Speed">
+          <span className="text-xl font-black leading-none tabular-nums">{speedKmh}</span>
+          <span className="text-[9px] font-bold text-slate-500 leading-none mt-0.5">km/h</span>
+        </div>
+
+        {/* Time left, arrival and distance */}
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-2xl sm:text-3xl font-black font-mono text-[#188038] leading-none tracking-tight">
-              {durationRemaining}
+            <span className="text-2xl font-black text-[#188038] leading-none tabular-nums">
+              {hasEta ? formatRemaining(remainingSeconds) : '–'}
             </span>
-            <span className="text-xs sm:text-sm font-bold text-slate-500 font-mono">
-              ({etaTime})
-            </span>
-            {/* Speed Badge */}
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[11px] font-bold flex items-center gap-1 shrink-0">
-              <Gauge className="w-3 h-3 text-[#1a73e8]" />
-              <span>{speedText}</span>
-            </span>
+            {hasEta && (
+              <span className="text-sm font-bold text-slate-500 tabular-nums">{formatClock(arrivalMs)}</span>
+            )}
           </div>
-          <div className="text-xs font-semibold text-slate-500 mt-1 flex items-center gap-1.5 truncate">
-            <span>{displayDist} remaining</span>
-            <span>•</span>
-            <span className="text-[#188038] font-bold">Bangalore GPS Active</span>
+          <div className="text-xs font-semibold text-slate-500 mt-1 tabular-nums">
+            {formatDistance(remainingMeters)} remaining
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Recenter Button inside Navigation HUD */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (typeof window !== 'undefined') {
-                if ('vibrate' in navigator) navigator.vibrate(10);
-                window.dispatchEvent(new CustomEvent('recenter-map'));
-              }
-              if (onRecenter) onRecenter();
-            }}
-            title="Recenter camera"
-            className={`flex items-center gap-1.5 p-2.5 rounded-full text-xs font-bold transition cursor-pointer shadow-sm active:scale-95 border ${
-              isFollowingCamera
-                ? 'bg-blue-50 border-blue-200 text-[#1a73e8]'
-                : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Crosshair className="w-4 h-4 text-[#1a73e8]" />
-            <span className="hidden sm:inline">Recenter</span>
-          </button>
-
-          {/* Google Maps Circular Red Close / End Navigation Button */}
-          <button
-            type="button"
-            onClick={onEndNavigation}
-            title="Exit Navigation"
-            aria-label="Exit Navigation"
-            className="w-10 h-10 sm:w-11 sm:h-11 bg-[#d93025] hover:bg-[#b3261e] active:scale-95 text-white rounded-full flex items-center justify-center transition cursor-pointer shadow-md shadow-red-500/25"
-          >
-            <X className="w-5 h-5 text-white stroke-[2.5]" />
-          </button>
-        </div>
+        {/* End trip */}
+        <button
+          type="button"
+          onClick={onEndNavigation}
+          title="End navigation"
+          aria-label="End navigation"
+          className="shrink-0 w-12 h-12 bg-[#d93025] active:bg-[#b3261e] text-white rounded-full flex items-center justify-center shadow-md shadow-red-500/25"
+        >
+          <X className="w-6 h-6 stroke-[2.5]" />
+        </button>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { RouteResponse, GPSPosition, TurnManeuver } from '@/lib/types';
-import {
-  haversineMeters,
-  findDistanceToPolyline,
-  calculateRemainingRouteDistance,
-  cleanManeuverText,
-} from '@/lib/geo';
+import { haversineMeters } from '@/lib/geo';
+import { GpsFilter, RouteMatcher, projectOnRoute } from '@/lib/mapMatching';
+import { mapManeuvers, upcoming, ManeuverAlong } from '@/lib/navProgress';
+import { VoicePlanner } from '@/lib/voicePlan';
+import { deriveManeuvers } from '@/lib/deriveManeuvers';
 import { voiceGuidance } from '@/lib/speech';
 
 export interface RerouteEventInfo {
@@ -16,14 +15,39 @@ export interface RerouteEventInfo {
   distanceOffRouteM: number;
 }
 
+/** idle -> following -> approaching (a turn is close) -> off_route -> rerouting -> arrived */
+export type NavState = 'idle' | 'following' | 'approaching' | 'off_route' | 'rerouting' | 'arrived';
+
+/** Everything the UI needs, produced once per GPS fix. */
+export interface NavProgress {
+  displayLat: number; // where to draw the rider marker (on the road while genuinely on the route)
+  displayLng: number;
+  routeLat: number; // the closest point on the route (the route line is split here)
+  routeLng: number;
+  segmentIndex: number;
+  alongM: number;
+  remainingM: number;
+  offRouteM: number; // measured from the UNSNAPPED filtered position
+  snapped: boolean;
+  maneuver: TurnManeuver | null; // the next turn ahead
+  nextManeuver: TurnManeuver | null; // the one after it
+  distanceToManeuverM: number; // along the route
+  currentRoadName: string | null;
+}
+
 interface UseNavigationEngineProps {
   routeData: RouteResponse | null;
   gpsPosition: GPSPosition | null;
   voiceEnabled: boolean;
-  isRerouting?: boolean; // passed from page.tsx — suppresses double-reroute while request is in flight
+  isRerouting?: boolean;
   onRerouteNeeded?: (info?: RerouteEventInfo) => void;
-  onArrival?: () => void;
+  onArrival?: (info: { travelledMeters: number }) => void;
 }
+
+const OFF_ROUTE_PERSIST_MS = 2000;
+const REROUTE_COOLDOWN_MS = 6000;
+const REROUTE_RETRY_MS = 15000; // still off route this long after asking: the request failed, ask again
+const APPROACHING_M = 200;
 
 export function useNavigationEngine({
   routeData,
@@ -34,175 +58,203 @@ export function useNavigationEngine({
   onArrival,
 }: UseNavigationEngineProps) {
   const [isNavigating, setIsNavigating] = useState(false);
-  const [currentManeuverIndex, setCurrentManeuverIndex] = useState(0);
-  const [nearestSegmentIndex, setNearestSegmentIndex] = useState(0);
-  const [distanceToManeuverMeters, setDistanceToManeuverMeters] = useState(0);
-  const [remainingMeters, setRemainingMeters] = useState(0);
+  const [progress, setProgress] = useState<NavProgress | null>(null);
   const [isOffRoute, setIsOffRoute] = useState(false);
   const [hasArrived, setHasArrived] = useState(false);
 
+  const filterRef = useRef(new GpsFilter());
+  const matcherRef = useRef<RouteMatcher | null>(null);
+  const maneuversRef = useRef<ManeuverAlong[]>([]);
+  const maneuverIdxRef = useRef(0);
+  const plannerRef = useRef(new VoicePlanner());
+  const routeIdRef = useRef(0);
   const offRouteSinceRef = useRef<number | null>(null);
-  const lastRerouteTimeRef = useRef<number>(0);
-  const navigationStartTimeRef = useRef<number>(0);
+  const lastRerouteRef = useRef(0);
+  const prevAlongRef = useRef<number | null>(null);
+  const travelledRef = useRef(0);
+  const arrivedRef = useRef(false);
+  const offRouteRef = useRef(false);
 
-  // Sync voice preference
+  // Latest callbacks/flags, read inside the per-fix effect without re-running it.
+  const live = useRef({ onRerouteNeeded, onArrival, isRerouting, voiceEnabled });
+  live.current = { onRerouteNeeded, onArrival, isRerouting, voiceEnabled };
+
   useEffect(() => {
     voiceGuidance.setEnabled(voiceEnabled);
   }, [voiceEnabled]);
 
-  // Reset state when route changes
+  // A new route (first route, or after a reroute): rebuild the matcher and place the maneuvers along it.
   useEffect(() => {
-    setCurrentManeuverIndex(0);
-    setNearestSegmentIndex(0);
+    const path = routeData?.path;
+    if (path && path.length >= 2) {
+      const matcher = new RouteMatcher(path);
+      matcherRef.current = matcher;
+      // Prefer the server's maneuvers (they know junctions and street names). If it sent none (an older backend), derive the
+      // turns from the route's shape so the banner and the voice still work.
+      const serverManeuvers = routeData?.maneuvers ?? [];
+      const maneuvers = serverManeuvers.length > 1 ? serverManeuvers : deriveManeuvers(path);
+      maneuversRef.current = mapManeuvers(maneuvers, (lat, lng) => projectOnRoute(matcher.route, lat, lng).alongM);
+    } else {
+      matcherRef.current = null;
+      maneuversRef.current = [];
+    }
+    routeIdRef.current += 1;
+    maneuverIdxRef.current = 0;
+    plannerRef.current.reset();
+    offRouteSinceRef.current = null;
+    prevAlongRef.current = null;
+    arrivedRef.current = false;
+    offRouteRef.current = false;
+    setProgress(null);
     setIsOffRoute(false);
     setHasArrived(false);
-    offRouteSinceRef.current = null;
-    voiceGuidance.resetMilestones();
   }, [routeData]);
 
-  // Navigation Logic Loop
+  // One pass per GPS fix: filter -> match -> off-route / arrival / next maneuver / voice.
   useEffect(() => {
-    if (!isNavigating || !routeData?.path || routeData.path.length < 2 || !gpsPosition) {
-      return;
+    const matcher = matcherRef.current;
+    const path = routeData?.path;
+    if (!isNavigating || !matcher || !path || path.length < 2 || !gpsPosition || arrivedRef.current) return;
+    const cb = live.current;
+
+    const speed = gpsPosition.speed ?? 0;
+    const f = filterRef.current.update({
+      lat: gpsPosition.lat,
+      lng: gpsPosition.lng,
+      accuracy: gpsPosition.accuracy,
+      speed,
+      timestamp: gpsPosition.timestamp,
+    });
+    const heading = speed > 1.5 ? gpsPosition.heading : null;
+    const m = matcher.match(f.lat, f.lng, heading, speed, f.accuracy);
+    const total = matcher.route.total;
+    const remaining = Math.max(0, total - m.alongM);
+
+    // distance actually travelled (for the trip summary), counted along the route so GPS jitter adds nothing
+    if (prevAlongRef.current !== null) {
+      const delta = m.alongM - prevAlongRef.current;
+      if (delta > 0 && delta < 300) travelledRef.current += delta;
     }
+    prevAlongRef.current = Math.max(prevAlongRef.current ?? 0, m.alongM);
 
-    const { lat, lng } = gpsPosition;
-    const polyline = routeData.path;
-    const maneuvers = routeData.maneuvers || [];
-
-    // 1. Check Arrival at destination
-    const destPoint = polyline[polyline.length - 1];
-    const distToDest = haversineMeters(lat, lng, destPoint[0], destPoint[1]);
-
-    if (distToDest < 35 && !hasArrived) {
+    // ── arrival
+    const dest = path[path.length - 1];
+    const distToDest = haversineMeters(f.lat, f.lng, dest[0], dest[1]);
+    if (distToDest < Math.max(30, f.accuracy) || (m.snapped && remaining < 20)) {
+      arrivedRef.current = true;
       setHasArrived(true);
       setIsNavigating(false);
-      if (onArrival) onArrival();
+      setIsOffRoute(false);
+      cb.onArrival?.({ travelledMeters: travelledRef.current });
       return;
     }
 
-    // 2. O(1) distance check to polyline
-    const { distanceMeters: distToRoute, nearestSegmentIndex: segIdx } = findDistanceToPolyline(
-      lat,
-      lng,
-      polyline,
-      nearestSegmentIndex
-    );
-    setNearestSegmentIndex(segIdx);
-
-    // 3. Calculate remaining route distance
-    const remDist = calculateRemainingRouteDistance(lat, lng, polyline, segIdx);
-    setRemainingMeters(remDist);
-
-    // 4. Off-Route Detection (Google Maps Grade)
-    // 38m threshold: GPS accuracy in Bangalore is ±8-15m. 38m means rider has clearly entered an alternative turn/road.
-    // 2000ms persistence: Requires 2 seconds continuously off-route to eliminate single GPS point bounce.
-    // 6000ms cooldown: Prevents API hammering while allowing swift re-evaluation.
+    // ── off-route: judged on the UNSNAPPED filtered position, with a threshold that grows with GPS inaccuracy
     const now = Date.now();
-    if (distToRoute > 38) {
-      if (!offRouteSinceRef.current) {
+    const threshold = Math.max(30, 2 * f.accuracy);
+    if (m.distanceM > threshold) {
+      if (offRouteSinceRef.current === null) {
         offRouteSinceRef.current = now;
-      } else if (now - offRouteSinceRef.current > 2000) {
-        // Don't fire if a reroute is already in flight or cooldown hasn't elapsed
-        if (!isOffRoute && !isRerouting && now - lastRerouteTimeRef.current > 6000) {
-          setIsOffRoute(true);
-          lastRerouteTimeRef.current = now;
-
-          // Haptic double-pulse feedback
-          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-            navigator.vibrate([40, 60, 40]);
-          }
-
-          // Voice guidance alert: "Rerouting..."
-          if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            try {
-              window.speechSynthesis.cancel();
-              const utterance = new SpeechSynthesisUtterance('Rerouting');
-              utterance.rate = 1.05;
-              window.speechSynthesis.speak(utterance);
-            } catch (e) {
-              // Ignore speech errors
-            }
-          }
-
-          if (onRerouteNeeded) {
-            onRerouteNeeded({
-              lat,
-              lng,
-              distanceOffRouteM: distToRoute,
-            });
-          }
-        }
+      } else if (
+        now - offRouteSinceRef.current > OFF_ROUTE_PERSIST_MS &&
+        (!offRouteRef.current || now - lastRerouteRef.current > REROUTE_RETRY_MS) &&
+        !cb.isRerouting &&
+        now - lastRerouteRef.current > REROUTE_COOLDOWN_MS
+      ) {
+        offRouteRef.current = true;
+        lastRerouteRef.current = now;
+        setIsOffRoute(true);
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([40, 60, 40]);
+        if (cb.voiceEnabled) voiceGuidance.speak('Rerouting', true);
+        cb.onRerouteNeeded?.({ lat: f.lat, lng: f.lng, distanceOffRouteM: m.distanceM });
       }
     } else {
       offRouteSinceRef.current = null;
-      if (isOffRoute) setIsOffRoute(false);
-    }
-
-    // 5. Turn-by-Turn Maneuver Progress & Direction Voice Prompts ONLY
-    if (maneuvers.length > 0 && currentManeuverIndex < maneuvers.length) {
-      const curM = maneuvers[currentManeuverIndex];
-      const distToTurn = haversineMeters(lat, lng, curM.lat, curM.lng);
-      setDistanceToManeuverMeters(distToTurn);
-
-      // Only speaks if user enabled voice
-      if (voiceEnabled) {
-        const cleanInstruction = cleanManeuverText(curM);
-        voiceGuidance.speakManeuver(cleanInstruction, distToTurn, currentManeuverIndex);
-      }
-
-      // Advance to next maneuver when passed (< 28m)
-      if (distToTurn < 28 && currentManeuverIndex < maneuvers.length - 1) {
-        setCurrentManeuverIndex((prev) => prev + 1);
+      if (offRouteRef.current) {
+        offRouteRef.current = false;
+        setIsOffRoute(false);
       }
     }
-  }, [
-    isNavigating,
-    routeData,
-    gpsPosition,
-    nearestSegmentIndex,
-    currentManeuverIndex,
-    isOffRoute,
-    hasArrived,
-    voiceEnabled,
-    onRerouteNeeded,
-    onArrival,
-  ]);
+
+    // ── next maneuver, measured along the route
+    const up = upcoming(maneuversRef.current, m.alongM, maneuverIdxRef.current);
+    maneuverIdxRef.current = up.index;
+
+    // ── voice: quiet while off route / rerouting (the new route will start its own announcements)
+    if (cb.voiceEnabled && up.maneuver && !offRouteRef.current && !cb.isRerouting) {
+      const cue = plannerRef.current.evaluate(
+        `${routeIdRef.current}:${up.index}`,
+        up.maneuver.type,
+        up.maneuver.road_name,
+        up.distanceM,
+        speed
+      );
+      if (cue) voiceGuidance.speak(cue.text, cue.urgent);
+    }
+
+    setProgress({
+      displayLat: m.displayLat,
+      displayLng: m.displayLng,
+      routeLat: m.projLat,
+      routeLng: m.projLng,
+      segmentIndex: m.segmentIndex,
+      alongM: m.alongM,
+      remainingM: remaining,
+      offRouteM: m.distanceM,
+      snapped: m.snapped,
+      maneuver: up.maneuver,
+      nextManeuver: up.next,
+      distanceToManeuverM: up.distanceM,
+      currentRoadName: up.currentRoadName,
+    });
+  }, [gpsPosition, isNavigating, routeData]);
 
   const startNavigation = useCallback(() => {
-    setIsNavigating(true);
+    filterRef.current = new GpsFilter();
+    plannerRef.current.reset();
+    maneuverIdxRef.current = 0;
+    offRouteSinceRef.current = null;
+    prevAlongRef.current = null;
+    travelledRef.current = 0;
+    arrivedRef.current = false;
+    offRouteRef.current = false;
+    lastRerouteRef.current = 0;
+    setProgress(null);
     setHasArrived(false);
     setIsOffRoute(false);
-    setCurrentManeuverIndex(0);
-    navigationStartTimeRef.current = Date.now();
-    voiceGuidance.resetMilestones();
+    setIsNavigating(true);
   }, []);
 
   const stopNavigation = useCallback(() => {
+    voiceGuidance.stop();
     setIsNavigating(false);
-    // Reset traveled index so the grayed polyline disappears immediately
-    setNearestSegmentIndex(0);
-    setCurrentManeuverIndex(0);
-    setRemainingMeters(0);
-    setDistanceToManeuverMeters(0);
+    setProgress(null);
+    setIsOffRoute(false);
     offRouteSinceRef.current = null;
+    offRouteRef.current = false;
   }, []);
 
-  const currentManeuver: TurnManeuver | null =
-    routeData?.maneuvers?.[currentManeuverIndex] || null;
-  const nextManeuver: TurnManeuver | null =
-    routeData?.maneuvers?.[currentManeuverIndex + 1] || null;
+  const navState: NavState = useMemo(() => {
+    if (hasArrived) return 'arrived';
+    if (!isNavigating) return 'idle';
+    if (isRerouting) return 'rerouting';
+    if (isOffRoute) return 'off_route';
+    if (progress && progress.distanceToManeuverM <= APPROACHING_M) return 'approaching';
+    return 'following';
+  }, [hasArrived, isNavigating, isRerouting, isOffRoute, progress]);
 
   return {
     isNavigating,
-    currentManeuverIndex,
-    nearestSegmentIndex,
-    distanceToManeuverMeters,
-    remainingMeters,
+    navState,
+    progress,
+    nearestSegmentIndex: progress?.segmentIndex ?? 0,
+    distanceToManeuverMeters: progress?.distanceToManeuverM ?? 0,
+    remainingMeters: progress?.remainingM ?? 0,
     isOffRoute,
     hasArrived,
-    currentManeuver,
-    nextManeuver,
+    currentManeuver: progress?.maneuver ?? null,
+    nextManeuver: progress?.nextManeuver ?? null,
+    currentRoadName: progress?.currentRoadName ?? null,
     startNavigation,
     stopNavigation,
   };

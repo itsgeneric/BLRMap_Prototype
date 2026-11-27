@@ -1,8 +1,23 @@
 import httpx
 from core.config import (
     GOOGLE_KEY, ROUTES_KEY, ROUTES_API_URL,
-    ROADS_KEY, ROADS_SNAP_API_URL, SNAP_DEVIATION_THRESHOLD_M
+    ROADS_KEY, ROADS_SNAP_API_URL, SNAP_DEVIATION_THRESHOLD_M, VERIFY_SHADOW_MODE
 )
+
+
+def _mark_bad(u, v, **kwargs):
+    """
+    Ban an edge in the blacklist -- unless the verification runs in SHADOW MODE (the default): then only log what
+    WOULD have been banned. The scattered-midpoint check produced snap deviations of 94-645 m (Google snapping the test
+    point onto a different road) and banned real roads, so it must not change routing until it is redesigned.
+    """
+    if VERIFY_SHADOW_MODE:
+        print(f"[Verify:shadow] would blacklist {u}-{v}: {kwargs.get('reason')} "
+              f"(deviation {kwargs.get('deviation_m')} m) -- NOT banned")
+        return
+    from routing.edge_blacklist import edge_blacklist
+    edge_blacklist.mark_edge_bad(u, v, **kwargs)
+
 
 def decode_polyline(encoded: str):
     coords = []
@@ -328,7 +343,7 @@ async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = S
             for idx, (u, v, orig_lat, orig_lng, hw) in enumerate(sampled_edges):
                 if idx not in snapped_by_index:
                     # Point could not be snapped to any road in Google Maps
-                    edge_blacklist.mark_edge_bad(
+                    _mark_bad(
                         u, v,
                         deviation_m=999.0,
                         reason="no_gmaps_road_found",
@@ -340,7 +355,7 @@ async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = S
                     if snapped_lat is not None and snapped_lng is not None:
                         dev_m = haversine_m(orig_lat, orig_lng, snapped_lat, snapped_lng)
                         if dev_m > threshold_m:
-                            edge_blacklist.mark_edge_bad(
+                            _mark_bad(
                                 u, v,
                                 deviation_m=dev_m,
                                 reason="excessive_snap_deviation",
@@ -359,5 +374,6 @@ async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = S
     if flagged_edges:
         print(f"[SnapToRoads] Flagged {len(flagged_edges)} non-existent/private edges (> {threshold_m}m deviation). Total blacklisted: {edge_blacklist.count()}")
 
+    if VERIFY_SHADOW_MODE:
+        return []          # shadow mode: never trigger a re-route over unverified evidence
     return flagged_edges
-

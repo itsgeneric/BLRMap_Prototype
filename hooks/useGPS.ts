@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GPSPosition } from '@/lib/types';
+import { createSpeedEstimator } from '@/lib/gpsSpeed';
 
 interface UseGPSOptions {
   enableCompass?: boolean;
@@ -15,6 +16,7 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
   const [error, setError] = useState<string | null>(null);
 
   const prevCoords = useRef<{ lat: number; lng: number } | null>(null);
+  const speedEstimator = useRef(createSpeedEstimator());
   const gpsPositionRef = useRef<GPSPosition | null>(null);
   const headingSmoothedRef = useRef<number>(0);
   const deviceHeadingRef = useRef<number>(0);
@@ -131,13 +133,22 @@ export function useGPS(options: UseGPSOptions = { enableCompass: true }) {
           }
         }
 
+        // Speed: the phone's own value when it gives one; otherwise worked out from movement (see lib/gpsSpeed.ts)
+        const derived = speedEstimator.current.push({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        });
+        const speed = pos.coords.speed !== null && pos.coords.speed >= 0 ? pos.coords.speed : derived;
+
         prevCoords.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
         const currentPos: GPSPosition = {
           lat: Number(pos.coords.latitude.toFixed(6)),
           lng: Number(pos.coords.longitude.toFixed(6)),
           heading: heading !== null && !isNaN(heading) ? Math.round(heading) : deviceHeadingRef.current,
-          speed: pos.coords.speed !== null && pos.coords.speed >= 0 ? pos.coords.speed : 0,
+          speed,
           accuracy: pos.coords.accuracy,
           timestamp: pos.timestamp,
         };

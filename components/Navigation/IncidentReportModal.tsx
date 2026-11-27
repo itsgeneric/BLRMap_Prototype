@@ -26,6 +26,8 @@ interface IncidentReportModalProps {
   activeIncidents?: RoadIncident[];
   onIncidentReported?: (incident: RoadIncident) => void;
   onIncidentUpdated?: () => void;
+  /** the report did not reach the server */
+  onReportFailed?: () => void;
 }
 
 interface IncidentOption {
@@ -112,6 +114,7 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   activeIncidents = [],
   onIncidentReported,
   onIncidentUpdated,
+  onReportFailed,
 }) => {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [pendingIncident, setPendingIncident] = useState<IncidentOption | null>(null);
@@ -144,14 +147,12 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   useEffect(() => {
     if (pendingIncident) {
       setCountdown(5);
+      // counted outside the state updater: React may run an updater twice, which sent the report twice
+      let left = 5;
       countdownTimerRef.current = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            handleConfirmReport(pendingIncident);
-            return 0;
-          }
-          return prev - 1;
-        });
+        left -= 1;
+        setCountdown(Math.max(0, left));
+        if (left <= 0) handleConfirmReport(pendingIncident);
       }, 1000);
     } else {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
@@ -175,7 +176,11 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
     const selected = incident || pendingIncident;
     setPendingIncident(null);
 
-    if (!selected || currentLat === undefined || currentLng === undefined) return;
+    if (!selected) return;
+    if (currentLat === undefined || currentLng === undefined) {
+      onReportFailed?.();
+      return;
+    }
 
     try {
       const res = await reportIncident(
@@ -188,9 +193,12 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
       if (res.status === 'ok' && res.incident) {
         if (onIncidentReported) onIncidentReported(res.incident);
         if (onIncidentUpdated) onIncidentUpdated();
+      } else {
+        onReportFailed?.();
       }
     } catch (err) {
       console.error('Failed to submit incident report:', err);
+      onReportFailed?.();
     }
   };
 
@@ -218,13 +226,16 @@ export const IncidentReportModal: React.FC<IncidentReportModalProps> = ({
   return (
     <>
       {/* ── 1. Floating Report Action Button (Bottom Right) ───────────── */}
-      <div className="fixed right-4 sm:right-6 bottom-[100px] sm:bottom-[104px] z-[1001] pointer-events-auto">
+      <div
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 116px)' }}
+        className="fixed right-4 sm:right-6 z-[1001] pointer-events-auto"
+      >
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
           title="Report incident"
           aria-label="Report incident"
-          className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white text-amber-500 shadow-2xl shadow-black/40 border border-slate-300 flex items-center justify-center hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          className="w-12 h-12 rounded-full bg-white text-amber-500 shadow-2xl shadow-black/40 border border-slate-300 flex items-center justify-center hover:bg-slate-50 active:scale-95 transition cursor-pointer"
         >
           {/* Google Maps Amber Warning Triangle with '+' icon */}
           <div className="relative flex items-center justify-center">

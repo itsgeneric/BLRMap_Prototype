@@ -39,7 +39,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
   };
 
   return (
-    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[3000] w-full max-w-sm px-4 pointer-events-none space-y-2">
+    <div className="fixed top-[44%] left-1/2 -translate-x-1/2 z-[3000] w-full max-w-sm px-4 pointer-events-none space-y-2">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -49,11 +49,12 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismis
         >
           <div className="flex items-center gap-2 min-w-0">
             {renderIcon(toast.type)}
-            <span className="truncate">{toast.text}</span>
+            <span className="break-words leading-snug">{toast.text}</span>
           </div>
           <button
             onClick={() => onDismiss(toast.id)}
-            className="p-1 text-slate-400 hover:text-slate-200 cursor-pointer rounded-lg hover:bg-white/10 shrink-0"
+            aria-label="Dismiss message"
+            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-200 cursor-pointer rounded-lg hover:bg-white/10 shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </button>

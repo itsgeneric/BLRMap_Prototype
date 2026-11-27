@@ -5,9 +5,77 @@ import osmnx as ox
 import networkx as nx
 from core.config import (
     BASE_DIR, GRAPH_FILE_PATH, GRAPH_PKL_PATH, SURFACE_QUALITY_FILE,
-    INNER_ROAD_TYPES, MAIN_ROAD_TYPES
+    INNER_ROAD_TYPES, MAIN_ROAD_TYPES,
+    RESTRICTED_ACCESS_VALUES, ACCESS_ONLY_VALUES, GRAPH_CLEANUP_VERSION,
 )
 from routing.algorithms import haversine_m
+
+# Ways a motor vehicle can never use.
+NOT_FOR_VEHICLES = {
+    'track', 'path', 'footway', 'pedestrian', 'steps', 'cycleway', 'corridor', 'bridleway', 'proposed',
+    'construction', 'abandoned', 'platform', 'raceway', 'escape',
+}
+NEVER_SERVICE = {'emergency_access', 'ground'}
+ACCESS_ONLY_SERVICE = {'parking_aisle', 'driveway', 'alley', 'parking', 'drive-through'}
+
+
+def _tag(data, name):
+    value = data.get(name, '')
+    if isinstance(value, list):
+        value = value[0] if value else ''
+    return str(value).lower()
+
+
+def road_class_of_access(data):
+    """'removed', 'access_only' or 'public' for one edge's OpenStreetMap tags."""
+    highway = _tag(data, 'highway')
+    access, service = _tag(data, 'access'), _tag(data, 'service')
+    motor_vehicle, motorcycle = _tag(data, 'motor_vehicle'), _tag(data, 'motorcycle')
+    if highway in NOT_FOR_VEHICLES or service in NEVER_SERVICE:
+        return 'removed'
+    if motorcycle in RESTRICTED_ACCESS_VALUES or motor_vehicle in RESTRICTED_ACCESS_VALUES:
+        return 'removed'
+    # a tag for motorcycles or motor vehicles is more specific than the general `access` tag
+    specific_yes = motorcycle in ('yes', 'permissive') or motor_vehicle in ('yes', 'permissive')
+    if access in RESTRICTED_ACCESS_VALUES and not specific_yes:
+        return 'removed'
+    if (highway == 'service' or service in ACCESS_ONLY_SERVICE or access in ACCESS_ONLY_VALUES
+            or motor_vehicle in ACCESS_ONLY_VALUES or motorcycle in ACCESS_ONLY_VALUES):
+        return 'access_only'
+    return 'public'
+
+
+def classify_roads(G):
+    """Removes what the public cannot drive on and marks access-only edges. Returns (removed, access_only) counts."""
+    drop, marked = [], 0
+    for u, v, k, data in G.edges(keys=True, data=True):
+        kind = road_class_of_access(data)
+        if kind == 'removed':
+            drop.append((u, v, k))
+        elif kind == 'access_only':
+            data['access_only'] = True
+            marked += 1
+    G.remove_edges_from(drop)
+    return len(drop), marked
+
+
+def keep_connected(G):
+    """
+    The largest strongly connected part of the whole graph. Then, because through traffic may use only PUBLIC roads,
+    every public road outside the largest strongly connected PUBLIC network (a pocket you can only reach through
+    access-only roads) becomes access-only too: it stays reachable as a destination and never as a way through.
+    Returns (graph, number of roads demoted).
+    """
+    G = G.subgraph(max(nx.strongly_connected_components(G), key=len)).copy()
+    public = nx.DiGraph((u, v) for u, v, d in G.edges(data=True) if not d.get('access_only'))
+    core = max(nx.strongly_connected_components(public), key=len) if len(public) else set()
+    demoted = 0
+    for u, v, data in G.edges(data=True):
+        if not data.get('access_only') and not (u in core and v in core):
+            data['access_only'] = True
+            demoted += 1
+    return G, demoted
+
 
 class GraphManager:
     def __init__(self):
@@ -42,8 +110,15 @@ class GraphManager:
             with open(pkl_path, 'rb') as f:
                 data = pickle.load(f)
 
+            compiled = isinstance(data, dict) and 'major_nodes' in data and 'G_inner' in data
+            # A compiled PKL holds the graph AFTER cleanup, so it cannot be re-cleaned with new rules: rebuild from GraphML.
+            stale = compiled and data.get('cleanup_version') != GRAPH_CLEANUP_VERSION and os.path.exists(GRAPH_FILE_PATH)
+            if stale:
+                print("Road-cleanup rules changed since this PKL was built: rebuilding from the GraphML source "
+                      "(about a minute, once)...")
+
             # Fast binary path: If PKL already contains pre-compiled, strongly-connected graph with indexes
-            if isinstance(data, dict) and 'major_nodes' in data and 'G_inner' in data:
+            if compiled and not stale:
                 self.G = data['G']
                 self.G_inner = data.get('G_inner')
                 self.major_nodes = data.get('major_nodes', set())
@@ -55,8 +130,12 @@ class GraphManager:
                 edge_blacklist.load()
                 return
 
-            self.G = data['G'] if isinstance(data, dict) else data
-            print(f"PKL loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
+            if stale:
+                self.G = ox.load_graphml(GRAPH_FILE_PATH)
+                print(f"GraphML loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
+            else:
+                self.G = data['G'] if isinstance(data, dict) else data
+                print(f"PKL loaded: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (raw)")
         else:
             print(f"Loading full road network directly from GraphML file: {GRAPH_FILE_PATH}...")
             self.G = ox.load_graphml(GRAPH_FILE_PATH)
@@ -65,63 +144,15 @@ class GraphManager:
         for u, v, key, data in self.G.edges(keys=True, data=True):
             data['length'] = float(data.get('length', 1.0))
 
-        # ── Strip private, service, and non-public drivable roads ───────────
-        # In OpenStreetMap, compound alleys, driveways, parking lanes, and paths
-        # are tagged highway=service, track, path, footway, etc. Google Maps deliberately
-        # hides these because they are not public drivable thoroughfares.
-        # Routing through them makes the polyline cut through buildings or private plots.
-        EXCLUDED_HIGHWAYS = {
-            'service', 'track', 'path', 'footway', 'pedestrian',
-            'steps', 'cycleway', 'corridor', 'bridleway', 'proposed',
-            'construction', 'abandoned', 'platform', 'raceway', 'escape'
-        }
-        RESTRICTED_ACCESS = {
-            'private', 'no', 'customers', 'delivery', 'permissive', 'destination'
-        }
-        RESTRICTED_SERVICE = {
-            'parking_aisle', 'driveway', 'emergency_access', 'alley',
-            'parking', 'drive-through', 'ground'
-        }
+        # ── Sort roads into: removed / access-only / public (see core/config.py and routing/access.py) ──
+        removed, access_only = classify_roads(self.G)
+        print(f"Removed {removed:,} segments the public cannot drive on; kept {access_only:,} as access-only "
+              f"(first or last stretch of a trip only)")
 
-        edges_to_remove = []
-        for u, v, k, data in self.G.edges(keys=True, data=True):
-            hw = data.get('highway', '')
-            access = data.get('access', '')
-            service = data.get('service', '')
-            mv = data.get('motor_vehicle', '')
-            mc = data.get('motorcycle', '')
-
-            if isinstance(hw, list): hw = hw[0] if hw else ''
-            if isinstance(access, list): access = access[0] if access else ''
-            if isinstance(service, list): service = service[0] if service else ''
-            if isinstance(mv, list): mv = mv[0] if mv else ''
-            if isinstance(mc, list): mc = mc[0] if mc else ''
-
-            hw_str = str(hw).lower()
-            access_str = str(access).lower()
-            service_str = str(service).lower()
-            mv_str = str(mv).lower()
-            mc_str = str(mc).lower()
-
-            if hw_str in EXCLUDED_HIGHWAYS:
-                edges_to_remove.append((u, v, k))
-            elif access_str in RESTRICTED_ACCESS:
-                edges_to_remove.append((u, v, k))
-            elif service_str in RESTRICTED_SERVICE:
-                edges_to_remove.append((u, v, k))
-            elif mv_str in {'no', 'private', 'destination'}:
-                edges_to_remove.append((u, v, k))
-            elif mc_str in {'no', 'private'}:
-                edges_to_remove.append((u, v, k))
-
-        self.G.remove_edges_from(edges_to_remove)
-        print(f"Removed {len(edges_to_remove):,} non-public/restricted road segments (service alleys, driveways, tracks, compound paths)")
-
-        # ── Keep only the largest strongly connected component ──────────────
-        # This removes any disconnected fragments or dead-end paper layout roads
-        largest_scc = max(nx.strongly_connected_components(self.G), key=len)
-        self.G = self.G.subgraph(largest_scc).copy()
-        print(f"After cleanup: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges (verified public drivable roads only)")
+        # ── Keep only what is connected: the largest strongly connected component ──
+        self.G, demoted = keep_connected(self.G)
+        print(f"After cleanup: {len(self.G.nodes):,} nodes, {len(self.G.edges):,} edges "
+              f"({demoted:,} roads reachable only through access-only roads were made access-only too)")
         # ───────────────────────────────────────────────────────────────────
 
         # Dynamically calculate map bounds & center point
@@ -163,7 +194,8 @@ class GraphManager:
                     'major_nodes': self.major_nodes,
                     'bounds': self.bounds,
                     'center': self.center,
-                    'version': 2
+                    'version': 2,
+                    'cleanup_version': GRAPH_CLEANUP_VERSION,
                 }, f, protocol=pickle.HIGHEST_PROTOCOL)
             print("Optimized binary PKL saved successfully.")
         except Exception as exc:

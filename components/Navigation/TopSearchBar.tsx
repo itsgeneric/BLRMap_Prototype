@@ -183,13 +183,17 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
             <button
               type="button"
               onClick={onClear}
-              className="text-slate-400 hover:text-red-400 active:text-red-400 transition flex items-center gap-1 text-[10px] sm:text-[10px] font-semibold cursor-pointer py-0.5 px-2 rounded-lg hover:bg-red-500/10 active:scale-95"
+              className="text-slate-400 hover:text-red-400 active:text-red-400 transition flex items-center gap-1 text-[10px] sm:text-[10px] font-semibold cursor-pointer min-h-[32px] -my-1.5 px-3 rounded-lg hover:bg-red-500/10 active:scale-95"
             >
               <X className="w-3 h-3" />
               <span>Clear</span>
             </button>
           )}
         </div>
+
+        {!destination && (
+          <p className="text-[11px] text-slate-400 -mt-0.5 px-0.5">Tip: press and hold the map to drop a pin.</p>
+        )}
 
         {/* Inputs Layout */}
         <div className="flex items-center gap-2 sm:gap-2 relative">
@@ -212,7 +216,7 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                   setFocusedField('origin');
                   if (setActiveInput) setActiveInput('origin');
                 }}
-                placeholder="Choose start location or tap map..."
+                placeholder="Choose start"
                 className={`w-full bg-[#090d16] border text-xs sm:text-xs text-slate-100 placeholder:text-slate-500 pl-3 pr-20 sm:pr-20 py-1.5 sm:py-1.5 rounded-xl sm:rounded-xl outline-none transition duration-150 ${
                   focusedField === 'origin' || activeInput === 'origin'
                     ? 'border-sky-400 ring-2 ring-sky-500/25 bg-[#060910]'
@@ -226,7 +230,7 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                   type="button"
                   onClick={onUseGpsOrigin}
                   title="Use current GPS location"
-                  className="absolute right-1 px-2 py-1 sm:px-2 sm:py-0.5 bg-sky-500/10 hover:bg-sky-500/20 active:bg-sky-500/30 text-sky-400 border border-sky-500/30 rounded-lg sm:rounded-lg text-[10px] sm:text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shrink-0"
+                  className="absolute right-0.5 min-h-[30px] px-2.5 bg-sky-500/10 hover:bg-sky-500/20 active:bg-sky-500/30 text-sky-400 border border-sky-500/30 rounded-lg sm:rounded-lg text-[10px] sm:text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shrink-0"
                 >
                   {gpsLoading ? (
                     <Loader2 className="w-3 h-3 animate-spin text-sky-400" />
@@ -248,7 +252,7 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                   setFocusedField('destination');
                   if (setActiveInput) setActiveInput('destination');
                 }}
-                placeholder="Choose destination or tap map..."
+                placeholder="Where to?"
                 className={`w-full bg-[#090d16] border text-xs sm:text-xs text-slate-100 placeholder:text-slate-500 pl-3 pr-8 py-1.5 sm:py-1.5 rounded-xl sm:rounded-xl outline-none transition duration-150 ${
                   focusedField === 'destination' || activeInput === 'destination'
                     ? 'border-orange-400 ring-2 ring-orange-500/25 bg-[#060910]'
@@ -262,7 +266,8 @@ export const TopSearchBar: React.FC<TopSearchBarProps> = ({
                     setToQuery('');
                     if (onSelectDestination) onSelectDestination(null);
                   }}
-                  className="absolute right-2 text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+                  aria-label="Clear destination"
+                  className="absolute right-0.5 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

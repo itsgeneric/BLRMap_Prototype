@@ -6,12 +6,15 @@ import {
   Map as GMap,
   useMap,
   AdvancedMarker,
+  AdvancedMarkerAnchorPoint,
   Pin,
+  RenderingType,
+  useAdvancedMarkerRef,
 } from '@vis.gl/react-google-maps';
 import { Loader2 } from 'lucide-react';
 import { LatLng as LatLngType, Point, GPSPosition, RouteMode, RoadIncident } from '@/lib/types';
-import { haversineMeters } from '@/lib/geo';
 import { darkMapStyle, lightMapStyle } from './googleMapStyles';
+import { LongPressDetector } from '@/lib/longPress';
 
 export interface MapContainerProps {
   origin?: Point | null;
@@ -29,12 +32,30 @@ export interface MapContainerProps {
   isFollowingCamera?: boolean;
   isNavigating?: boolean;
   activeIncidents?: RoadIncident[];
+  /** while navigating: where to draw the rider (on the road when genuinely on the route), from the navigation engine */
+  displayPosition?: { lat: number; lng: number } | null;
+  /** the closest point on the route to the rider: the route line is split exactly here */
+  routePoint?: { lat: number; lng: number } | null;
+  /** a place dropped by press-and-hold (shown as an orange pin until the card is closed) */
+  droppedPin?: Point | null;
+  /** the rider pressed and held the map at this position */
+  onLongPress?: (position: { lat: number; lng: number }) => void;
   onSelectOrigin?: (location: Point) => void;
   onSelectDestination?: (location: Point) => void;
   onMapClick?: (latlng: [number, number]) => void;
   onRecenter?: () => void;
   onCameraUnlink?: () => void;
 }
+
+// The project's styled Map ID (Google Cloud Console > Map Management): a vector map whose style has no 3D buildings, so the camera can
+// tilt like Google Maps' navigation view while buildings stay flat and the roads stay visible. A Map ID is a public identifier, not a
+// secret. Override with NEXT_PUBLIC_GOOGLE_MAP_ID in .env (before `npm run build`). With 'DEMO_MAP_ID' the map has 3D buildings.
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || 'ee3c7f039aa26cded2f28d04';
+
+// Camera tilt in heading-up navigation. 45 with the styled Map ID (flat buildings). With the demo Map ID tilt would extrude 3D
+// buildings over the roads, so it defaults to 0 there. Override with NEXT_PUBLIC_NAV_TILT (0-60). North-up is always flat.
+const DEFAULT_TILT = MAP_ID === 'DEMO_MAP_ID' ? 0 : 45;
+const NAV_TILT_DEG = Math.min(60, Math.max(0, Number(process.env.NEXT_PUBLIC_NAV_TILT ?? DEFAULT_TILT)));
 
 const GOOGLE_MAPS_API_KEY =
   process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ||
@@ -58,76 +79,35 @@ function getStrokeWeights(zoom: number): { casing: number; foreground: number; a
 // Google Maps-style Rider Marker (3D Navigation Arrow in nav, Blue dot + beam in browse)
 // ─────────────────────────────────────────────────────────────────
 function RiderMarkerIcon({
-  heading,
   isNavigating = false,
+  rotRef,
 }: {
-  heading: number;
   isNavigating?: boolean;
+  /** the element rotated every animation frame by (rider heading - map heading); see the animation loop below */
+  rotRef: React.Ref<HTMLDivElement>;
 }) {
   if (isNavigating) {
-    // ── Google Maps Navigation 3D Chevron Arrow with Ground Halo ──
+    // Navigation chevron with a soft ground halo. Centre of the 64px box = the rider's true position (anchorPoint CENTER).
     return (
-      <div
-        className="relative w-16 h-16 flex items-center justify-center pointer-events-none select-none"
-        style={{
-          transform: `rotate(${heading}deg)`,
-          transition: 'transform 0.25s cubic-bezier(0.2, 0.8, 0.4, 1)',
-        }}
-      >
-        {/* Soft Ground Radar Halo */}
-        <div className="absolute inset-2 rounded-full bg-blue-500/20 animate-ping opacity-75" />
-
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 48 48"
-          fill="none"
-          className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
-        >
-          {/* White outer stroke casing */}
-          <path
-            d="M24 3 L43 43 L24 33 L5 43 Z"
-            fill="#FFFFFF"
-          />
-          {/* Left Wing (Google Blue #4285F4) */}
-          <path
-            d="M24 6.5 L8.5 40 L24 31.5 Z"
-            fill="#4285F4"
-          />
-          {/* Right Wing (Google Deep Blue #1A73E8 for 3D bevel lighting) */}
-          <path
-            d="M24 6.5 L39.5 40 L24 31.5 Z"
-            fill="#1A73E8"
-          />
-          {/* Center spine highlight */}
-          <line
-            x1="24"
-            y1="7"
-            x2="24"
-            y2="31"
-            stroke="#FFFFFF"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-          />
-        </svg>
+      <div className="relative w-16 h-16 flex items-center justify-center pointer-events-none select-none">
+        <div className="absolute inset-3 rounded-full bg-blue-500/20" />
+        <div ref={rotRef} className="relative w-12 h-12 flex items-center justify-center will-change-transform">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+            <path d="M24 3 L43 43 L24 33 L5 43 Z" fill="#FFFFFF" />
+            <path d="M24 6.5 L8.5 40 L24 31.5 Z" fill="#4285F4" />
+            <path d="M24 6.5 L39.5 40 L24 31.5 Z" fill="#1A73E8" />
+            <line x1="24" y1="7" x2="24" y2="31" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        </div>
       </div>
     );
   }
 
-  // ── Browse Mode: Google Maps Blue Dot with Flashlight Cone & Directional Needle ──
+  // Browsing: blue dot with a direction beam
   return (
     <div className="relative w-14 h-14 flex items-center justify-center pointer-events-none select-none">
-      {/* Accuracy Pulse Ring */}
-      <div className="absolute inset-2 bg-sky-400/20 rounded-full animate-ping" />
-
-      {/* Rotating directional flashlight beam & needle */}
-      <div
-        className="absolute inset-0 flex items-center justify-center"
-        style={{
-          transform: `rotate(${heading}deg)`,
-          transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1)',
-        }}
-      >
+      <div className="absolute inset-3 bg-sky-400/20 rounded-full" />
+      <div ref={rotRef} className="absolute inset-0 flex items-center justify-center will-change-transform">
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
           <defs>
             <radialGradient id="beamGrad" cx="28" cy="28" r="28" gradientUnits="userSpaceOnUse">
@@ -136,14 +116,10 @@ function RiderMarkerIcon({
               <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
             </radialGradient>
           </defs>
-          {/* 60-degree beam */}
           <path d="M28 28 L14 4 A28 28 0 0 1 42 4 Z" fill="url(#beamGrad)" />
-          {/* Direction needle tip pointing out from dot */}
           <polygon points="28,2 24,14 32,14" fill="#38bdf8" />
         </svg>
       </div>
-
-      {/* Center Blue Dot */}
       <div className="relative z-10 w-5 h-5 bg-sky-500 rounded-full border-[2.5px] border-white shadow-[0_0_12px_rgba(56,189,248,0.9)]" />
     </div>
   );
@@ -228,26 +204,15 @@ function IncidentMarkerIcon({ incident }: { incident: RoadIncident }) {
 // ─────────────────────────────────────────────────────────────────
 function CompassButton({
   mapHeading,
-  deviceHeading = 0,
-  isNavigating = false,
-  riderHeading = 0,
   compassMode = 'heading_up',
   onToggle,
 }: {
   mapHeading: number;
-  deviceHeading?: number;
-  isNavigating?: boolean;
-  riderHeading?: number;
   compassMode?: 'heading_up' | 'north_up';
   onToggle: () => void;
 }) {
-  // If in North-Up mode, map is fixed North, needle points straight Up (0deg).
-  // If in Heading-Up (Local POV), needle counter-rotates by -heading so red N points to true North.
-  const activeHeading = compassMode === 'north_up'
-    ? 0
-    : (mapHeading !== 0 ? mapHeading : (isNavigating && riderHeading !== 0 ? riderHeading : (deviceHeading || 0)));
-
-  const rotationDeg = -activeHeading;
+  // The needle points to true north: counter-rotate by the map's actual heading.
+  const rotationDeg = -mapHeading;
 
   return (
     <button
@@ -270,7 +235,7 @@ function CompassButton({
         className="w-7 h-7 relative flex items-center justify-center pointer-events-none select-none"
         style={{
           transform: `rotate(${rotationDeg}deg)`,
-          transition: 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition: 'transform 0.08s linear',
         }}
       >
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -317,6 +282,10 @@ function GoogleMapInner({
   isFollowingCamera = true,
   isNavigating = false,
   activeIncidents = [],
+  displayPosition = null,
+  routePoint = null,
+  droppedPin = null,
+  onLongPress,
   onSelectOrigin,
   onSelectDestination,
   onMapClick,
@@ -331,16 +300,35 @@ function GoogleMapInner({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const prevIsNavigatingRef = useRef(false);
 
+  // Rider marker + camera follow are driven from one animation loop OUTSIDE React state, so a GPS fix does not re-render
+  // the whole map: positions are interpolated between fixes and written straight to the marker and to map.moveCamera.
+  const [riderMarkerRef, riderMarker] = useAdvancedMarkerRef();
+  const arrowRef = useRef<HTMLDivElement | null>(null);
+  const anim = useRef<{
+    lat: number; lng: number; fromLat: number; fromLng: number; toLat: number; toLng: number;
+    t0: number; h: number; hTarget: number;
+  } | null>(null);
+  // Latest values for event handlers and the loop (updated on every render, so they are never stale).
+  const liveRef = useRef<{
+    isNavigating: boolean;
+    following: boolean;
+    compassMode: 'heading_up' | 'north_up';
+    gps: GPSPosition | null;
+    riderHeading: number;
+    marker: google.maps.marker.AdvancedMarkerElement | null;
+  }>({ isNavigating: false, following: true, compassMode: 'heading_up', gps: null, riderHeading: 0, marker: null });
+
   // Keep local follow state synced when prop changes (e.g. from Recenter button)
   useEffect(() => {
     setIsLocallyFollowing(isFollowingCamera);
   }, [isFollowingCamera]);
 
-  // When user touches, drags, or zooms the map, immediately unlink camera so they can freely explore
+  // A real drag unlinks the camera (so the rider can look around). A tap or a pinch-zoom does not.
   useEffect(() => {
     if (!map) return;
 
     const unlink = () => {
+      liveRef.current.following = false; // stop the follow loop on the very next frame, before React re-renders
       setIsLocallyFollowing(false);
       if (onCameraUnlink) onCameraUnlink();
       if (typeof window !== 'undefined') {
@@ -349,22 +337,8 @@ function GoogleMapInner({
     };
 
     const dragStartListener = map.addListener('dragstart', unlink);
-    const dragListener = map.addListener('drag', unlink);
-
-    // Also attach native DOM touch listeners to map container for mobile touchscreens
-    const mapDiv = map.getDiv();
-    if (mapDiv) {
-      mapDiv.addEventListener('touchstart', unlink, { passive: true });
-      mapDiv.addEventListener('touchmove', unlink, { passive: true });
-    }
-
     return () => {
       google.maps.event.removeListener(dragStartListener);
-      google.maps.event.removeListener(dragListener);
-      if (mapDiv) {
-        mapDiv.removeEventListener('touchstart', unlink);
-        mapDiv.removeEventListener('touchmove', unlink);
-      }
     };
   }, [map, onCameraUnlink]);
 
@@ -394,48 +368,20 @@ function GoogleMapInner({
     }
   }, [map, activeThemeStyle]);
 
-  // Connect Origin → Backend Route Road Coordinates → Destination Pin seamlessly
-  const fullConnectedPath = useMemo(() => {
-    if (!routePath || routePath.length === 0) return [];
-    const pts: LatLngType[] = [...routePath];
-    if (origin) {
-      const first = pts[0];
-      const distFromOrigin = haversineMeters(origin.lat, origin.lng, first[0], first[1]);
-      if (distFromOrigin > 1) pts.unshift([origin.lat, origin.lng]);
-    }
-    if (destination) {
-      const last = pts[pts.length - 1];
-      const distToDest = haversineMeters(destination.lat, destination.lng, last[0], last[1]);
-      if (distToDest > 1) pts.push([destination.lat, destination.lng]);
-    }
-    return pts;
-  }, [routePath, origin, destination]);
+  // The route is drawn exactly as the backend returns it. It starts and ends ON a road (the backend snaps each pin to
+  // the nearest road), so NO straight connector is drawn between a pin and the road: lines exist only where roads do.
+  const fullConnectedPath = useMemo<LatLngType[]>(
+    () => (routePath && routePath.length > 0 ? [...routePath] : []),
+    [routePath]
+  );
 
-  // Connect Alternate route seamlessly
-  const fullConnectedAlternatePath = useMemo(() => {
-    if (!alternateRoutePath || alternateRoutePath.length === 0) return [];
-    const pts: LatLngType[] = [...alternateRoutePath];
-    if (origin) {
-      const first = pts[0];
-      const distFromOrigin = haversineMeters(origin.lat, origin.lng, first[0], first[1]);
-      if (distFromOrigin > 1) pts.unshift([origin.lat, origin.lng]);
-    }
-    if (destination) {
-      const last = pts[pts.length - 1];
-      const distToDest = haversineMeters(destination.lat, destination.lng, last[0], last[1]);
-      if (distToDest > 1) pts.push([destination.lat, destination.lng]);
-    }
-    return pts;
-  }, [alternateRoutePath, origin, destination]);
+  const fullConnectedAlternatePath = useMemo<LatLngType[]>(
+    () => (alternateRoutePath && alternateRoutePath.length > 0 ? [...alternateRoutePath] : []),
+    [alternateRoutePath]
+  );
 
-  // How many extra points were prepended to fullConnectedPath before the raw route points
-  const pathPrefixOffset = useMemo(() => {
-    if (!routePath || routePath.length === 0 || !origin) return 0;
-    const first = routePath[0];
-    const dist = Math.abs(origin.lat - first[0]) + Math.abs(origin.lng - first[1]);
-    // If origin was prepended (dist > tiny epsilon in degrees), offset is 1
-    return dist > 0.00001 ? 1 : 0;
-  }, [routePath, origin]);
+  // Kept for the traveled/remaining split below: no points are prepended any more.
+  const pathPrefixOffset = 0;
 
   // Split route into Traveled vs Remaining for Google Maps progression
   // traveledIndex indexes into routeData.path, so we correct for the origin prefix
@@ -449,6 +395,7 @@ function GoogleMapInner({
     // Adjust for the origin prefix that was prepended to fullConnectedPath
     const adjustedIdx = Math.min(traveledIndex + pathPrefixOffset, fullConnectedPath.length - 1);
     const traveled = fullConnectedPath.slice(0, adjustedIdx + 1);
+    traveled.push(fullConnectedPath[adjustedIdx]); // placeholder end vertex, moved to the rider's road point per fix
     const remaining = fullConnectedPath.slice(adjustedIdx);
     return { traveledCoords: traveled, remainingCoords: remaining };
   }, [fullConnectedPath, isNavigating, traveledIndex, pathPrefixOffset]);
@@ -477,7 +424,8 @@ function GoogleMapInner({
     };
 
     const updateHeading = () => {
-      setMapHeading(map.getHeading() ?? 0);
+      const h = map.getHeading() ?? 0;
+      setMapHeading((prev) => (Math.abs(h - prev) >= 1 || h === 0 ? h : prev));
     };
 
     const zoomListener = map.addListener('zoom_changed', updateWeights);
@@ -492,41 +440,78 @@ function GoogleMapInner({
     };
   }, [map]);
 
-  // ─── Map heading follow during navigation (GMaps-style) ───
-  // When in 'heading_up' (Local POV) mode with camera follow:
-  // Smoothly rotate map to face direction of travel + 45-deg perspective tilt.
-  // When stationary (speed <= 1.5 m/s), follows phone compass as the user rotates phone in hand!
-  // When in 'north_up' mode or navigation ends: lock map heading to 0 and flat view.
+  // ─── Animation loop: rider marker, arrow rotation and camera follow (Google-Maps-style) ───
+  // Each GPS fix only sets a new TARGET; every frame we glide from the current position toward it (no teleporting), rotate the
+  // arrow relative to the map, and, while following, move the camera with ONE map.moveCamera call (centre + heading + tilt).
   useEffect(() => {
     if (!map) return;
-    const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
-    const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
-      ? gpsPosition.heading
-      : (deviceHeading || gpsPosition?.heading || 0);
+    let raf = 0;
+    let alive = true;
+    const last = { lat: NaN, lng: NaN, h: NaN, tilt: NaN };
 
-    if (isNavigating && isLocallyFollowing && compassMode === 'heading_up' && riderHeading !== null) {
-      // Smoothly rotate map to rider heading + 45-deg perspective tilt for 3D buildings
-      map.setHeading(riderHeading);
-      map.setTilt(45);
-    } else if (compassMode === 'north_up') {
-      map.setHeading(0);
-      map.setTilt(0);
-    } else if (!isNavigating) {
-      // Reset to north-up flat view when not navigating
-      if (prevIsNavigatingRef.current) {
-        map.setHeading(0);
-        map.setTilt(0);
+    const tick = (now: number) => {
+      if (!alive) return;
+      const a = anim.current;
+      const L = liveRef.current;
+      if (a) {
+        const k = Math.min(1, (now - a.t0) / 1000); // one GPS fix per second: glide linearly to the next one
+        a.lat = a.fromLat + (a.toLat - a.fromLat) * k;
+        a.lng = a.fromLng + (a.toLng - a.fromLng) * k;
+        const dh = ((a.hTarget - a.h + 540) % 360) - 180;
+        a.h = (a.h + dh * 0.15 + 360) % 360;
+
+        if (L.marker) L.marker.position = { lat: a.lat, lng: a.lng };
+        const mapHeadingNow = map.getHeading() ?? 0;
+        if (arrowRef.current) arrowRef.current.style.transform = `rotate(${a.h - mapHeadingNow}deg)`;
+
+        if (L.isNavigating && L.following) {
+          const headingUp = L.compassMode === 'heading_up';
+          const heading = headingUp ? a.h : 0;
+          const tilt = headingUp ? NAV_TILT_DEG : 0;
+          if (
+            Math.abs(a.lat - last.lat) > 1e-8 || Math.abs(a.lng - last.lng) > 1e-8 ||
+            Math.abs(heading - last.h) > 0.05 || tilt !== last.tilt
+          ) {
+            map.moveCamera({ center: { lat: a.lat, lng: a.lng }, heading, tilt });
+            last.lat = a.lat; last.lng = a.lng; last.h = heading; last.tilt = tilt;
+          }
+        }
       }
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        alive = false;
+        cancelAnimationFrame(raf);
+      } else if (!alive) {
+        alive = true;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+
+    raf = requestAnimationFrame(tick);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [map]);
+
+  // Navigation starts: jump to the rider (zoom 18, tilted, facing the direction of travel). Navigation ends: back to a flat north-up map.
+  useEffect(() => {
+    if (!map) return;
+    if (isNavigating) {
+      const L = liveRef.current;
+      const a = anim.current;
+      const pos = a ? { lat: a.lat, lng: a.lng } : L.gps ? { lat: L.gps.lat, lng: L.gps.lng } : null;
+      if (pos) map.moveCamera({ center: pos, zoom: 18, tilt: NAV_TILT_DEG, heading: a ? a.h : L.riderHeading });
+    } else if (prevIsNavigatingRef.current) {
+      map.moveCamera({ tilt: 0, heading: 0 });
     }
     prevIsNavigatingRef.current = isNavigating;
-  }, [map, isNavigating, isLocallyFollowing, compassMode, gpsPosition?.heading, gpsPosition?.speed, deviceHeading]);
-
-  // Also reset heading when camera unlinks (user pans map during navigation)
-  useEffect(() => {
-    if (!map || isNavigating) return;
-    map.setHeading(0);
-    map.setTilt(0);
-  }, [map, isFollowingCamera, isNavigating]);
+  }, [map, isNavigating]);
 
   // ─── Manage Google Maps Polylines imperatively ───
   useEffect(() => {
@@ -664,6 +649,19 @@ function GoogleMapInner({
     };
   }, []);
 
+  // Each GPS fix: move just the split vertex to the exact point on the road where the rider is. The remaining (blue) line then
+  // starts at the rider and the traveled (grey) line ends there, without re-creating the whole path on every fix.
+  useEffect(() => {
+    if (!isNavigating || !routePoint) return;
+    const at = new google.maps.LatLng(routePoint.lat, routePoint.lng);
+    for (const line of [polylineRemainingCasingRef.current, polylineRemainingRef.current]) {
+      const path = line?.getPath();
+      if (path && path.getLength() > 1) path.setAt(0, at);
+    }
+    const traveledPath = polylineTraveledRef.current?.getPath();
+    if (traveledPath && traveledPath.getLength() > 1) traveledPath.setAt(traveledPath.getLength() - 1, at);
+  }, [routePoint, isNavigating, remainingCoords, traveledCoords]);
+
   // Auto-fit route bounds when a new route is loaded
   useEffect(() => {
     if (!map || fullConnectedPath.length < 2 || isNavigating) return;
@@ -697,140 +695,171 @@ function GoogleMapInner({
     return () => window.removeEventListener('fit-route-bounds', handleFitBounds);
   }, [map, fullConnectedPath]);
 
-  // Global recenter listener
+  // Re-center, Google-Maps-style. Navigating: back onto the rider, zoom 18, tilted, facing the direction of travel (or north-up
+  // if the compass is in north-up mode). Browsing: centre on the rider's position, flat, north-up, zoom 16.
+  const recenterCamera = useCallback(() => {
+    if (!map) return;
+    const L = liveRef.current;
+    const a = anim.current;
+    const pos = a ? { lat: a.lat, lng: a.lng } : L.gps ? { lat: L.gps.lat, lng: L.gps.lng } : null;
+    const apply = (center: { lat: number; lng: number }) => {
+      if (L.isNavigating) {
+        const headingUp = L.compassMode === 'heading_up';
+        map.moveCamera({ center, zoom: 18, tilt: headingUp ? NAV_TILT_DEG : 0, heading: headingUp ? (a ? a.h : L.riderHeading) : 0 });
+      } else {
+        map.moveCamera({ center, zoom: 16, tilt: 0, heading: 0 });
+      }
+    };
+    if (pos) {
+      apply(pos);
+    } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          setLocating(false);
+          apply({ lat: p.coords.latitude, lng: p.coords.longitude });
+        },
+        () => setLocating(false),
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 3000 }
+      );
+    }
+  }, [map]);
+
+  // Global recenter event (the navigation footer and the page dispatch it)
   useEffect(() => {
     const handleGlobalRecenter = () => {
+      liveRef.current.following = true;
       setIsLocallyFollowing(true);
-      if (!map) return;
-      const zoomLevel = isNavigating ? 18 : 16;
-      if (gpsPosition?.lat && gpsPosition?.lng) {
-        map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
-        map.setZoom(zoomLevel);
-      } else if (typeof window !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            map.setZoom(zoomLevel);
-          },
-          undefined,
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 3000 }
-        );
-      }
+      recenterCamera();
     };
     window.addEventListener('recenter-map', handleGlobalRecenter);
     return () => window.removeEventListener('recenter-map', handleGlobalRecenter);
-  }, [map, gpsPosition, isNavigating]);
+  }, [recenterCamera]);
 
-  // Camera follow during active navigation
+  // Press-and-hold drops a pin (like Google Maps). A plain tap or a drag does NOTHING, so touching the map around can no longer
+  // select places by accident. Touch is handled at the DOM level (the position is converted with the map's own projection, which
+  // stays exact when the map is rotated); the mouse uses the map's events. Never while navigating.
   useEffect(() => {
-    if (!map || !isNavigating || !isLocallyFollowing) return;
-    if (gpsPosition?.lat && gpsPosition?.lng) {
-      map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
-    }
-  }, [map, gpsPosition, isNavigating, isLocallyFollowing]);
+    if (!map || isNavigating || !onLongPress) return;
+    const container = map.getDiv();
 
-  // Handle map click events to set Origin / Destination
-  useEffect(() => {
-    if (!map) return;
-    const listener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-      if (!e.latLng) return;
-      const lat = Number(e.latLng.lat().toFixed(5));
-      const lng = Number(e.latLng.lng().toFixed(5));
-      const loc: Point = { lat, lng, address: `${lat}, ${lng}`, name: `${lat}, ${lng}` };
+    const overlay = new google.maps.OverlayView(); // only needed for its pixel -> latitude/longitude projection
+    overlay.onAdd = () => {};
+    overlay.draw = () => {};
+    overlay.onRemove = () => {};
+    overlay.setMap(map);
 
-      if (onMapClick) onMapClick([lat, lng]);
+    let lastFire = 0;
+    const fire = (lat: number, lng: number) => {
+      const now = Date.now();
+      if (now - lastFire < 800) return; // a touch hold and a context-menu event can both report the same press
+      lastFire = now;
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(25);
+      onLongPress({ lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) });
+    };
+    const detector = new LongPressDetector<{ lat: number; lng: number }>({ onLongPress: (p) => fire(p.lat, p.lng) });
 
-      if (activeInput === 'destination' && onSelectDestination) {
-        onSelectDestination(loc);
-      } else if (activeInput === 'origin' && onSelectOrigin) {
-        onSelectOrigin(loc);
-      } else if (!origin && onSelectOrigin) {
-        onSelectOrigin(loc);
-      } else if (!destination && onSelectDestination) {
-        onSelectDestination(loc);
-      } else if (onSelectDestination) {
-        onSelectDestination(loc);
-      }
-    });
-    return () => google.maps.event.removeListener(listener);
-  }, [map, activeInput, origin, destination, onSelectOrigin, onSelectDestination, onMapClick]);
+    const toLatLng = (clientX: number, clientY: number) => {
+      const projection = overlay.getProjection();
+      if (!projection) return null;
+      const rect = container.getBoundingClientRect();
+      const ll = projection.fromContainerPixelToLatLng(new google.maps.Point(clientX - rect.left, clientY - rect.top));
+      return ll ? { lat: ll.lat(), lng: ll.lng() } : null;
+    };
 
-  // Recenter button click handler
+    const onTouchStart = (ev: TouchEvent) => {
+      if (ev.touches.length !== 1) return detector.cancel(); // a second finger (pinch) is never a long press
+      const t = ev.touches[0];
+      const pos = toLatLng(t.clientX, t.clientY);
+      if (pos) detector.start(t.clientX, t.clientY, pos);
+      else detector.cancel();
+    };
+    const onTouchMove = (ev: TouchEvent) => {
+      if (ev.touches.length !== 1) detector.cancel();
+      else detector.move(ev.touches[0].clientX, ev.touches[0].clientY);
+    };
+    const onTouchEnd = () => detector.cancel();
+    const opts: AddEventListenerOptions = { capture: true, passive: true };
+    container.addEventListener('touchstart', onTouchStart, opts);
+    container.addEventListener('touchmove', onTouchMove, opts);
+    container.addEventListener('touchend', onTouchEnd, opts);
+    container.addEventListener('touchcancel', onTouchEnd, opts);
+
+    // Mouse (desktop): hold the button down, or right-click.
+    const mouseEvent = (e: google.maps.MapMouseEvent) => {
+      const dom = e.domEvent as MouseEvent | TouchEvent | undefined;
+      if (!dom || 'touches' in dom) return null;
+      return dom as MouseEvent;
+    };
+    const listeners = [
+      map.addListener('mousedown', (e: google.maps.MapMouseEvent) => {
+        const m = mouseEvent(e);
+        if (m && e.latLng) detector.start(m.clientX, m.clientY, { lat: e.latLng.lat(), lng: e.latLng.lng() });
+      }),
+      map.addListener('mousemove', (e: google.maps.MapMouseEvent) => {
+        const m = mouseEvent(e);
+        if (m) detector.move(m.clientX, m.clientY);
+      }),
+      map.addListener('mouseup', () => detector.cancel()),
+      map.addListener('dragstart', () => detector.cancel()),
+      map.addListener('zoom_changed', () => detector.cancel()),
+      map.addListener('contextmenu', (e: google.maps.MapMouseEvent) => {
+        detector.cancel();
+        if (e.latLng) fire(e.latLng.lat(), e.latLng.lng());
+      }),
+    ];
+
+    return () => {
+      detector.cancel();
+      container.removeEventListener('touchstart', onTouchStart, opts);
+      container.removeEventListener('touchmove', onTouchMove, opts);
+      container.removeEventListener('touchend', onTouchEnd, opts);
+      container.removeEventListener('touchcancel', onTouchEnd, opts);
+      listeners.forEach((l) => google.maps.event.removeListener(l));
+      overlay.setMap(null);
+    };
+  }, [map, isNavigating, onLongPress]);
+
+  // Recenter button (browsing mode; while navigating the footer has its own)
   const handleRecenterClick = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
       e.stopPropagation();
       e.preventDefault();
       if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+      liveRef.current.following = true;
       setIsLocallyFollowing(true);
       if (onRecenter) onRecenter();
-      if (!map) return;
-
-      const zoomLevel = isNavigating ? 18 : 16;
-      if (gpsPosition?.lat && gpsPosition?.lng) {
-        map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
-        map.setZoom(zoomLevel);
-        return;
-      }
-
-      if (typeof window !== 'undefined' && navigator.geolocation) {
-        setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setLocating(false);
-            map.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            map.setZoom(zoomLevel);
-          },
-          () => {
-            setLocating(false);
-            if (origin) map.panTo({ lat: origin.lat, lng: origin.lng });
-            else if (destination) map.panTo({ lat: destination.lat, lng: destination.lng });
-          },
-          { enableHighAccuracy: true, timeout: 6000, maximumAge: 3000 }
-        );
-      } else if (origin) {
-        map.panTo({ lat: origin.lat, lng: origin.lng });
-      }
+      recenterCamera();
     },
-    [map, gpsPosition, origin, destination, isNavigating, onRecenter]
+    [onRecenter, recenterCamera]
   );
 
-  // Compass toggle — GMaps style:
-  // - Tap once: locks map to North-Up (flat view facing North)
-  // - Tap again: switches back to Local POV (where user is seeing / facing, with 3D tilt)
-  // - Does NOT force panTo: user stays wherever they are currently viewing!
+  // Compass, Google-Maps-style:
+  //  - browsing: tap resets the map to north-up and flat
+  //  - navigating: toggles "heading up" (map turns with you, tilted) and "north up" (flat, north at the top)
   const handleCompassToggle = useCallback(() => {
     if (!map) return;
     if (typeof window !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
 
-    const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
-    const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
-      ? gpsPosition.heading
-      : (deviceHeading || gpsPosition?.heading || 0);
-
+    if (!liveRef.current.isNavigating) {
+      map.moveCamera({ heading: 0, tilt: 0 });
+      setMapHeading(0);
+      return;
+    }
     if (compassMode === 'heading_up') {
-      // Tap 1: Switch to North-Up flat view (0° heading, 0° tilt)
+      liveRef.current.compassMode = 'north_up';
       setCompassMode('north_up');
-      map.setHeading(0);
-      map.setTilt(0);
+      map.moveCamera({ heading: 0, tilt: 0 });
       setMapHeading(0);
     } else {
-      // Tap 2: Switch back to Driver POV (re-locks camera onto driver at 45° tilt!)
+      liveRef.current.compassMode = 'heading_up';
+      liveRef.current.following = true;
       setCompassMode('heading_up');
-      if (riderHeading !== null) {
-        map.setHeading(riderHeading);
-        setMapHeading(riderHeading);
-      }
-      if (isNavigating) {
-        map.setTilt(45);
-        setIsLocallyFollowing(true);
-        if (onRecenter) onRecenter();
-        if (gpsPosition?.lat && gpsPosition?.lng) {
-          map.panTo({ lat: gpsPosition.lat, lng: gpsPosition.lng });
-          map.setZoom(18);
-        }
-      }
+      setIsLocallyFollowing(true);
+      if (onRecenter) onRecenter();
+      recenterCamera();
     }
-  }, [map, compassMode, isNavigating, gpsPosition, deviceHeading, onRecenter]);
+  }, [map, compassMode, onRecenter, recenterCamera]);
 
   const isOriginMyLocation = useMemo(() => {
     if (!origin) return false;
@@ -846,17 +875,61 @@ function GoogleMapInner({
 
   // Bottom offset for the floating button stack (compass + recenter)
   // Stacked cleanly above the Report Incident button (~104px + 48px + 12px gap)
-  const buttonStackBottomClass = isNavigating
-    ? 'bottom-[164px] sm:bottom-[168px]'
+  // Offsets include the phone's bottom safe area (gesture bar), so nothing is hidden behind the footer:
+  //   navigating : footer card (~96px) + report button (48px) + gaps  -> compass sits above the report button
+  //   route shown: above the route panel (~168px)
+  const buttonStackBottom = isNavigating
+    ? 'calc(env(safe-area-inset-bottom, 0px) + 176px)'
     : fullConnectedPath.length > 0
-    ? 'bottom-[185px]'       // above BottomActionBar (~168px) + gap
-    : 'bottom-[28px]';       // idle — near bottom edge
+    ? 'calc(var(--route-panel-height, 173px) + 12px)' // just above the route panel, whatever its height
+    : 'calc(env(safe-area-inset-bottom, 0px) + 28px)';
 
   const riderCoord = gpsPosition?.lat && gpsPosition?.lng ? gpsPosition : null;
   const isMoving = gpsPosition?.speed !== null && gpsPosition?.speed !== undefined && gpsPosition.speed > 1.5;
   const riderHeading = (isMoving && gpsPosition?.heading !== null && gpsPosition?.heading !== undefined)
     ? gpsPosition.heading
     : (deviceHeading || gpsPosition?.heading || 0);
+
+  // Where the marker should be: the engine's road-aligned position while navigating, the raw GPS fix otherwise.
+  const target = isNavigating && displayPosition ? displayPosition : riderCoord ? { lat: riderCoord.lat, lng: riderCoord.lng } : null;
+
+  // The marker is created once at the first known position; the animation loop moves it from then on.
+  const riderInitial = useRef<{ lat: number; lng: number } | null>(null);
+  if (!riderInitial.current && target) riderInitial.current = { lat: target.lat, lng: target.lng };
+
+  // A new GPS target: start gliding from wherever the marker is now (never from a stale position).
+  useEffect(() => {
+    if (!target) return;
+    const now = performance.now();
+    const a = anim.current;
+    if (!a) {
+      anim.current = {
+        lat: target.lat, lng: target.lng, fromLat: target.lat, fromLng: target.lng, toLat: target.lat, toLng: target.lng,
+        t0: now, h: riderHeading, hTarget: riderHeading,
+      };
+      return;
+    }
+    a.fromLat = a.lat;
+    a.fromLng = a.lng;
+    a.toLat = target.lat;
+    a.toLng = target.lng;
+    a.t0 = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target?.lat, target?.lng]);
+
+  useEffect(() => {
+    if (anim.current) anim.current.hTarget = riderHeading;
+  }, [riderHeading]);
+
+  // Latest values for the animation loop and the event handlers (written during render, read later: never stale).
+  liveRef.current = {
+    isNavigating,
+    following: isLocallyFollowing,
+    compassMode,
+    gps: gpsPosition ?? null,
+    riderHeading,
+    marker: riderMarker,
+  };
 
   return (
     <>
@@ -875,6 +948,13 @@ function GoogleMapInner({
             )}
             <Pin background="#1A73E8" borderColor="#1557B0" glyphColor="#FFFFFF" scale={1.1} />
           </div>
+        </AdvancedMarker>
+      )}
+
+      {/* Pin dropped by press-and-hold */}
+      {droppedPin && !isNavigating && (
+        <AdvancedMarker position={{ lat: droppedPin.lat, lng: droppedPin.lng }} title="Dropped pin" zIndex={60}>
+          <Pin background="#F97316" borderColor="#C2410C" glyphColor="#FFFFFF" scale={1.2} />
         </AdvancedMarker>
       )}
 
@@ -897,13 +977,15 @@ function GoogleMapInner({
       )}
 
       {/* Rider GPS Position & Orientation Arrow */}
-      {riderCoord && (
+      {riderInitial.current && (
         <AdvancedMarker
-          position={{ lat: riderCoord.lat, lng: riderCoord.lng }}
+          ref={riderMarkerRef}
+          position={riderInitial.current}
+          anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
           zIndex={1000}
-          title={`Rider (${Math.round(riderHeading)}°)`}
+          title="Rider"
         >
-          <RiderMarkerIcon heading={riderHeading} isNavigating={isNavigating} />
+          <RiderMarkerIcon isNavigating={isNavigating} rotRef={arrowRef} />
         </AdvancedMarker>
       )}
 
@@ -927,19 +1009,15 @@ function GoogleMapInner({
        */}
       <div
         ref={containerRef}
-        className={`fixed right-4 sm:right-6 z-[1001] flex flex-col items-center gap-2 transition-all duration-300 pointer-events-auto ${buttonStackBottomClass}`}
+        style={{ bottom: buttonStackBottom }}
+        className="fixed right-4 sm:right-6 z-[1001] flex flex-col items-center gap-2 transition-all duration-300 pointer-events-auto"
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
         {/* ── Compass "N" Button — always visible ── */}
-        <CompassButton
-          mapHeading={mapHeading}
-          deviceHeading={deviceHeading}
-          isNavigating={isNavigating}
-          riderHeading={riderHeading}
-          compassMode={compassMode}
-          onToggle={handleCompassToggle}
-        />
+        {(isNavigating || Math.abs(mapHeading) >= 1) && (
+          <CompassButton mapHeading={mapHeading} compassMode={compassMode} onToggle={handleCompassToggle} />
+        )}
 
         {/* ── Recenter / GPS Button — hidden during navigation ── */}
         {!isNavigating && (
@@ -986,7 +1064,9 @@ export const GoogleMapContainer: React.FC<MapContainerProps> = (props) => {
         <GMap
           defaultCenter={defaultCenter}
           defaultZoom={13}
-          mapId="DEMO_MAP_ID"
+          mapId={MAP_ID}
+          renderingType={RenderingType.VECTOR}
+          clickableIcons={false}
           gestureHandling="greedy"
           disableDefaultUI={true}
           style={{ width: '100%', height: '100%' }}

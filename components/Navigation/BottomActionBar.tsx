@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigation, Eye, List, ChevronUp, ChevronDown, Check, Zap, ArrowRight } from 'lucide-react';
 import { RouteResponse, RouteMode } from '@/lib/types';
 import { cleanManeuverText, formatDistance } from '@/lib/geo';
+import { routeMinutes } from '@/lib/eta';
 
 interface BottomActionBarProps {
   routeData: RouteResponse | null;
@@ -29,6 +30,27 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onStartPreview,
 }) => {
   const [showSteps, setShowSteps] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // The panel's height changes (comparison cards, steps list). Publish how much of the screen it covers, measured from the
+  // bottom, so the map's compass and Re-center buttons always sit above it (see GoogleMapContainer).
+  const visible = !!routeData?.path && routeData.path.length >= 2;
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!visible || !el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const publish = () =>
+      root.style.setProperty('--route-panel-height', `${Math.ceil(window.innerHeight - el.getBoundingClientRect().top)}px`);
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    window.addEventListener('resize', publish);
+    publish();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', publish);
+      root.style.removeProperty('--route-panel-height');
+    };
+  }, [visible]);
 
   const isFastestMode = mode === 'fastest' && (shortestRouteData || dynamicRouteData);
 
@@ -37,27 +59,16 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const maneuvers = routeData.maneuvers || [];
   const distanceKm = routeData.distance_km || 0;
 
-  // Accurate Durations
-  const liveTrafficBase = dynamicRouteData?.google_base_duration_mins;
+  // Durations: one model for every route (lib/eta.ts routeMinutes = the server's planned duration), the same one the
+  // navigation screen starts from.
+  const shortestDurationMins = shortestRouteData ? routeMinutes(shortestRouteData) : 0;
+  const dynamicDurationMins = dynamicRouteData ? routeMinutes(dynamicRouteData) : 0;
 
-  const shortestDurationMins = shortestRouteData
-    ? liveTrafficBase
-      ? Math.round(liveTrafficBase)
-      : Math.max(2, Math.round(((shortestRouteData.distance_km || 0) / 22) * 60))
-    : 0;
-
-  const dynamicDurationMins = dynamicRouteData
-    ? Math.max(2, Math.round(((dynamicRouteData.distance_km || 0) / 27.5) * 60))
-    : 0;
-
-  const currentDurationMins =
-    isFastestMode
-      ? selectedRouteType === 'dynamic'
-        ? dynamicDurationMins
-        : shortestDurationMins
-      : routeData.google_base_duration_mins
-      ? Math.round(routeData.google_base_duration_mins)
-      : Math.max(2, Math.round(((distanceKm || 0) / 24) * 60));
+  const currentDurationMins = isFastestMode
+    ? selectedRouteType === 'dynamic'
+      ? dynamicDurationMins
+      : shortestDurationMins
+    : routeMinutes(routeData);
 
   const timeDiffMins = Math.abs(shortestDurationMins - dynamicDurationMins);
   const isDynamicFaster = dynamicDurationMins < shortestDurationMins;
@@ -79,7 +90,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   };
 
   return (
-    <div className="fixed bottom-2.5 sm:bottom-5 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
+    <div ref={panelRef} className="fixed bottom-2.5 sm:bottom-5 left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[1000] font-sans pb-[env(safe-area-inset-bottom)] transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
       <div className="bg-[#0f172a] rounded-2xl sm:rounded-2xl p-3 sm:p-3.5 shadow-2xl shadow-black/90 border border-slate-700/80 space-y-2 sm:space-y-2.5">
         {/* Visual Drawer Handle */}
         <div className="flex justify-center -mt-1 sm:hidden">
@@ -240,7 +251,7 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
                   </div>
                 </div>
                 <span className="font-mono text-sky-400 text-[10px] sm:text-[11px] shrink-0 font-bold">
-                  {formatDistance(m.distance_m)}
+                  {m.distance_m > 0 ? formatDistance(m.distance_m) : ''}
                 </span>
               </div>
             ))}

@@ -1,0 +1,14 @@
+# Backend packages:  pip install -r requirements.txt
+fastapi
+uvicorn
+osmnx>=2.0
+networkx>=3.2
+shapely
+numpy
+scipy          # search landmarks
+scikit-learn   # nearest-node lookups
+httpx
+python-dotenv
+pydantic
+motor          # MongoDB, optional at run time
+pymongo

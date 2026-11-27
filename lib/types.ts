@@ -33,6 +33,13 @@ export interface RouteResponse {
   journey_id?: string;
   path?: LatLng[];
   distance_km?: number;
+  /** planned travel time in seconds: sent by the backend, or filled in by the app (lib/routeInfo.ts) */
+  duration_s?: number;
+  /** true when the app had to estimate duration_s because the backend sent none */
+  time_from_app?: boolean;
+  /** where the route really starts / ends (on a road) and how far that is from the pin */
+  origin_snap?: SnapInfo | null;
+  destination_snap?: SnapInfo | null;
   weighted_cost?: number;
   best_strategy?: string;
   google_base_duration_mins?: number | null;
@@ -40,6 +47,8 @@ export interface RouteResponse {
   candidate_routes?: CandidateRoute[];
   maneuvers?: TurnManeuver[];
   waypoints_used?: number;
+  /** true when the request was cancelled because a newer one replaced it: not an error, nothing to show */
+  aborted?: boolean;
 }
 
 export interface GPSPosition {
@@ -135,4 +144,8 @@ export interface RoadIncident {
   downvotes: number;
 }
 
-
+export interface SnapInfo {
+  lat: number;
+  lng: number;
+  distance_m: number;
+}

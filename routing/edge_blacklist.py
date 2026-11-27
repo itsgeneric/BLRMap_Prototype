@@ -111,6 +111,11 @@ class EdgeBlacklist:
             return self.penalties[k_rev]
         return 1.0
 
+    def min_penalty(self) -> float:
+        """Smallest penalty multiplier currently stored (1.0 when empty). Used for the A* lower bound."""
+        with self.lock:
+            return min(self.penalties.values()) if self.penalties else 1.0
+
     def count(self) -> int:
         return len(self.records) // 2 if self.records else 0
 

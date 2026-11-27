@@ -1,3 +1,14 @@
+import sys
+
+# The server prints status lines with symbols. When its output goes to a file or a pipe on Windows (a service, a log redirect,
+# a task runner) the default text encoding cannot represent them and printing RAISES, which stopped the server from starting at
+# all. Make printing never fail.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 import httpx
 import osmnx as ox
 import networkx as nx
@@ -5,16 +16,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from routing.graph_manager import graph_manager
-from routing.algorithms import (
-    astar_on_graph,
-    two_wheeler_astar,
-    build_two_wheeler_penalties,
-    calc_route_distance,
-    collapse_micro_loops,
+import threading
+
+from core.config import (
+    SNAP_FINAL_POLYLINE, ENABLE_ROAD_VERIFY, MAX_SNAP_DISTANCE_M,
 )
+from routing.graph_manager import graph_manager
+from routing.algorithms import build_two_wheeler_penalties
+from routing.smart import plan_smart
+from routing.snapping import FAR_PIN_M, NoRoadNearby, find_snaps, nearby_junction_snaps, plan_route, snap_to_node
 from routing.edge_blacklist import edge_blacklist
-from services.external_api import search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads
+from services.external_api import (
+    search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads,
+)
 from database.mongo_client import connect_db, close_db
 from database.models import (
     RouteSnapshotIn,
@@ -27,9 +41,67 @@ from database.models import (
 import database.operations as db
 
 
+# Spatial index of every road edge. Used to snap pins to the nearest ROAD (routing/snapping.py) and by the developer
+# road-quality tools. Built in a background thread after startup (about a minute); until it is ready, routes fall back
+# to the old nearest-junction snapping so the server is usable immediately.
+_road_index_state = {"index": None, "building": False, "error": None}
+
+
+def _build_road_index():
+    from routing.graph_qa import RoadIndex
+    _road_index_state["building"] = True
+    try:
+        print("[Index] Building road index in the background...")
+        _road_index_state["index"] = RoadIndex.from_graph(
+            graph_manager.G, progress=lambda n: print(f"[Index]   indexed {n:,} edges...")
+        )
+        print(f"[Index] Road index ready: {_road_index_state['index'].size:,} sample points")
+    except Exception as exc:
+        _road_index_state["error"] = f"{type(exc).__name__}: {exc}"
+        print(f"[Index] Road index failed: {_road_index_state['error']}")
+    finally:
+        _road_index_state["building"] = False
+
+
+# Landmark bounds that make Dynamic planning several times faster (routing/landmarks.py). Built in the background after the
+# road index; until they are ready (or if they cannot be used for a request) the plain, slower heuristic is used.
+_landmark_state = {"lm": None, "building": False, "error": None}
+
+
+def _build_landmarks():
+    from routing.landmarks import Landmarks
+    _landmark_state["building"] = True
+    try:
+        print("[Landmarks] Building search landmarks in the background...")
+        lm = Landmarks.build(graph_manager.G, build_two_wheeler_penalties())
+        _landmark_state["lm"] = lm
+        print(f"[Landmarks] Ready: {len(lm.landmark_nodes)} landmarks in {lm.build_seconds:.0f}s")
+    except Exception as exc:
+        _landmark_state["error"] = f"{type(exc).__name__}: {exc}"
+        print(f"[Landmarks] Failed (Dynamic will use the slower heuristic): {_landmark_state['error']}")
+    finally:
+        _landmark_state["building"] = False
+
+
+def _snaps_for(lat: float, lng: float, label: str):
+    """Candidate road points for a pin. Raises NoRoadNearby when no road is within MAX_SNAP_DISTANCE_M."""
+    index = _road_index_state["index"]
+    if index is None:
+        return [snap_to_node(graph_manager.G, lat, lng)]
+    snaps = find_snaps(graph_manager.G, index, lat, lng, MAX_SNAP_DISTANCE_M)
+    if not snaps:
+        raise NoRoadNearby(f"No road within {MAX_SNAP_DISTANCE_M:.0f} m of the {label} point. Move the pin closer to a road.")
+    if snaps[0].distance_m > FAR_PIN_M:
+        # Off the road: also offer nearby junctions, so a one-way segment cannot force a long detour (see nearby_junction_snaps).
+        snaps = snaps + nearby_junction_snaps(graph_manager.G, index, lat, lng, snaps[0].distance_m)
+    return snaps
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     graph_manager.load_graph()
+    threading.Thread(target=_build_road_index, daemon=True).start()
+    threading.Thread(target=_build_landmarks, daemon=True).start()
     await connect_db()
     yield
     graph_manager.G.clear()
@@ -62,31 +134,33 @@ async def search(q: str):
 
 @app.get("/route")
 async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
-    start = ox.nearest_nodes(graph_manager.G, from_lng, from_lat)
-    end   = ox.nearest_nodes(graph_manager.G, to_lng,  to_lat)
+    # Pins are attached to the nearest ROAD (one-way aware). The returned path starts and ends ON a road: nothing is
+    # drawn between a pin and the road (origin_snap / destination_snap report how far each pin was from it).
+    try:
+        origins = _snaps_for(from_lat, from_lng, "start")
+        destinations = _snaps_for(to_lat, to_lng, "destination")
+    except NoRoadNearby as exc:
+        return {"status": "error", "message": str(exc)}
 
     try:
-        route  = astar_on_graph(graph_manager.G, start, end)
+        plan = plan_route(graph_manager.G, graph_manager, "shortest", origins, destinations)
 
-        # GMaps verification loop: iteratively eliminate any ghost/private roads
-        for _ in range(3):
-            flagged = await snap_and_verify_route(route, graph_manager.G)
+        # Optional Google road check (ENABLE_ROAD_VERIFY, off by default: see core/config.py)
+        for _ in range(3 if ENABLE_ROAD_VERIFY else 0):
+            flagged = await snap_and_verify_route(plan["nodes"], graph_manager.G)
             if not flagged:
                 break
             try:
-                route = astar_on_graph(graph_manager.G, start, end)
+                plan = plan_route(graph_manager.G, graph_manager, "shortest", origins, destinations)
             except Exception:
                 break
 
-        # Prune any redundant alley micro-loops back to straight corridors
-        route = collapse_micro_loops(route, graph_manager.G)
+        coords = plan["coords"]
+        dist_km = round(plan["distance_m"] / 1000, 2)
 
-        coords = graph_manager.route_nodes_to_coords(route)
-        dist   = calc_route_distance(graph_manager.G, route)
-        dist_km = round(dist / 1000, 2)
-
-        # ── Snap polyline to real road centerlines (Roads API) ───────────
-        coords = await snap_route_to_roads(coords)
+        # Displayed line = our own graph geometry. Roads-API re-snapping is opt-in (SNAP_FINAL_POLYLINE).
+        if SNAP_FINAL_POLYLINE:
+            coords = await snap_route_to_roads(coords)
         # ────────────────────────────────────────────────────────────────
 
         # ── Save route snapshot to MongoDB ──────────────────────────────
@@ -101,7 +175,12 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         )
         # ────────────────────────────────────────────────────────────────
 
-        response = {"status": "success", "path": coords, "distance_km": dist_km}
+        response = {
+            "status": "success", "path": coords, "distance_km": dist_km,
+            "duration_s": plan["duration_s"],
+            "origin_snap": plan["origin_snap"], "destination_snap": plan["destination_snap"],
+            "maneuvers": plan["maneuvers"],
+        }
         if journey_id:
             response["journey_id"] = journey_id
         return response
@@ -116,8 +195,11 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
 
 @app.get("/dynamic-route")
 async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
-    start = ox.nearest_nodes(graph_manager.G, from_lng, from_lat)
-    end   = ox.nearest_nodes(graph_manager.G, to_lng,  to_lat)
+    try:
+        origins = _snaps_for(from_lat, from_lng, "start")
+        destinations = _snaps_for(to_lat, to_lng, "destination")
+    except NoRoadNearby as exc:
+        return {"status": "error", "message": str(exc)}
 
     async with httpx.AsyncClient() as client:
         duration_s, jam_coords = await fetch_traffic_data(
@@ -126,8 +208,11 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
 
     congested_nodes: set = set()
     if jam_coords:
-        for lat, lng in jam_coords:
-            congested_nodes.add(ox.nearest_nodes(graph_manager.G, lng, lat))
+        # ONE batched lookup for all jam points. A call per point rebuilt the lookup over the whole city each time (about 0.7 s
+        # each), so a route with 60 jam points took 40+ s and the app gave up with "failed to fetch directions".
+        unique = sorted({(round(lat, 5), round(lng, 5)) for lat, lng in jam_coords})
+        found = ox.nearest_nodes(graph_manager.G, [lng for _, lng in unique], [lat for lat, _ in unique])
+        congested_nodes.update(int(n) for n in found)
 
     # Fetch live crowd-sourced incidents (accidents, floods, hazards) for dynamic avoidance
     incident_penalties = await db.get_active_incident_penalties()
@@ -135,36 +220,28 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
     penalties = build_two_wheeler_penalties()
 
     try:
-        route = two_wheeler_astar(
-            graph_manager.G, start, end, graph_manager,
-            penalties=penalties, congested_nodes=congested_nodes,
-            incident_nodes=incident_penalties,
-        )
+        plan_args = dict(penalties=penalties, congested_nodes=congested_nodes, incident_nodes=incident_penalties,
+                         landmarks=_landmark_state["lm"])
+        # inner roads first, within a detour budget; through traffic when the way round is too long (routing/smart.py)
+        plan = plan_smart(graph_manager.G, graph_manager, origins, destinations, **plan_args)
 
-        # GMaps verification loop: iteratively eliminate any ghost/private roads
-        for _ in range(3):
-            flagged = await snap_and_verify_route(route, graph_manager.G)
+        # Optional Google road check (ENABLE_ROAD_VERIFY, off by default: see core/config.py)
+        for _ in range(3 if ENABLE_ROAD_VERIFY else 0):
+            flagged = await snap_and_verify_route(plan["nodes"], graph_manager.G)
             if not flagged:
                 break
             try:
-                route = two_wheeler_astar(
-                    graph_manager.G, start, end, graph_manager,
-                    penalties=penalties, congested_nodes=congested_nodes,
-                    incident_nodes=incident_penalties,
-                )
+                plan = plan_smart(graph_manager.G, graph_manager, origins, destinations, **plan_args)
             except Exception:
                 break
 
-        # Prune any redundant alley micro-loops back to straight corridors
-        route = collapse_micro_loops(route, graph_manager.G)
-
-        coords  = graph_manager.route_nodes_to_coords(route)
-        dist    = calc_route_distance(graph_manager.G, route)
-        dist_km = round(dist / 1000, 2)
+        coords  = plan["coords"]
+        dist_km = round(plan["distance_m"] / 1000, 2)
         google_mins = round(duration_s / 60, 1) if duration_s else None
 
-        # ── Snap polyline to real road centerlines (Roads API) ───────────
-        coords = await snap_route_to_roads(coords)
+        # Displayed line = our own graph geometry. Roads-API re-snapping is opt-in (SNAP_FINAL_POLYLINE).
+        if SNAP_FINAL_POLYLINE:
+            coords = await snap_route_to_roads(coords)
         # ────────────────────────────────────────────────────────────────
 
         # ── Save route snapshot to MongoDB ──────────────────────────────
@@ -185,8 +262,15 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             "status": "success",
             "path": coords,
             "distance_km": dist_km,
+            "duration_s": plan["duration_s"],
             "google_base_duration_mins": google_mins,
             "congested_nodes_avoided": len(congested_nodes),
+            "direct_distance_km": round(plan["direct_distance_m"] / 1000, 2),
+            "preference_level": plan["preference_level"],
+            "through_traffic": plan["through_traffic"],
+            "origin_snap": plan["origin_snap"],
+            "destination_snap": plan["destination_snap"],
+            "maneuvers": plan["maneuvers"],
         }
         if journey_id:
             response["journey_id"] = journey_id

@@ -1,10 +1,12 @@
 import { Point, RouteMode, RouteResponse, SearchResult, IncidentType, RoadIncident } from './types';
 
-// API Base URL: Toggle between local development and Azure deployment
-const getApiBase = () => {
-    // return 'http://127.0.0.1:8000';
-    return 'http://4.193.145.212:8000'
-};
+import { API_BASE } from './apiBase';
+import { completeRoute, comparisonMinutes } from './routeInfo';
+import { requestRoute } from './routeClient';
+import { shortPlaceName } from './pinActions';
+
+// Backend address: see lib/apiBase.ts (NEXT_PUBLIC_API_BASE, set before `npm run build`).
+const getApiBase = () => API_BASE;
 
 
 /**
@@ -134,49 +136,15 @@ export async function fetchRoute(
   to: Point,
   signal?: AbortSignal
 ): Promise<RouteResponse> {
-  const endpoint = mode === 'dynamic' ? '/dynamic-route' : '/route';
-  const params = new URLSearchParams({
-    from_lat: from.lat.toString(),
-    from_lng: from.lng.toString(),
-    to_lat: to.lat.toString(),
-    to_lng: to.lng.toString(),
-  });
-
-  const url = `${getApiBase()}${endpoint}?${params.toString()}`;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
-
-    const res = await fetch(url, { signal: signal || controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || `Backend server returned status ${res.status}`);
-    }
-
-    const data: RouteResponse = await res.json();
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Route could not be calculated by algorithm.');
-    }
-
-    return data;
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
-      return {
-        status: 'error',
-        message: 'Routing request timed out. Make sure api_server.py is running.',
-      };
-    }
-    console.error('Error fetching route from backend algorithm:', err);
-    return {
-      status: 'error',
-      message:
-        err.message ||
-        'Failed to connect to backend server. Make sure `python api_server.py` is running on port 8000.',
-    };
-  }
+  // All the request logic (timeout, retries, cancel handling, readable errors) lives in lib/routeClient.ts, where it is tested.
+  const res = await requestRoute(
+    { fetchImpl: (input, init) => fetch(input, init), baseUrl: getApiBase() },
+    mode,
+    from,
+    to,
+    signal
+  );
+  return completeRoute(res); // travel time and turn list (see lib/routeInfo.ts)
 }
 
 export interface BothRoutesResponse {
@@ -184,6 +152,8 @@ export interface BothRoutesResponse {
   dynamic: RouteResponse | null;
   fastestChoice: 'shortest' | 'dynamic';
   timeDiffMins: number;
+  /** a request was cancelled by a newer one: the caller should ignore this result silently */
+  aborted?: boolean;
 }
 
 /**
@@ -199,6 +169,8 @@ export async function fetchBothRoutes(
     fetchRoute('dynamic', from, to, signal),
   ]);
 
+  const aborted = [shortestRes, dynamicRes].some((r) => r.status === 'fulfilled' && r.value.aborted === true);
+
   const shortest =
     shortestRes.status === 'fulfilled' && shortestRes.value.status === 'success'
       ? shortestRes.value
@@ -208,23 +180,17 @@ export async function fetchBothRoutes(
       ? dynamicRes.value
       : null;
 
-  const shortestKm = shortest?.distance_km || 0;
-  const dynamicKm = dynamic?.distance_km || 0;
-
-  // Real-world city timing calculation:
-  // Shortest route (main arterial roads): subject to Bangalore traffic & signals (~22 km/h)
-  // If Google live traffic duration is available, that is the main road congested duration
-  const googleTrafficMins = dynamic?.google_base_duration_mins;
-  const shortestEstMins = googleTrafficMins
-    ? Math.round(googleTrafficMins)
-    : shortest
-    ? Math.max(2, Math.round((shortestKm / 22) * 60))
-    : Infinity;
-
-  // Dynamic route (two-wheeler inner road bypass): avoids jammed bottlenecks (~27.5 km/h)
-  const dynamicEstMins = dynamic
-    ? Math.max(2, Math.round((dynamicKm / 27.5) * 60))
-    : Infinity;
+  // The backend times both routes with one model; compare those times. Only for a backend that sends none is the app's
+  // original comparison used. Either way each route keeps the compared time, so the cards, the choice and the arrival
+  // time during the ride all show the same number.
+  if (shortest?.time_from_app || dynamic?.time_from_app) {
+    const compared = comparisonMinutes(shortest, dynamic);
+    if (shortest) shortest.duration_s = compared.shortest * 60;
+    if (dynamic) dynamic.duration_s = compared.dynamic * 60;
+  }
+  const minutes = (route: typeof shortest) => (route?.duration_s != null ? Math.max(1, Math.round(route.duration_s / 60)) : Infinity);
+  const shortestEstMins = minutes(shortest);
+  const dynamicEstMins = minutes(dynamic);
 
   const fastestChoice: 'shortest' | 'dynamic' =
     dynamicEstMins < shortestEstMins && dynamic ? 'dynamic' : 'shortest';
@@ -236,6 +202,7 @@ export async function fetchBothRoutes(
     dynamic,
     fastestChoice,
     timeDiffMins: isFinite(timeDiffMins) ? timeDiffMins : 0,
+    aborted,
   };
 }
 
@@ -320,3 +287,20 @@ export async function verifyIncident(
 }
 
 
+/** Name and address of a point on the map (Google Geocoder, already loaded with the map). Always resolves, with a fallback. */
+export async function reverseGeocode(lat: number, lng: number): Promise<{ name: string; address: string }> {
+  const fallback = { name: 'Dropped pin', address: `${lat.toFixed(5)}, ${lng.toFixed(5)}` };
+  if (typeof window === 'undefined' || !(window as any).google?.maps?.Geocoder) return fallback;
+  try {
+    const geocoder = new (window as any).google.maps.Geocoder();
+    const answer: any = await Promise.race([
+      geocoder.geocode({ location: { lat, lng } }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('geocoder timeout')), 4000)),
+    ]);
+    const best = answer?.results?.[0];
+    if (!best?.formatted_address) return fallback;
+    return { name: shortPlaceName(best.formatted_address), address: best.formatted_address };
+  } catch {
+    return fallback;
+  }
+}

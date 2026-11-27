@@ -190,3 +190,46 @@ export function calculateRemainingRouteDistance(
 
   return total;
 }
+
+/** "Turn left onto 7th Cross Road" / "Continue straight" / "Arrive at your destination": the on-screen text for a maneuver. */
+export function maneuverTitle(maneuver: TurnManeuver | null): string {
+  if (!maneuver) return '';
+  const named = maneuver.road_name && maneuver.road_name !== 'Unnamed Road';
+  const onto = named ? ` onto ${maneuver.road_name}` : '';
+  switch (maneuver.type) {
+    case 'turn_left':
+      return `Turn left${onto}`;
+    case 'slight_left':
+      return `Bear left${onto}`;
+    case 'turn_right':
+      return `Turn right${onto}`;
+    case 'slight_right':
+      return `Bear right${onto}`;
+    case 'u_turn':
+      return `Make a U-turn${onto}`;
+    case 'arrive':
+      return 'Arrive at your destination';
+    case 'depart':
+      return named ? `Head along ${maneuver.road_name}` : 'Start of route';
+    case 'straight':
+    default:
+      return named ? `Continue onto ${maneuver.road_name}` : 'Continue straight';
+  }
+}
+
+/** Distance as shown on the turn banner: "Now", "80 m", "250 m", "1.2 km" (rounded so it does not flicker every second). */
+export function formatManeuverDistance(meters: number): string {
+  if (meters < 20) return 'Now';
+  if (meters < 200) return `${Math.round(meters / 10) * 10} m`;
+  if (meters < 1000) return `${Math.round(meters / 50) * 50} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+/** Length of a [lat, lng] line in metres. */
+export function pathLengthMeters(path: LatLng[] | null | undefined): number {
+  let total = 0;
+  for (let i = 1; i < (path?.length ?? 0); i++) {
+    total += haversineMeters(path![i - 1][0], path![i - 1][1], path![i][0], path![i][1]);
+  }
+  return total;
+}

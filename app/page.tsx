@@ -11,10 +11,14 @@ import {
   TripSummary,
   RoadIncident,
 } from '@/lib/types';
-import { fetchRoute, fetchBothRoutes, fetchActiveIncidents } from '@/lib/api';
-import { haversineMeters } from '@/lib/geo';
+import { fetchRoute, fetchBothRoutes, fetchActiveIncidents, reverseGeocode } from '@/lib/api';
+import { createLatest } from '@/lib/latest';
+import { applyPinAction, PinAction } from '@/lib/pinActions';
+import { haversineMeters, pathLengthMeters } from '@/lib/geo';
 import { useGPS } from '@/hooks/useGPS';
 import { useNavigationEngine } from '@/hooks/useNavigationEngine';
+import { useTripEta } from '@/hooks/useTripEta';
+import { voiceGuidance } from '@/lib/speech';
 import { startTrip, completeTrip, reportReroute } from '@/lib/tripTracker';
 
 import { TopSearchBar } from '@/components/Navigation/TopSearchBar';
@@ -25,6 +29,7 @@ import { BottomActionBar } from '@/components/Navigation/BottomActionBar';
 import { ToastContainer } from '@/components/UI/Toast';
 import { ArrivalModal } from '@/components/Navigation/ArrivalModal';
 import { IncidentReportModal } from '@/components/Navigation/IncidentReportModal';
+import { PlaceSheet } from '@/components/Navigation/PlaceSheet';
 import { Loader2, Bike } from 'lucide-react';
 
 // Dynamic SSR-disabled GoogleMapContainer
@@ -41,6 +46,12 @@ const MapContainer = dynamic(
   }
 );
 
+const ROUTE_DEBOUNCE_MS = 250;
+
+/** Identifies what a route was calculated for, so an old route is never offered for a new choice. */
+const tripKey = (from: Point | null, to: Point | null, mode: RouteMode) =>
+  from && to ? `${from.lat},${from.lng}|${to.lat},${to.lng}|${mode}` : '';
+
 export default function NavigationApp() {
   const [theme] = useState<ThemeMode>('light');
   const [origin, setOrigin] = useState<Point | null>(null);
@@ -52,16 +63,27 @@ export default function NavigationApp() {
   const [dynamicRouteData, setDynamicRouteData] = useState<RouteResponse | null>(null);
   const [selectedRouteType, setSelectedRouteType] = useState<'shortest' | 'dynamic'>('shortest');
   const [loading, setLoading] = useState(false);
+  const [routeFor, setRouteFor] = useState(''); // tripKey() of the route on screen
   const [isRerouting, setIsRerouting] = useState(false);
   const [isFollowingCamera, setIsFollowingCamera] = useState(true);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [tripSummary, setTripSummary] = useState<TripSummary | null>(null);
   const [activeIncidents, setActiveIncidents] = useState<RoadIncident[]>([]);
 
   const routeAbortControllerRef = useRef<AbortController | null>(null);
+  // "Latest request wins": only the newest route request may change the screen (see lib/latest.ts)
+  const latestRoute = useRef(createLatest());
+  // The place dropped by press-and-hold, waiting for the rider to choose Directions / Start here
+  const [droppedPin, setDroppedPin] = useState<Point | null>(null);
+  const [pinResolving, setPinResolving] = useState(false);
+  // A slow GPS or place-name answer must not overwrite what the rider has done in the meantime
+  const latestGpsOrigin = useRef(createLatest());
+  const latestPinName = useRef(createLatest());
   const tripStartTimeRef = useRef<number>(0);
   const activeJourneyIdRef = useRef<string | null>(null);
+  const reroutedRef = useRef(false); // this trip replaced the planned route (or is trying to)
+  const cancelRerouteRef = useRef<(() => void) | null>(null);
   // Stable ref so onRerouteNeeded can call rerouteFromPosition even before it's defined
   const rerouteFromPositionRef = useRef<((lat: number, lng: number) => void) | null>(null);
 
@@ -77,14 +99,16 @@ export default function NavigationApp() {
 
   useEffect(() => {
     refreshIncidents();
-    const interval = setInterval(refreshIncidents, 30000); // 30s live poll
+    const interval = setInterval(() => {
+      if (typeof document === 'undefined' || !document.hidden) refreshIncidents(); // 30s live poll, only while visible
+    }, 30000);
     return () => clearInterval(interval);
   }, [refreshIncidents]);
 
   // Toast Helpers (Reserved only for genuine errors)
   const addToast = useCallback((text: string, type: ToastMessage['type'] = 'error', duration = 4000) => {
     const id = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    setToasts((prev) => [...prev, { id, text, type, duration }]);
+    setToasts((prev) => (prev.some((t) => t.text === text) ? prev : [...prev, { id, text, type, duration }]));
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, duration);
@@ -131,11 +155,14 @@ export default function NavigationApp() {
   // Turn-by-Turn Navigation Engine Hook
   const {
     isNavigating,
+    navState,
+    progress,
     nearestSegmentIndex,
     distanceToManeuverMeters,
     remainingMeters,
     currentManeuver,
     nextManeuver,
+    currentRoadName,
     startNavigation,
     stopNavigation,
   } = useNavigationEngine({
@@ -162,9 +189,12 @@ export default function NavigationApp() {
         rerouteFromPositionRef.current?.(info.lat, info.lng);
       }
     },
-    onArrival: () => {
+    onArrival: ({ travelledMeters }) => {
+      if (reroutedRef.current) cancelRerouteRef.current?.();
       const timeTakenSec = Math.max(1, Math.round((Date.now() - tripStartTimeRef.current) / 1000));
-      const distKm = routeData?.distance_km || 0;
+      // distance actually travelled (counted along the route, so rerouting and GPS jitter do not distort it)
+      const distKm = travelledMeters > 50 ? travelledMeters / 1000 : routeData?.distance_km || 0;
+      if (voiceEnabled) voiceGuidance.speak('You have arrived', true);
       const summary: TripSummary = {
         distanceKm: distKm,
         timeTakenSec,
@@ -179,26 +209,58 @@ export default function NavigationApp() {
     },
   });
 
-  // Route Fetch Function (for initial + mode change loads)
+  // Remaining time, arrival time and speedometer: one model for all of them (lib/eta.ts).
+  // progress is measured along the drawn line, so the total must be that line's length too
+  const routeTotalM = useMemo(() => pathLengthMeters(routeData?.path), [routeData?.path]);
+  const trip = useTripEta({
+    isNavigating,
+    totalM: routeTotalM,
+    plannedDurationS: routeData?.duration_s ?? null,
+    remainingM: remainingMeters || routeTotalM,
+    gpsPosition: realGpsPosition,
+  });
+
+  // The route starts and ends on the nearest road. When that is far from a pin, say so instead of leaving the rider to
+  // wonder why the line stops short.
+  const notifySnap = useCallback(
+    (res: RouteResponse) => {
+      const parts: string[] = [];
+      const start = res.origin_snap?.distance_m ?? 0;
+      const end = res.destination_snap?.distance_m ?? 0;
+      if (start > 75) parts.push(`The route starts ${Math.round(start)} m from your start point`);
+      if (end > 75) parts.push(`The route ends ${Math.round(end)} m from your destination`);
+      if (parts.length > 0) addToast(`${parts.join('. ')}: no public road goes closer.`, 'info', 6000);
+    },
+    [addToast]
+  );
+
+  // Route Fetch Function (for initial + mode change loads).
+  // Answers of superseded requests are dropped: they never show an error, never clear the route, never touch the spinner.
   const loadRoute = useCallback(async () => {
+    if (routeAbortControllerRef.current) {
+      routeAbortControllerRef.current.abort();
+    }
+
     if (!origin || !destination) {
+      latestRoute.current.invalidate();
+      setLoading(false);
       setRouteData(null);
       setShortestRouteData(null);
       setDynamicRouteData(null);
       return;
     }
 
-    if (routeAbortControllerRef.current) {
-      routeAbortControllerRef.current.abort();
-    }
-    routeAbortControllerRef.current = new AbortController();
-    // Reset confirmation on every new fetch — show both routes again
+    const controller = new AbortController();
+    routeAbortControllerRef.current = controller;
+    const token = latestRoute.current.begin();
+    // Reset confirmation on every new fetch: show both routes again
     setHasConfirmedRoute(false);
 
     setLoading(true);
     try {
       if (mode === 'fastest') {
-        const both = await fetchBothRoutes(origin, destination, routeAbortControllerRef.current.signal);
+        const both = await fetchBothRoutes(origin, destination, controller.signal);
+        if (!latestRoute.current.isCurrent(token) || both.aborted) return;
         setShortestRouteData(both.shortest);
         setDynamicRouteData(both.dynamic);
 
@@ -208,14 +270,19 @@ export default function NavigationApp() {
         const activeRes = both[chosenType] || both.shortest || both.dynamic;
         if (activeRes && activeRes.path && activeRes.path.length > 0) {
           setRouteData(activeRes);
+          notifySnap(activeRes);
+          setRouteFor(tripKey(origin, destination, mode));
         } else {
           setRouteData(null);
           addToast('Could not calculate fastest route comparison.', 'error');
         }
       } else {
-        const res = await fetchRoute(mode, origin, destination, routeAbortControllerRef.current.signal);
+        const res = await fetchRoute(mode, origin, destination, controller.signal);
+        if (!latestRoute.current.isCurrent(token) || res.aborted) return;
         if (res.status === 'success' && res.path && res.path.length > 0) {
           setRouteData(res);
+          notifySnap(res);
+          setRouteFor(tripKey(origin, destination, mode));
           if (mode === 'shortest') {
             setShortestRouteData(res);
             setDynamicRouteData(null);
@@ -233,13 +300,12 @@ export default function NavigationApp() {
         }
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        addToast('Failed to calculate route. Check backend connection.', 'error');
-      }
+      if (!latestRoute.current.isCurrent(token) || err?.name === 'AbortError') return;
+      addToast('Failed to calculate route. Check backend connection.', 'error');
     } finally {
-      setLoading(false);
+      if (latestRoute.current.isCurrent(token)) setLoading(false);
     }
-  }, [origin, destination, mode, addToast]);
+  }, [origin, destination, mode, addToast, notifySnap]);
 
   /**
    * Reroute from an arbitrary GPS position to the destination.
@@ -249,11 +315,13 @@ export default function NavigationApp() {
   const rerouteFromPosition = useCallback(async (fromLat: number, fromLng: number) => {
     if (!destination) return;
 
-    // Abort any in-flight route request
+    // Abort any in-flight route request; its answer (if it still arrives) must not overwrite the new route
     if (routeAbortControllerRef.current) {
       routeAbortControllerRef.current.abort();
     }
+    const token = latestRoute.current.begin();
     routeAbortControllerRef.current = new AbortController();
+    reroutedRef.current = true;
 
     setIsRerouting(true);
 
@@ -274,6 +342,7 @@ export default function NavigationApp() {
         destination,
         routeAbortControllerRef.current.signal
       );
+      if (res.aborted || !latestRoute.current.isCurrent(token)) return;
 
       if (res.status === 'success' && res.path && res.path.length > 0) {
         // Replace active routeData with the new rerouted path.
@@ -284,18 +353,12 @@ export default function NavigationApp() {
         } else {
           setShortestRouteData(res);
         }
-        if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          try {
-            const utterance = new SpeechSynthesisUtterance('New route found');
-            utterance.rate = 1.05;
-            window.speechSynthesis.speak(utterance);
-          } catch {}
-        }
+        if (voiceEnabled) voiceGuidance.speak('New route found');
       } else {
         addToast('Could not reroute from your position. Stay on course.', 'warning');
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
+      if (err.name !== 'AbortError' && latestRoute.current.isCurrent(token)) {
         addToast('Rerouting failed. Check backend connection.', 'error');
       }
     } finally {
@@ -307,9 +370,12 @@ export default function NavigationApp() {
   // so the navigation engine can call it via a stable ref without stale closures
   rerouteFromPositionRef.current = rerouteFromPosition;
 
-  // Fetch Route whenever origin, destination, or mode updates
+  // Fetch the route whenever origin, destination or mode changes. Debounced, so several quick changes make ONE request.
   useEffect(() => {
-    loadRoute();
+    const timer = setTimeout(() => {
+      void loadRoute();
+    }, ROUTE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [loadRoute]);
 
   // Route Type Switcher (Shortest vs Dynamic)
@@ -328,21 +394,19 @@ export default function NavigationApp() {
 
   // Select Origin Handler
   const handleSelectOrigin = useCallback((loc: Point | null) => {
+    latestGpsOrigin.current.invalidate();
     setOrigin(loc);
     if (loc && !destination) {
       setActiveInput('destination');
     }
   }, [destination]);
 
-  // Select Destination Handler
-  const handleSelectDestination = useCallback((loc: Point | null) => {
-    setDestination(loc);
-  }, []);
-
   // Use Current GPS as Origin
   const handleUseGpsOrigin = useCallback(async () => {
+    const token = latestGpsOrigin.current.begin();
     try {
       const pos = await getCurrentLocation();
+      if (!latestGpsOrigin.current.isCurrent(token)) return;
       setOrigin({
         lat: pos.lat,
         lng: pos.lng,
@@ -353,9 +417,56 @@ export default function NavigationApp() {
         setActiveInput('destination');
       }
     } catch (err: any) {
+      if (!latestGpsOrigin.current.isCurrent(token)) return;
       addToast('Could not acquire GPS position. Ensure location services are enabled.', 'error');
     }
   }, [getCurrentLocation, destination, addToast]);
+
+  // Select Destination Handler: with no start chosen yet, start from the rider's own location
+  const handleSelectDestination = useCallback(
+    (loc: Point | null) => {
+      setDestination(loc);
+      if (loc && !origin) void handleUseGpsOrigin();
+    },
+    [origin, handleUseGpsOrigin]
+  );
+
+  // Press-and-hold on the map: drop a pin and show the card (name looked up in the background)
+  const handleLongPress = useCallback((position: { lat: number; lng: number }) => {
+    const fallback: Point = {
+      lat: position.lat,
+      lng: position.lng,
+      name: 'Dropped pin',
+      address: `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`,
+    };
+    setDroppedPin(fallback);
+    setPinResolving(true);
+    const token = latestPinName.current.begin();
+    reverseGeocode(position.lat, position.lng).then((place) => {
+      if (!latestPinName.current.isCurrent(token)) return; // the rider has pressed somewhere else since
+      // only if the same pin is still showing (the rider may have pressed somewhere else meanwhile)
+      setDroppedPin((current) =>
+        current && current.lat === position.lat && current.lng === position.lng
+          ? { ...current, name: place.name, address: place.address }
+          : current
+      );
+      setPinResolving(false);
+    });
+  }, []);
+
+  const handlePinAction = useCallback(
+    (action: PinAction) => {
+      if (!droppedPin) return;
+      const next = applyPinAction(action, droppedPin, { origin, destination });
+      setDroppedPin(null);
+      latestGpsOrigin.current.invalidate();
+      setOrigin(next.origin);
+      setDestination(next.destination);
+      if (next.needGpsOrigin) void handleUseGpsOrigin();
+      else if (next.origin && !next.destination) setActiveInput('destination');
+    },
+    [droppedPin, origin, destination, handleUseGpsOrigin]
+  );
 
   // Start Navigation Handlers
   const handleStartNavigation = useCallback(
@@ -370,16 +481,32 @@ export default function NavigationApp() {
       setSelectedRouteType(typeToUse);
       setRouteData(targetRoute);
       tripStartTimeRef.current = Date.now();
+      reroutedRef.current = false;
       activeJourneyIdRef.current = targetRoute.journey_id || null;
       if (activeJourneyIdRef.current) {
         startTrip(activeJourneyIdRef.current, origin, destination);
       }
+      setDroppedPin(null);
       requestCompassPermission();
+      voiceGuidance.unlock(); // phones only allow speech after a tap: this is that tap
       startNavigation();
       setIsFollowingCamera(true);
     },
-    [routeData, shortestRouteData, dynamicRouteData, selectedRouteType, startNavigation, requestCompassPermission]
+    [routeData, shortestRouteData, dynamicRouteData, selectedRouteType, startNavigation, requestCompassPermission, addToast, origin, destination]
   );
+
+  // If the device cannot speak (no speech engine / no voice installed), say so once instead of staying silently mute.
+  useEffect(() => {
+    return voiceGuidance.onProblem((reason) => {
+      addToast(
+        reason === 'unsupported'
+          ? "Voice guidance isn't available on this device"
+          : `Voice guidance couldn't start (${reason}). Check the phone's text-to-speech settings`,
+        'warning',
+        6000
+      );
+    });
+  }, [addToast]);
 
   // Preview Route Handler (Fits bounds to show full route)
   const handleStartPreview = useCallback((chosenRoute?: 'shortest' | 'dynamic') => {
@@ -392,9 +519,25 @@ export default function NavigationApp() {
     }
   }, [handleSelectRouteType]);
 
+  /** Drop a reroute that is still on its way: its answer must not arrive after the trip is over. */
+  const cancelPendingReroute = useCallback(() => {
+    routeAbortControllerRef.current?.abort();
+    latestRoute.current.invalidate();
+    setIsRerouting(false);
+    setLoading(false);
+  }, []);
+  cancelRerouteRef.current = cancelPendingReroute;
+
   const handleEndNavigation = useCallback(() => {
     stopNavigation();
-  }, [stopNavigation]);
+    if (reroutedRef.current) {
+      // back to browsing: show the planned trip again, not the piece that started where the rider left the route
+      reroutedRef.current = false;
+      cancelPendingReroute();
+      setRouteFor('');
+      void loadRoute();
+    }
+  }, [stopNavigation, cancelPendingReroute, loadRoute]);
 
   const handleRecenter = useCallback(() => {
     setIsFollowingCamera(true);
@@ -402,6 +545,29 @@ export default function NavigationApp() {
       window.dispatchEvent(new CustomEvent('recenter-map'));
     }
   }, []);
+
+  // After a finished trip: clear everything and go back to the normal starting map, centred on the rider.
+  // (The selected route mode is kept; it is a preference, not trip state.)
+  const resetToStart = useCallback(() => {
+    stopNavigation();
+    latestGpsOrigin.current.invalidate();
+    setDroppedPin(null);
+    setTripSummary(null);
+    setOrigin(null);
+    setDestination(null);
+    setRouteData(null);
+    setShortestRouteData(null);
+    setDynamicRouteData(null);
+    setHasConfirmedRoute(false);
+    setActiveInput('origin');
+    activeJourneyIdRef.current = null;
+    tripStartTimeRef.current = 0;
+    setIsFollowingCamera(true);
+    if (typeof window !== 'undefined') {
+      // after React has applied the cleared state, so the map recentres as "browsing" (flat, north-up), not "navigating"
+      setTimeout(() => window.dispatchEvent(new CustomEvent('recenter-map')), 120);
+    }
+  }, [stopNavigation]);
 
   // Listen for user panning/dragging the map to unlink camera follow
   useEffect(() => {
@@ -416,19 +582,18 @@ export default function NavigationApp() {
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
       {/* Arrival Completion Summary Modal */}
-      <ArrivalModal
-        summary={tripSummary}
-        onClose={() => setTripSummary(null)}
-        onNewRoute={() => {
-          setTripSummary(null);
-          setOrigin(null);
-          setDestination(null);
-          setRouteData(null);
-          setShortestRouteData(null);
-          setDynamicRouteData(null);
-          setActiveInput('origin');
-        }}
-      />
+      <ArrivalModal summary={tripSummary} onDone={resetToStart} />
+
+      {/* Card for a pin dropped by press-and-hold */}
+      {!isNavigating && (
+        <PlaceSheet
+          pin={droppedPin}
+          resolving={pinResolving}
+          hasOrigin={!!origin}
+          onAction={handlePinAction}
+          onClose={() => setDroppedPin(null)}
+        />
+      )}
 
       {/* Google Maps-style Incident Reporting Button & Modal */}
       <IncidentReportModal
@@ -436,13 +601,14 @@ export default function NavigationApp() {
         currentLat={realGpsPosition?.lat ?? origin?.lat ?? routeData?.path?.[0]?.[0]}
         currentLng={realGpsPosition?.lng ?? origin?.lng ?? routeData?.path?.[0]?.[1]}
         currentHeading={deviceHeading || realGpsPosition?.heading}
-        currentRoadName={currentManeuver?.road_name}
+        currentRoadName={currentRoadName ?? currentManeuver?.road_name}
         activeIncidents={activeIncidents}
         onIncidentReported={(newInc) => {
           setActiveIncidents((prev) => [newInc, ...prev.filter((i) => i.id !== newInc.id)]);
           addToast(`Reported: ${newInc.title}`, 'success', 3000);
         }}
         onIncidentUpdated={refreshIncidents}
+        onReportFailed={() => addToast('Your report could not be sent. Check your connection and try again.', 'warning', 5000)}
       />
 
       {/* Fullscreen Map Canvas */}
@@ -464,6 +630,8 @@ export default function NavigationApp() {
         selectedRouteType={selectedRouteType}
         onSelectRouteType={handleSelectRouteType}
         traveledIndex={nearestSegmentIndex}
+        displayPosition={progress ? { lat: progress.displayLat, lng: progress.displayLng } : null}
+        routePoint={progress ? { lat: progress.routeLat, lng: progress.routeLng } : null}
         gpsPosition={realGpsPosition}
         deviceHeading={deviceHeading}
         theme={theme}
@@ -471,16 +639,16 @@ export default function NavigationApp() {
         isFollowingCamera={isFollowingCamera}
         isNavigating={isNavigating}
         activeIncidents={activeIncidents}
-        onSelectOrigin={handleSelectOrigin}
-        onSelectDestination={handleSelectDestination}
+        droppedPin={droppedPin}
+        onLongPress={handleLongPress}
         onRecenter={handleRecenter}
         onCameraUnlink={() => setIsFollowingCamera(false)}
       />
 
       {/* Floating Top UI Layer */}
       <div className="absolute top-2 sm:top-4 left-2 right-2 sm:left-4 sm:right-4 z-20 space-y-2 pointer-events-none safe-top">
-        {/* Top Header Bar with Brand and Mode Selector */}
-        <div className="pointer-events-auto max-w-lg mx-auto w-full space-y-1.5 sm:space-y-2">
+        {/* Top Header Bar with Brand and Mode Selector (hidden while riding: the room goes to the turn banner) */}
+        <div className={`${isNavigating ? 'hidden ' : ''}pointer-events-auto max-w-lg mx-auto w-full space-y-1.5 sm:space-y-2`}>
           {/* Header Row */}
           <div className="flex items-center justify-between gap-2 sm:gap-3">
             {/* Brand Logo Pill */}
@@ -520,11 +688,14 @@ export default function NavigationApp() {
               onUseGpsOrigin={handleUseGpsOrigin}
               gpsLoading={isLocating}
               onSwap={() => {
+                latestGpsOrigin.current.invalidate();
                 const temp = origin;
                 setOrigin(destination);
                 setDestination(temp);
               }}
               onClear={() => {
+                latestGpsOrigin.current.invalidate();
+                setDroppedPin(null);
                 setOrigin(null);
                 setDestination(null);
                 setRouteData(null);
@@ -543,6 +714,8 @@ export default function NavigationApp() {
               currentManeuver={currentManeuver}
               nextManeuver={nextManeuver}
               distanceToManeuverMeters={distanceToManeuverMeters}
+              currentRoadName={currentRoadName}
+              navState={isRerouting ? 'rerouting' : navState}
               voiceEnabled={voiceEnabled}
               onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
             />
@@ -555,15 +728,17 @@ export default function NavigationApp() {
         {isNavigating ? (
           <div className="pointer-events-auto">
             <NavigationFooter
-              currentSpeedMps={realGpsPosition?.speed || 0}
-              remainingMeters={remainingMeters || ((routeData?.distance_km || 0) * 1000)}
+              remainingSeconds={trip.remainingS}
+              arrivalMs={trip.arrivalMs}
+              speedKmh={trip.speedKmh}
+              remainingMeters={remainingMeters || routeTotalM}
               isFollowingCamera={isFollowingCamera}
               onRecenter={handleRecenter}
               onEndNavigation={handleEndNavigation}
             />
           </div>
         ) : (
-          routeData?.path && (
+          routeData?.path && routeFor === tripKey(origin, destination, mode) && (
             <div className="pointer-events-auto">
               <BottomActionBar
                 routeData={routeData}
