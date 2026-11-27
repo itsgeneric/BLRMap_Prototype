@@ -403,7 +403,7 @@ def _plan_route(G, graph_mgr, mode, origins, destinations, penalties, congested_
         _, o, d = direct
         coords = _sub_polyline(o.shape, o.along_m / o.length_m, d.along_m / o.length_m)
         distance_m = d.along_m - o.along_m
-        return {"nodes": [], "coords": coords, "distance_m": distance_m,
+        return {"nodes": [], "coords": coords, "distance_m": distance_m, "ridden_edges": [(o.edge[0], o.edge[1])],
                 "duration_s": round(estimate_duration_s(G, [], o, d, distance_m), 1),
                 "origin_snap": o.summary(), "destination_snap": d.summary(),
                 "maneuvers": _direct_maneuvers(G, o, d, distance_m)}
@@ -415,7 +415,12 @@ def _plan_route(G, graph_mgr, mode, origins, destinations, penalties, congested_
     body = graph_mgr.route_nodes_to_coords(nodes)
     coords = o.after_coords + body[1:] + d.before_coords[1:]
     distance_m = o.after_m + calc_route_distance(G, nodes) + d.before_m
-    return {"nodes": nodes, "coords": coords, "distance_m": distance_m,
+    # every road ridden, in order, including the part-roads at both ends (used by the Google road check)
+    ridden = [(o.node_before, o.node_after)] if o.edge and o.after_m > 1 else []
+    ridden += list(zip(nodes, nodes[1:]))
+    if d.edge and d.before_m > 1:
+        ridden.append((d.node_before, d.node_after))
+    return {"nodes": nodes, "coords": coords, "distance_m": distance_m, "ridden_edges": ridden,
             "duration_s": round(estimate_duration_s(G, nodes, o, d), 1),
             "origin_snap": o.summary(), "destination_snap": d.summary(),
             "maneuvers": _route_maneuvers(G, nodes, o, d)}

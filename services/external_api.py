@@ -1,7 +1,8 @@
 import httpx
 from core.config import (
     GOOGLE_KEY, ROUTES_KEY, ROUTES_API_URL,
-    ROADS_KEY, ROADS_SNAP_API_URL, SNAP_DEVIATION_THRESHOLD_M, VERIFY_SHADOW_MODE
+    ROADS_KEY, ROADS_SNAP_API_URL, VERIFY_SHADOW_MODE,
+    ROAD_VERIFY_MAX_DEVIATION_M, ROAD_VERIFY_SPACING_M, ROAD_VERIFY_MAX_REQUESTS
 )
 
 
@@ -247,133 +248,151 @@ async def snap_route_to_roads(coords: list) -> list:
         return coords
 
 
-async def snap_and_verify_route(route_nodes: list, graph, threshold_m: float = SNAP_DEVIATION_THRESHOLD_M):
-    """
-    Sends route coordinates to Google Roads Snap to Roads API.
-    Identifies any edges along the route where:
-      1) The snapped road point is > threshold_m away from the original edge midpoint, or
-      2) Google cannot snap the point to any road nearby.
-    Marks those bad edges in edge_blacklist to avoid routing through them in the future.
-    """
-    if not ROADS_KEY or not route_nodes or len(route_nodes) < 2:
-        return []
+# ---------------------------------------------------------------------------
+# Road check: is every smaller road on the route a road that Google Maps has?
+# ---------------------------------------------------------------------------
 
+# Through roads of these classes are not tested.
+MAJOR_HIGHWAYS = {
+    'motorway', 'motorway_link', 'trunk', 'trunk_link', 'primary', 'primary_link', 'secondary', 'secondary_link',
+    'tertiary', 'tertiary_link'
+}
+MAX_POINT_GAP_M = 300.0             # the Roads API expects a continuous trail: start a new request after a longer jump
+_confirmed_roads: set = set()       # (u, v) Google has confirmed while this server runs: not paid for twice
+
+
+def _edge_points(graph, u, v):
+    """(highway, [(lat, lng), ...] test points spread ALONG the road from u to v)."""
     from routing.algorithms import haversine_m
-    from routing.edge_blacklist import edge_blacklist
+    edge = min(graph[u][v].values(), key=lambda d: float(d.get('length', 1.0)))
+    highway = edge.get('highway', 'unclassified')
+    if isinstance(highway, list):
+        highway = highway[0] if highway else 'unclassified'
 
-    # Major road categories that are guaranteed to be public thoroughfares on Google Maps
-    MAJOR_HIGHWAYS = {
-        'motorway', 'motorway_link', 'trunk', 'trunk_link',
-        'primary', 'primary_link', 'secondary', 'secondary_link',
-        'tertiary', 'tertiary_link'
-    }
+    start = (float(graph.nodes[u]['y']), float(graph.nodes[u]['x']))
+    end = (float(graph.nodes[v]['y']), float(graph.nodes[v]['x']))
+    geometry = edge.get('geometry')
+    if geometry is not None and hasattr(geometry, 'xy'):
+        xs, ys = geometry.xy
+        shape = [(float(la), float(ln)) for ln, la in zip(xs, ys)]
+        if haversine_m(*shape[0], *end) < haversine_m(*shape[0], *start):
+            shape.reverse()
+    else:
+        shape = [start, end]
 
-    candidate_edges = []
-    for i in range(len(route_nodes) - 1):
-        u = route_nodes[i]
-        v = route_nodes[i + 1]
+    lengths = [haversine_m(*p, *q) for p, q in zip(shape, shape[1:])]
+    total = sum(lengths)
+    count = max(3, int(total // ROAD_VERIFY_SPACING_M))
+    points = []
+    for i in range(1, count + 1):
+        target, walked = total * i / (count + 1), 0.0       # inside the road, never on a junction
+        for (p, q), length in zip(zip(shape, shape[1:]), lengths):
+            if walked + length >= target and length > 0:
+                t = (target - walked) / length
+                points.append((p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])))
+                break
+            walked += length
+    return str(highway).lower(), points
 
-        # Skip if already blacklisted
-        if edge_blacklist.get_edge_penalty(u, v) > 1.0:
+
+def _batches(samples):
+    """Splits the trail into requests of at most 100 points with no long jump inside one."""
+    from routing.algorithms import haversine_m
+    batch = []
+    for sample in samples:
+        if batch and (len(batch) == 100 or haversine_m(*batch[-1][1], *sample[1]) > MAX_POINT_GAP_M):
+            yield batch
+            batch = []
+        batch.append(sample)
+    if batch:
+        yield batch
+
+
+async def snap_and_verify_route(edges: list, graph, threshold_m: float = ROAD_VERIFY_MAX_DEVIATION_M):
+    """
+    Checks the route's smaller roads against Google's road network (Roads API, snapToRoads).
+
+    edges: [(u, v), ...] in the order they are ridden.
+    Returns (bad_edges, status). A road is bad when MOST of its test points are not on any Google road, or lie more than
+    threshold_m from the road Google matches them to; each is blocked in both directions. status is
+        'checked'      every road was tested (bad_edges may be non-empty)
+        'unavailable'  Google could not be asked about some roads (no key, refused, network): nothing is assumed about them
+    An error from Google never blocks a road.
+    """
+    from routing.algorithms import haversine_m
+
+    if not ROADS_KEY:
+        print("[RoadCheck] No Google key: roads are NOT being checked.")
+        return [], 'unavailable'
+
+    samples = []                                            # (edge, point)
+    highways = {}
+    for u, v in edges:
+        if (u, v) in _confirmed_roads or v not in graph[u]:
             continue
-
-        if v not in graph[u]:
+        highway, points = _edge_points(graph, u, v)
+        if highway in MAJOR_HIGHWAYS:
             continue
+        highways[(u, v)] = highway
+        samples.extend(((u, v), p) for p in points)
+    if not samples:
+        return [], 'checked'
 
-        best_edge = min(graph[u][v].values(), key=lambda d: float(d.get('length', 1.0)))
-        hw = best_edge.get('highway', 'unclassified')
-        if isinstance(hw, list):
-            hw = hw[0] if hw else 'unclassified'
-        hw_str = str(hw).lower()
+    results: dict = {}                                      # edge -> [(point on a Google road?, deviation)]
+    incomplete: set = set()
+    batches = list(_batches(samples))
+    for batch in batches[ROAD_VERIFY_MAX_REQUESTS:]:
+        incomplete.update(edge for edge, _ in batch)
 
-        if hw_str in MAJOR_HIGHWAYS:
-            continue
-
-        # Extract representative midpoint
-        geom = best_edge.get('geometry')
-        if geom is not None and hasattr(geom, 'xy'):
-            xs, ys = geom.xy
-            pts = list(zip(ys, xs))
-            mid_pt = pts[len(pts) // 2]
-            mid_lat, mid_lng = float(mid_pt[0]), float(mid_pt[1])
-        else:
-            mid_lat = (float(graph.nodes[u]['y']) + float(graph.nodes[v]['y'])) / 2.0
-            mid_lng = (float(graph.nodes[u]['x']) + float(graph.nodes[v]['x'])) / 2.0
-
-        candidate_edges.append((u, v, mid_lat, mid_lng, hw_str))
-
-    if not candidate_edges:
-        return []
-
-    flagged_edges = []
-    chunk_size = 100
-    # Process candidates in chunks of up to 100 points
-    for chunk_start in range(0, min(len(candidate_edges), 300), chunk_size):
-        sampled_edges = candidate_edges[chunk_start:chunk_start + chunk_size]
-        path_str = "|".join(f"{lat:.6f},{lng:.6f}" for _, _, lat, lng, _ in sampled_edges)
-        params = {
-            "path": path_str,
-            "interpolate": "false",
-            "key": ROADS_KEY,
-        }
-
-        try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for batch in batches[:ROAD_VERIFY_MAX_REQUESTS]:
+            params = {
+                "path": "|".join(f"{lat:.6f},{lng:.6f}" for _, (lat, lng) in batch),
+                "interpolate": "false",
+                "key": ROADS_KEY,
+            }
+            try:
                 res = await client.get(ROADS_SNAP_API_URL, params=params)
-
-            if res.status_code != 200:
-                print(f"[SnapToRoads] API warning: HTTP {res.status_code} - {res.text[:200]}")
+                if res.status_code != 200:
+                    print(f"[RoadCheck] Google refused the check (HTTP {res.status_code}): {res.text[:200]}\n"
+                          "[RoadCheck] Is the 'Roads API' enabled for the key?")
+                    incomplete.update(edge for edge, _ in batch)
+                    continue
+                snapped = {}
+                for point in res.json().get("snappedPoints", []):
+                    index = point.get("originalIndex")
+                    if index is not None:
+                        location = point.get("location", {})
+                        snapped.setdefault(index, (location.get("latitude"), location.get("longitude")))
+            except Exception as exc:
+                print(f"[RoadCheck] Check failed: {type(exc).__name__} - {exc}")
+                incomplete.update(edge for edge, _ in batch)
                 continue
+            for index, (edge, (lat, lng)) in enumerate(batch):
+                match = snapped.get(index)
+                deviation = haversine_m(lat, lng, match[0], match[1]) if match else None
+                results.setdefault(edge, []).append((deviation is not None and deviation <= threshold_m, deviation))
 
-            data = res.json()
-            snapped_points = data.get("snappedPoints", [])
+    bad = []
+    for edge, checks in results.items():
+        if edge in incomplete:                              # only part of it was answered: no verdict
+            continue
+        failed = [deviation for ok, deviation in checks if not ok]
+        if 2 * len(failed) <= len(checks):                  # one stray point is not evidence
+            _confirmed_roads.add(edge)
+            continue
+        measured = [d for d in failed if d is not None]
+        u, v = edge
+        bad.append(edge)
+        _mark_bad(
+            u, v,
+            deviation_m=max(measured) if measured else 999.0,
+            reason="not_on_google_maps",
+            metadata={"highway": highways[edge], "points_failed": len(failed), "points_tested": len(checks)},
+        )
 
-            # Map originalIndex -> (lat, lng, place_id)
-            snapped_by_index = {}
-            for sp in snapped_points:
-                orig_idx = sp.get("originalIndex")
-                if orig_idx is not None:
-                    loc = sp.get("location", {})
-                    snapped_by_index[orig_idx] = (
-                        loc.get("latitude"),
-                        loc.get("longitude"),
-                        sp.get("placeId")
-                    )
-
-            for idx, (u, v, orig_lat, orig_lng, hw) in enumerate(sampled_edges):
-                if idx not in snapped_by_index:
-                    # Point could not be snapped to any road in Google Maps
-                    _mark_bad(
-                        u, v,
-                        deviation_m=999.0,
-                        reason="no_gmaps_road_found",
-                        metadata={"highway": hw, "lat": orig_lat, "lng": orig_lng}
-                    )
-                    flagged_edges.append((u, v, 999.0, "no_snap"))
-                else:
-                    snapped_lat, snapped_lng, place_id = snapped_by_index[idx]
-                    if snapped_lat is not None and snapped_lng is not None:
-                        dev_m = haversine_m(orig_lat, orig_lng, snapped_lat, snapped_lng)
-                        if dev_m > threshold_m:
-                            _mark_bad(
-                                u, v,
-                                deviation_m=dev_m,
-                                reason="excessive_snap_deviation",
-                                metadata={
-                                    "highway": hw,
-                                    "orig_lat": orig_lat, "orig_lng": orig_lng,
-                                    "snapped_lat": snapped_lat, "snapped_lng": snapped_lng,
-                                    "place_id": place_id
-                                }
-                            )
-                            flagged_edges.append((u, v, dev_m, "deviation_exceeded"))
-
-        except Exception as exc:
-            print(f"[SnapToRoads] Route verification failed: {type(exc).__name__} - {exc}")
-
-    if flagged_edges:
-        print(f"[SnapToRoads] Flagged {len(flagged_edges)} non-existent/private edges (> {threshold_m}m deviation). Total blacklisted: {edge_blacklist.count()}")
-
+    if bad:
+        print(f"[RoadCheck] {len(bad)} road(s) on this route are not on Google Maps")
     if VERIFY_SHADOW_MODE:
-        return []          # shadow mode: never trigger a re-route over unverified evidence
-    return flagged_edges
+        bad = []                                            # shadow mode: report only, never re-route
+    return bad, 'unavailable' if incomplete else 'checked'

@@ -43,12 +43,16 @@ SNAP_FINAL_POLYLINE = os.getenv("SNAP_FINAL_POLYLINE", "false").strip().lower() 
 # from or arrive at, and the request fails with a clear message instead of drawing a line through buildings.
 MAX_SNAP_DISTANCE_M = float(os.getenv("MAX_SNAP_DISTANCE_M", "500.0"))
 
-# Google Roads "ghost road" check on every route. OFF by default: it only ever looked at inner roads, its test point was
-# often snapped onto a different road, and each false alarm blocked a real lane for good. It also costs paid API calls.
-ENABLE_ROAD_VERIFY = os.getenv("ENABLE_ROAD_VERIFY", "false").strip().lower() in ("1", "true", "yes", "on")
-# Shadow mode (default ON): the Roads-API ghost-road check only LOGS what it would blacklist and never bans a road or
-# re-routes. Set VERIFY_SHADOW_MODE=false in .env to bring the old banning behaviour back.
-VERIFY_SHADOW_MODE = os.getenv("VERIFY_SHADOW_MODE", "true").strip().lower() in ("1", "true", "yes", "on")
+# Google Roads check: every route's smaller roads are compared with Google's road network, and a road Google does not have
+# is blocked and the route planned again (services/external_api.py). Uses paid Roads API calls, and the "Roads API" must be
+# enabled for the key. ENABLE_ROAD_VERIFY=false turns it off.
+ENABLE_ROAD_VERIFY = os.getenv("ENABLE_ROAD_VERIFY", "true").strip().lower() in ("1", "true", "yes", "on")
+ROAD_VERIFY_MAX_DEVIATION_M = float(os.getenv("ROAD_VERIFY_MAX_DEVIATION_M", "25"))  # farther than this: not Google's road
+ROAD_VERIFY_SPACING_M = 40.0        # test points along each road (at least 3 per road)
+ROAD_VERIFY_MAX_REQUESTS = 15       # per check; 100 points each
+ROAD_VERIFY_MAX_ROUNDS = 5          # check, block, plan again ... at most this many times
+# Shadow mode: only LOG what the check would block. OFF by default.
+VERIFY_SHADOW_MODE = os.getenv("VERIFY_SHADOW_MODE", "false").strip().lower() in ("1", "true", "yes", "on")
 BLACKLIST_PENALTY_MULTIPLIER = float(os.getenv("BLACKLIST_PENALTY_MULTIPLIER", "10000.0"))
 
 # Anti-Rat-Running: extra cost (metres) when a main-road node leads onto a minor residential alley.
@@ -73,11 +77,12 @@ FLYOVER_MAIN_ROAD_MULTIPLIER = 0.8
 
 # Road access. Three groups (routing/graph_manager.py):
 #   removed      private / no, and military, emergency-only and permit-only roads: the public may not drive there.
-#   access-only  service roads and destination / customers / delivery: usable only as the first or last stretch of a trip,
+#   access-only  service roads and destination / customers / delivery / permissive: usable only as the first or last stretch,
 #                to reach a place inside a campus, layout or compound (routing/access.py). Never as a cut-through.
-#   public       everything else, including access=permissive (Cubbon Park's inner roads, estate and campus roads).
+#   public       everything else. access=permissive roads (often estate and campus roads, open at the owner's will) were
+#                briefly public: that added 2,449 segments that routes cut through and riders found not to be real roads.
 RESTRICTED_ACCESS_VALUES = {'private', 'no', 'military', 'emergency', 'permit'}
-ACCESS_ONLY_VALUES = {'destination', 'customers', 'delivery'}
+ACCESS_ONLY_VALUES = {'destination', 'customers', 'delivery', 'permissive'}
 ACCESS_ONLY_COST_MULTIPLIER = 1.5     # so a public road is taken when both reach the pin
 ACCESS_ONLY_REACH_M = 1500.0          # how far from the pin its cluster of access-only roads may extend
 # A junction offered as an alternative start/end for an off-road pin: every metre it is farther from the pin than the
@@ -85,7 +90,7 @@ ACCESS_ONLY_REACH_M = 1500.0          # how far from the pin its cluster of acce
 OFF_ROAD_COST_PER_M = 3.0
 # A compiled graph PKL stores the graph AFTER cleanup. When this value differs from the one stored in the PKL, the PKL is
 # rebuilt from the GraphML source on the next start (a few minutes, once). Bump it whenever the cleanup rules change.
-GRAPH_CLEANUP_VERSION = "5:access-only,no-military"
+GRAPH_CLEANUP_VERSION = "6:permissive-is-access-only"
 
 # ------------------------------------------------------------------ smart two-wheeler planning (routing/smart.py)
 # A Dynamic route is never longer than max(direct x MAX_DETOUR_RATIO, direct + DETOUR_SLACK_M).

@@ -53,7 +53,7 @@ class ApiIntegrationTests(unittest.TestCase):
 
         cls.patches = [
             mock.patch.object(api_server, 'fetch_traffic_data', AsyncMock(return_value=(None, []))),
-            mock.patch.object(api_server, 'snap_and_verify_route', AsyncMock(return_value=[])),
+            mock.patch.object(api_server, 'snap_and_verify_route', AsyncMock(return_value=([], 'checked'))),
             mock.patch.object(api_server.db, 'create_journey_from_route', AsyncMock(return_value='journey-1')),
             mock.patch.object(api_server.db, 'get_active_incident_penalties', AsyncMock(return_value={})),
         ]
@@ -168,6 +168,40 @@ class ApiIntegrationTests(unittest.TestCase):
         self.check_route_contract(body)
         self.assertAlmostEqual(body['distance_km'], 0.3, delta=0.01)
         self.assertEqual([m['type'] for m in body['maneuvers']], ['depart', 'arrive'])
+
+    def test_a_road_google_does_not_have_is_planned_around_and_rechecked(self):
+        seen = []
+
+        async def google(edges, graph):
+            seen.append(list(edges))
+            return ([edges[0]], 'checked') if len(seen) == 1 else ([], 'checked')
+
+        for endpoint in ('/route', '/dynamic-route'):
+            seen.clear()
+            with mock.patch.object(api_server, 'snap_and_verify_route', google):
+                body = self.client.get(endpoint, params=params(FROM, TO)).json()
+            self.assertEqual((body['status'], body['road_check']), ('success', 'passed'), endpoint)
+            self.assertEqual(len(seen), 2, 'the new route is checked too')
+            self.assertTrue(seen[0], 'the part-roads at the ends are included')
+
+    def test_when_no_route_passes_the_answer_says_so(self):
+        async def google(edges, graph):
+            return [edges[0]], 'checked'
+
+        with mock.patch.object(api_server, 'snap_and_verify_route', google):
+            body = self.client.get('/route', params=params(FROM, TO)).json()
+        self.assertEqual((body['status'], body['road_check']), ('success', 'failed'))
+
+    def test_a_blocked_road_that_is_the_only_way_is_never_reported_as_passed(self):
+        with mock.patch.object(api_server.edge_blacklist, 'get_edge_penalty', return_value=10000.0):
+            body = self.client.get('/route', params=params(FROM, TO)).json()
+        self.assertEqual(body['road_check'], 'failed')
+
+    def test_unavailable_and_disabled_checks_are_reported_honestly(self):
+        with mock.patch.object(api_server, 'snap_and_verify_route', AsyncMock(return_value=([], 'unavailable'))):
+            self.assertEqual(self.client.get('/route', params=params(FROM, TO)).json()['road_check'], 'unavailable')
+        with mock.patch.object(api_server, 'ENABLE_ROAD_VERIFY', False):
+            self.assertEqual(self.client.get('/route', params=params(FROM, TO)).json()['road_check'], 'off')
 
     def test_there_are_no_developer_endpoints(self):
         for path in ('/qa/status', '/qa/road-coverage', '/qa/compare-models'):

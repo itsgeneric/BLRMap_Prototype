@@ -174,7 +174,7 @@ class RoadClassificationTests(unittest.TestCase):
     def test_what_is_removed_access_only_and_public(self):
         cases = [
             ({'highway': 'residential'}, 'public'),
-            ({'highway': 'residential', 'access': 'permissive'}, 'public'),     # Cubbon Park's inner roads
+            ({'highway': 'residential', 'access': 'permissive'}, 'access_only'),  # reachable, never a cut-through
             ({'highway': 'service'}, 'access_only'),
             ({'highway': 'residential', 'access': 'destination'}, 'access_only'),
             ({'highway': 'residential', 'access': 'customers'}, 'access_only'),
@@ -287,7 +287,8 @@ class MapRebuildTests(unittest.TestCase):
     def test_this_version_has_its_own_map_and_blocked_road_files(self):
         self.assertTrue(config.GRAPH_PKL_PATH.endswith('bengaluru_graph.smart.pkl'))
         self.assertTrue(config.EDGE_BLACKLIST_FILE.endswith('edge_blacklist_manual.json'))
-        self.assertFalse(config.ENABLE_ROAD_VERIFY)
+        self.assertTrue(config.ENABLE_ROAD_VERIFY)
+        self.assertFalse(config.VERIFY_SHADOW_MODE)
 
     def test_missing_or_outdated_map_is_rebuilt_and_then_loaded_fast(self):
         G, _ = road_map([([(0, 0), (100, 0), (200, 0)], 'residential', {}), ([(200, 0), (200, 100)], 'service', {})])

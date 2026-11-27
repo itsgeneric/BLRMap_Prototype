@@ -1,9 +1,9 @@
 // Layout check in a REAL browser (headless Edge or Chrome) at phone sizes, with no extra packages.
 //
-//   npm run build            (with NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000)
+//   npm run build            (with NEXT_PUBLIC_API_BASE=http://127.0.0.1:8000, or the BACKEND_PORT you set)
 //   node tests/ui/layout.e2e.mjs [folder-for-screenshots]
 //
-// It serves out/ itself and runs a stand-in backend on port 8000 (stop your real one first). Every other host is blocked, so
+// It serves out/ itself and runs a stand-in backend on BACKEND_PORT (default 8000). Every other host is blocked, so
 // Google is never called: the map itself stays blank, and only the app's own controls are checked. For each screen it checks
 // that every control can really be tapped (nothing on top of it), stays inside the screen, and is not tiny.
 import http from 'node:http';
@@ -35,6 +35,7 @@ const ROUTE = [
   ...[0, 100, 200, 300, 400, 500, 600].map((m) => [LAT + m / M, LNG]),
   ...[100, 200, 300, 400, 500, 600].map((m) => [LAT + 600 / M, LNG + m / (M * Math.cos((LAT * Math.PI) / 180))]),
 ];
+const BACKEND_PORT = Number(process.env.BACKEND_PORT || 8000);
 let failRoutes = false;
 const backend = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -119,7 +120,7 @@ const notes = [];
 async function main() {
   if (!BROWSERS.length) throw new Error('no Chrome or Edge found; set BROWSER_PATH');
   if (!existsSync(path.join(root, 'out/index.html'))) throw new Error('run `npm run build` first');
-  await new Promise((r, j) => backend.once('error', j).listen(8000, '127.0.0.1', r));
+  await new Promise((r, j) => backend.once('error', j).listen(BACKEND_PORT, '127.0.0.1', r));
   await new Promise((r) => site.listen(3123, '127.0.0.1', r));
   const browser = await launch();
   try {
@@ -216,7 +217,8 @@ async function journey(browser, width, height) {
     })()`);
     // the report pop-up is MEANT to sit over the trip screen's own three buttons; anything else covered is a problem
     const behindPopUp = (p) => /report-(sheet|countdown)/.test(state) && /^"(Report incident|Mute voice guidance|End navigation)" is covered/.test(p);
-    for (const p of found.out) if (!behindPopUp(p)) problems.push(`${size} ${state}: ${p}`);
+    const underArrivalCard = (p) => /arrived/.test(state) && / is covered by /.test(p) && !p.startsWith('"Done"');
+    for (const p of found.out) if (!behindPopUp(p) && !underArrivalCard(p)) problems.push(`${size} ${state}: ${p}`);
     // the map's buttons are placed from this value: it must match what the route panel really covers
     const panel = await run(`(() => {
       const start = [...document.querySelectorAll('button')].find((b) => /Start Navigation|Preview Route/.test(b.innerText));
@@ -273,6 +275,45 @@ async function journey(browser, width, height) {
   await tap('Shortest');
   await waitFor(hasText('road network is still loading'), 'the error message');
   await check('10-error');
+
+  // ---- a whole ride: arrive, read the completion card, tap Done, back to the start screen
+  failRoutes = false;
+  await tap('Fastest');
+  await waitFor(hasText('Comparing Routes'), 'the comparison again');
+  await tap('Start Navigation \\(Dynamic\\)');
+  await waitFor(hasText('remaining'), 'navigation');
+  const legs = [];
+  for (let i = 1; i < ROUTE.length; i++) {
+    for (let k = 1; k <= 4; k++) {
+      legs.push([0, 1].map((c) => ROUTE[i - 1][c] + ((ROUTE[i][c] - ROUTE[i - 1][c]) * k) / 4));
+    }
+  }
+  let arrived = false;
+  for (let i = 0; i < legs.length && !arrived; i++) {
+    // 25 m every 1.1 s: a speed the app's GPS filter accepts as real riding
+    await cdp('Emulation.setGeolocationOverride', { latitude: legs[i][0], longitude: legs[i][1], accuracy: 5 });
+    await sleep(1100);
+    if (i === 8) await check('11-riding');
+    arrived = await run(hasText('You have arrived'));
+  }
+  if (!arrived) await waitFor(hasText('You have arrived'), 'the trip-completed card', 8000);
+  const card = await run(`document.querySelector('[role=dialog]')?.innerText.replace(/\\s+/g, ' ') || ''`);
+  notes.push(`${size} completion card reads: ${card}`);
+  for (const wanted of ['You have arrived', 'Brigade Road', 'Distance', 'Time', 'Avg speed', 'Done']) {
+    if (!card.toLowerCase().includes(wanted.toLowerCase())) problems.push(`${size} arrival: the card lacks "${wanted}"`);
+  }
+  await check('12-arrived');
+  await tap('^\\s*Done\\s*$');
+  await sleep(900);
+  await check('13-back-to-start');
+  const after = await run(`({
+    card: !!document.querySelector('[role=dialog]'),
+    inputs: [...document.querySelectorAll('input')].map((i) => i.value),
+    text: document.body.innerText,
+  })`);
+  if (after.card) problems.push(`${size} after Done: the completion card is still open`);
+  if (after.inputs.length !== 2 || after.inputs.some(Boolean)) problems.push(`${size} after Done: search boxes are not empty: ${JSON.stringify(after.inputs)}`);
+  if (/remaining|Start Navigation|Preview Route|Comparing Routes/i.test(after.text)) problems.push(`${size} after Done: trip or route controls are still shown`);
 
   for (const e of browser.events) {
     if (e.sessionId === sessionId && e.method === 'Runtime.exceptionThrown') {

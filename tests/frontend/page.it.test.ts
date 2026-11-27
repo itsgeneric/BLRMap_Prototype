@@ -489,6 +489,19 @@ test("street names and turns sent by the backend are shown as sent", async () =>
   assert.ok(Math.abs(footer().remainingSeconds - 420) < 40, `got ${footer().remainingSeconds}`);
 });
 
+for (const [check, expected] of [
+  ['failed', /road that Google Maps does not have/],
+  ['unavailable', /could not be checked/],
+  ['passed', null],
+] as const) {
+  test(`road check "${check}": the rider is ${expected ? '' : 'not '}warned`, async () => {
+    routeAnswer = () => ({ body: backendBody({ road_check: check }) });
+    await chooseTrip();
+    if (expected) assert.match(toasts().map((t) => t.text).join(' '), expected);
+    else assert.equal(toasts().length, 0);
+  });
+}
+
 // ------------------------------------------------------------------ voice and incidents
 test('muting from the banner: nothing more is spoken', async () => {
   await startTrip();

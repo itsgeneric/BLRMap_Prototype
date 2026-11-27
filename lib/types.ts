@@ -35,6 +35,8 @@ export interface RouteResponse {
   distance_km?: number;
   /** planned travel time in seconds: sent by the backend, or filled in by the app (lib/routeInfo.ts) */
   duration_s?: number;
+  /** the backend's Google road check of this route */
+  road_check?: 'passed' | 'failed' | 'unavailable' | 'off';
   /** true when the app had to estimate duration_s because the backend sent none */
   time_from_app?: boolean;
   /** where the route really starts / ends (on a road) and how far that is from the pin */

@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import threading
 
 from core.config import (
-    SNAP_FINAL_POLYLINE, ENABLE_ROAD_VERIFY, MAX_SNAP_DISTANCE_M,
+    SNAP_FINAL_POLYLINE, ENABLE_ROAD_VERIFY, ROAD_VERIFY_MAX_ROUNDS, MAX_SNAP_DISTANCE_M,
 )
 from routing.graph_manager import graph_manager
 from routing.algorithms import build_two_wheeler_penalties
@@ -97,6 +97,33 @@ def _snaps_for(lat: float, lng: float, label: str):
     return snaps
 
 
+async def _checked_route(make_plan):
+    """
+    Plans, checks the route's roads with Google, and plans again around any road Google does not have.
+    Returns (plan, road_check):
+        'passed'       every road on this very route was accepted
+        'failed'       it still uses a road Google does not have (no way found round it)
+        'unavailable'  Google could not be asked
+        'off'          the check is disabled
+    """
+    plan = make_plan()
+    if not ENABLE_ROAD_VERIFY:
+        return plan, "off"
+    for attempt in range(ROAD_VERIFY_MAX_ROUNDS):
+        bad, status = await snap_and_verify_route(plan["ridden_edges"], graph_manager.G)
+        if not bad:
+            if any(edge_blacklist.get_edge_penalty(u, v) > 1.0 for u, v in plan["ridden_edges"]):
+                return plan, "failed"          # a blocked road is the only way
+            return plan, "passed" if status == "checked" else "unavailable"
+        if attempt == ROAD_VERIFY_MAX_ROUNDS - 1:
+            break
+        try:
+            plan = make_plan()
+        except nx.NetworkXNoPath:
+            break
+    return plan, "failed"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     graph_manager.load_graph()
@@ -143,17 +170,8 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         return {"status": "error", "message": str(exc)}
 
     try:
-        plan = plan_route(graph_manager.G, graph_manager, "shortest", origins, destinations)
-
-        # Optional Google road check (ENABLE_ROAD_VERIFY, off by default: see core/config.py)
-        for _ in range(3 if ENABLE_ROAD_VERIFY else 0):
-            flagged = await snap_and_verify_route(plan["nodes"], graph_manager.G)
-            if not flagged:
-                break
-            try:
-                plan = plan_route(graph_manager.G, graph_manager, "shortest", origins, destinations)
-            except Exception:
-                break
+        plan, road_check = await _checked_route(
+            lambda: plan_route(graph_manager.G, graph_manager, "shortest", origins, destinations))
 
         coords = plan["coords"]
         dist_km = round(plan["distance_m"] / 1000, 2)
@@ -176,7 +194,7 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         # ────────────────────────────────────────────────────────────────
 
         response = {
-            "status": "success", "path": coords, "distance_km": dist_km,
+            "status": "success", "path": coords, "distance_km": dist_km, "road_check": road_check,
             "duration_s": plan["duration_s"],
             "origin_snap": plan["origin_snap"], "destination_snap": plan["destination_snap"],
             "maneuvers": plan["maneuvers"],
@@ -223,17 +241,8 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
         plan_args = dict(penalties=penalties, congested_nodes=congested_nodes, incident_nodes=incident_penalties,
                          landmarks=_landmark_state["lm"])
         # inner roads first, within a detour budget; through traffic when the way round is too long (routing/smart.py)
-        plan = plan_smart(graph_manager.G, graph_manager, origins, destinations, **plan_args)
-
-        # Optional Google road check (ENABLE_ROAD_VERIFY, off by default: see core/config.py)
-        for _ in range(3 if ENABLE_ROAD_VERIFY else 0):
-            flagged = await snap_and_verify_route(plan["nodes"], graph_manager.G)
-            if not flagged:
-                break
-            try:
-                plan = plan_smart(graph_manager.G, graph_manager, origins, destinations, **plan_args)
-            except Exception:
-                break
+        plan, road_check = await _checked_route(
+            lambda: plan_smart(graph_manager.G, graph_manager, origins, destinations, **plan_args))
 
         coords  = plan["coords"]
         dist_km = round(plan["distance_m"] / 1000, 2)
@@ -265,6 +274,7 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             "duration_s": plan["duration_s"],
             "google_base_duration_mins": google_mins,
             "congested_nodes_avoided": len(congested_nodes),
+            "road_check": road_check,
             "direct_distance_km": round(plan["direct_distance_m"] / 1000, 2),
             "preference_level": plan["preference_level"],
             "through_traffic": plan["through_traffic"],
