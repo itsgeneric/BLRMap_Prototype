@@ -20,14 +20,16 @@ import threading
 
 from core.config import (
     SNAP_FINAL_POLYLINE, ENABLE_ROAD_VERIFY, ROAD_VERIFY_MAX_ROUNDS, MAX_SNAP_DISTANCE_M,
+    ENABLE_GOOGLE_ARRIVAL, ARRIVAL_TRIGGER_M,
 )
 from routing.graph_manager import graph_manager
 from routing.algorithms import build_two_wheeler_penalties
 from routing.smart import plan_smart
+from routing.arrival import arrival_snaps
 from routing.snapping import FAR_PIN_M, NoRoadNearby, find_snaps, nearby_junction_snaps, plan_route, snap_to_node
 from routing.edge_blacklist import edge_blacklist
 from services.external_api import (
-    search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads,
+    search_places, fetch_traffic_data, snap_and_verify_route, snap_route_to_roads, fetch_arrival_path,
 )
 from database.mongo_client import connect_db, close_db
 from database.models import (
@@ -124,6 +126,31 @@ async def _checked_route(make_plan):
     return plan, "failed"
 
 
+async def _destination_snaps(from_lat, from_lng, to_lat, to_lng):
+    """
+    Where the trip ends. Returns (candidates, arrival):
+        'nearest_road'     the road nearest the pin
+        'google_approach'  no road is beside the pin, so the trip ends on the road Google approaches it from
+    Raises NoRoadNearby when neither finds a road.
+    """
+    try:
+        snaps, no_road = _snaps_for(to_lat, to_lng, "destination"), None
+    except NoRoadNearby as exc:
+        snaps, no_road = [], exc
+
+    index = _road_index_state["index"]
+    if ENABLE_GOOGLE_ARRIVAL and index is not None and (not snaps or snaps[0].distance_m > ARRIVAL_TRIGGER_M):
+        async with httpx.AsyncClient() as client:
+            google_path = await fetch_arrival_path(client, from_lat, from_lng, to_lat, to_lng)
+        approach = arrival_snaps(graph_manager.G, index, google_path, (to_lat, to_lng)) if google_path else None
+        if approach:
+            return approach, "google_approach"
+
+    if no_road:
+        raise no_road
+    return snaps, "nearest_road"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     graph_manager.load_graph()
@@ -165,7 +192,7 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
     # drawn between a pin and the road (origin_snap / destination_snap report how far each pin was from it).
     try:
         origins = _snaps_for(from_lat, from_lng, "start")
-        destinations = _snaps_for(to_lat, to_lng, "destination")
+        destinations, arrival = await _destination_snaps(from_lat, from_lng, to_lat, to_lng)
     except NoRoadNearby as exc:
         return {"status": "error", "message": str(exc)}
 
@@ -194,7 +221,7 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
         # ────────────────────────────────────────────────────────────────
 
         response = {
-            "status": "success", "path": coords, "distance_km": dist_km, "road_check": road_check,
+            "status": "success", "path": coords, "distance_km": dist_km, "road_check": road_check, "arrival": arrival,
             "duration_s": plan["duration_s"],
             "origin_snap": plan["origin_snap"], "destination_snap": plan["destination_snap"],
             "maneuvers": plan["maneuvers"],
@@ -215,7 +242,7 @@ async def get_route(from_lat: float, from_lng: float, to_lat: float, to_lng: flo
 async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
     try:
         origins = _snaps_for(from_lat, from_lng, "start")
-        destinations = _snaps_for(to_lat, to_lng, "destination")
+        destinations, arrival = await _destination_snaps(from_lat, from_lng, to_lat, to_lng)
     except NoRoadNearby as exc:
         return {"status": "error", "message": str(exc)}
 
@@ -275,6 +302,7 @@ async def dynamic_route(from_lat: float, from_lng: float, to_lat: float, to_lng:
             "google_base_duration_mins": google_mins,
             "congested_nodes_avoided": len(congested_nodes),
             "road_check": road_check,
+            "arrival": arrival,
             "direct_distance_km": round(plan["direct_distance_m"] / 1000, 2),
             "preference_level": plan["preference_level"],
             "through_traffic": plan["through_traffic"],

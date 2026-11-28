@@ -43,6 +43,14 @@ SNAP_FINAL_POLYLINE = os.getenv("SNAP_FINAL_POLYLINE", "false").strip().lower() 
 # from or arrive at, and the request fails with a clear message instead of drawing a line through buildings.
 MAX_SNAP_DISTANCE_M = float(os.getenv("MAX_SNAP_DISTANCE_M", "500.0"))
 
+# Destinations with no road beside them (a campus, a gated or walled place): ask Google how it gets there, and end the
+# trip where Google's route last runs along one of our public roads (routing/arrival.py). One paid Routes API call, made
+# only when the nearest road is farther than ARRIVAL_TRIGGER_M from the pin.
+ENABLE_GOOGLE_ARRIVAL = os.getenv("ENABLE_GOOGLE_ARRIVAL", "true").strip().lower() in ("1", "true", "yes", "on")
+ARRIVAL_TRIGGER_M = float(os.getenv("ARRIVAL_TRIGGER_M", "50"))
+ARRIVAL_ON_ROAD_M = 15.0            # how close Google's route must be to our road to count as running on it
+ARRIVAL_MAX_FROM_PIN_M = 600.0      # give up when Google's last public road is farther than this from the place
+
 # Google Roads check: every route's smaller roads are compared with Google's road network, and a road Google does not have
 # is blocked and the route planned again (services/external_api.py). Uses paid Roads API calls, and the "Roads API" must be
 # enabled for the key. ENABLE_ROAD_VERIFY=false turns it off.

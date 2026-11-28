@@ -228,8 +228,16 @@ export default function NavigationApp() {
       const start = res.origin_snap?.distance_m ?? 0;
       const end = res.destination_snap?.distance_m ?? 0;
       if (start > 75) parts.push(`The route starts ${Math.round(start)} m from your start point`);
-      if (end > 75) parts.push(`The route ends ${Math.round(end)} m from your destination`);
-      if (parts.length > 0) addToast(`${parts.join('. ')}: no public road goes closer.`, 'info', 6000);
+      const googleApproach = res.arrival === 'google_approach';
+      if (end > 75 && !googleApproach) parts.push(`The route ends ${Math.round(end)} m from your destination`);
+      if (parts.length > 0) addToast(`${parts.join('. ')}: no road in our map goes closer.`, 'info', 6000);
+      if (googleApproach) {
+        addToast(
+          `No road goes right to your destination. The route ends where Google Maps approaches it, about ${Math.round(end)} m away.`,
+          'info',
+          8000
+        );
+      }
       if (res.road_check === 'failed') {
         addToast('Part of this route uses a road that Google Maps does not have. Check it before you ride.', 'warning', 8000);
       } else if (res.road_check === 'unavailable') {

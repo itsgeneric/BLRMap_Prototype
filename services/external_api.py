@@ -396,3 +396,35 @@ async def snap_and_verify_route(edges: list, graph, threshold_m: float = ROAD_VE
     if VERIFY_SHADOW_MODE:
         bad = []                                            # shadow mode: report only, never re-route
     return bad, 'unavailable' if incomplete else 'checked'
+
+
+async def fetch_arrival_path(client: httpx.AsyncClient, from_lat, from_lng, to_lat, to_lng):
+    """
+    Google's two-wheeler route to the destination, as [(lat, lng), ...], used only to find which road a place is
+    approached from (routing/arrival.py). None when Google cannot be asked or has no route: never an error.
+    """
+    if not ROUTES_KEY:
+        return None
+    body = {
+        "origin": {"location": {"latLng": {"latitude": from_lat, "longitude": from_lng}}},
+        "destination": {"location": {"latLng": {"latitude": to_lat, "longitude": to_lng}}},
+        "travelMode": "TWO_WHEELER",
+        "routingPreference": "TRAFFIC_UNAWARE",
+        "polylineQuality": "HIGH_QUALITY",
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": ROUTES_KEY,
+        "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
+    }
+    try:
+        res = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=10.0)
+        if res.status_code != 200:
+            print(f"[Arrival] Google Routes API HTTP {res.status_code}: {res.text[:200]}")
+            return None
+        routes = res.json().get("routes") or []
+        encoded = routes[0].get("polyline", {}).get("encodedPolyline", "") if routes else ""
+        return [(point[0], point[1]) for point in decode_polyline(encoded)] or None
+    except Exception as exc:
+        print(f"[Arrival] Google request failed: {type(exc).__name__} - {exc}")
+        return None

@@ -53,6 +53,7 @@ class ApiIntegrationTests(unittest.TestCase):
 
         cls.patches = [
             mock.patch.object(api_server, 'fetch_traffic_data', AsyncMock(return_value=(None, []))),
+            mock.patch.object(api_server, 'fetch_arrival_path', AsyncMock(return_value=None)),   # a paid Google call
             mock.patch.object(api_server, 'snap_and_verify_route', AsyncMock(return_value=([], 'checked'))),
             mock.patch.object(api_server.db, 'create_journey_from_route', AsyncMock(return_value='journey-1')),
             mock.patch.object(api_server.db, 'get_active_incident_penalties', AsyncMock(return_value={})),

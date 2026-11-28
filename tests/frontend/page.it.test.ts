@@ -472,7 +472,7 @@ test('when the route cannot get close to a pin, the rider is told how far it sto
     body: backendBody({ origin_snap: { lat: A.lat, lng: A.lng, distance_m: 12 }, destination_snap: { lat: B.lat, lng: B.lng, distance_m: 140 } }),
   });
   await chooseTrip();
-  assert.deepEqual(toasts().map((t) => t.text), ['The route ends 140 m from your destination: no public road goes closer.']);
+  assert.deepEqual(toasts().map((t) => t.text), ['The route ends 140 m from your destination: no road in our map goes closer.']);
 });
 
 test("street names and turns sent by the backend are shown as sent", async () => {
@@ -501,6 +501,16 @@ for (const [check, expected] of [
     else assert.equal(toasts().length, 0);
   });
 }
+
+test("a destination with no road beside it: the rider is told the route ends where Google approaches it", async () => {
+  routeAnswer = () => ({
+    body: backendBody({ arrival: 'google_approach', destination_snap: { lat: B.lat, lng: B.lng, distance_m: 162 } }),
+  });
+  await chooseTrip();
+  assert.deepEqual(toasts().map((t) => t.text), [
+    'No road goes right to your destination. The route ends where Google Maps approaches it, about 162 m away.',
+  ]);
+});
 
 // ------------------------------------------------------------------ voice and incidents
 test('muting from the banner: nothing more is spoken', async () => {
