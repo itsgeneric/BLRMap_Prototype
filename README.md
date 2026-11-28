@@ -12,6 +12,41 @@ An end-to-end, graph-theoretic two-wheeler navigation system and empirical resea
 
 ---
 
+## ⚠️ Known Issues
+
+This is a **prototype**. Check a route before relying on it, and always follow road signs and local access rules.
+
+### 1. Road choice is not smart enough yet
+* Routes are not always the road a local rider would take. They can use narrow or awkward lanes, or miss a better road.
+* Road preference comes from **fixed weights per road type**. Nothing is learned from real rides, and road width, surface quality and signals are not considered.
+* Live traffic is limited: jams are only known **along Google's own route** for the trip. Congestion elsewhere is not seen.
+* Travel times are estimates from typical speeds and **do not include live traffic**. "Fastest" mode compares these estimates.
+
+### 2. Some roads in a route might not exist
+* The road network comes from OpenStreetMap data, which can be **outdated or wrong**. A route can include a road that is not there, is blocked, or cannot be ridden. This has happened in testing.
+* The Google road check reduces this but **does not remove it**:
+  * a wrong road within 25 m of a real one can still pass;
+  * tertiary and larger roads are not checked;
+  * if Google cannot be asked, the route is returned unchecked (the response says `unavailable`);
+  * the strict limit may also block a road that is real;
+  * it cannot tell whether a road is gated, private or closed.
+
+### 3. A route may stop short of the destination
+* Campuses, apartments, defence areas and other gated places often have no road the app may use. The route then ends outside.
+* The map file used in development has **no `highway=service` roads**, so many internal lanes are missing from it.
+* When no road is near the destination, the route ends where Google's route approaches it. That is not guaranteed to be an entrance, and it **has not yet been confirmed on real trips**.
+
+### 4. Speed
+* The road index is rebuilt on **every server start** (about 50 s on the development PC). Until `[Index] Road index ready` appears, pins snap to the nearest junction and routes can be worse.
+* Dynamic routes can be slow, especially long ones that need the Google road check.
+
+### 5. Testing
+* Automated tests use fake or stand-in versions of Google and the phone. The current version still needs **testing on a phone and on real roads**.
+
+---
+
+> **About the research sections:** the Abstract, Mathematical Foundations and Benchmarks below summarise the project's **research paper**. The running code differs in places: its A\* lower bound is calculated from the active cost table (not a fixed 0.80), living streets cost 0.95, the flyover discount is off by default, a traffic jam costs 2× (not 25×), and no API endpoint uses the alternative route generator. See [How the current code works](#️-how-the-current-code-works).
+
 ---
 
 ## 📑 Abstract
@@ -31,33 +66,30 @@ The framework integrates:
 
 ---
 
-## 🏛️ System Architecture
+## 🏛️ How the current code works
 
 ```mermaid
 flowchart TD
-    OSM["OpenStreetMap Bengaluru Network<br/>(308K nodes; 744K raw edges / 740K collapsed)"] --> GM["Graph Manager<br/>Fast Binary Pickle Loader (Sub-4s Boot)"]
-    
-    subgraph RoutingEngine ["Core Routing Engine (FastAPI)"]
-        GM --> SM["Shortest Mode<br/>Turn-Aware State-Expanded A*<br/>(Admissible Heuristic: h = 0.80 · d_Haversine)"]
-        GM --> DM["Dynamic Mode<br/>A* + Live Congestion Penalties (25 × μ)"]
-        
-        SM --> AG["Alternative Route Generator<br/>Perpendicular Chord Offsets (K = 3)"]
-        AG --> Filters["4-Stage Candidate Filter<br/>1. Connectivity | 2. Deduplication<br/>3. Detour ≤ 1.20 | 4. Overlap ≤ 0.70"]
-    end
-
-    TrafficAPI["Google Routes API<br/>(Live Congestion Polylines & ETA)"] -.-> DM
-    DM --> MongoStore[("MongoDB Atlas<br/>Route Snapshot & Telemetry Store")]
-
-    subgraph ClientLayer ["Cross-Platform Client (Next.js 15 + Capacitor 8)"]
-        AppUI["Next.js WebGL Navigation Client<br/>(Google Maps 3D Vector Tiles)"]
-        CompassModule["2-State Driver Compass<br/>(North-Up 2D / 45° 3D Driver-Tracking)"]
-        FreeExplore["Google Maps-Style Free-Explore<br/>& Floating Recenter Pill"]
-        ETAModule["Linear Steady ETA Engine<br/>(26 km/h Urban Baseline)"]
-    end
-
-    Filters --> AppUI
-    DM --> AppUI
+    OSM["OpenStreetMap road data (GraphML)"] --> GM["Graph manager: filter roads, cache a .pkl"]
+    App["Next.js app / Android (Capacitor 8)"] -->|"/route, /dynamic-route"| API["FastAPI backend"]
+    GM --> API
+    Routes["Google Routes API: jams, approach to a destination"] -.-> API
+    API --> Plan["Turn-aware A* with a detour limit"]
+    Plan --> Check["Google Roads API: check smaller roads, block and re-plan"]
+    Check --> App
+    API -.-> Mongo[("MongoDB Atlas: journeys, incidents")]
 ```
+
+| Area | Behaviour |
+| :--- | :--- |
+| **Shortest** | Distance, with turn costs (25 m for 60° or more, 8 m for 30–60°). |
+| **Dynamic** | Prefers inner roads (primary 2.2, residential 1.0), but is never longer than **15% or 300 m** over the most direct route, whichever allows more. |
+| **Traffic** | A jammed road costs 2×, so short traffic is ridden through. Reported incidents cost much more. |
+| **Roads removed** | `private`, `no`, military, emergency-only and permit-only roads, and paths vehicles cannot use. |
+| **Start or end only** | Service, destination-only, customer, delivery and `permissive` roads: never used as a shortcut. |
+| **Pins** | Snap to the nearest road segment, respecting one-way streets. |
+| **Google road check** | Roads below tertiary are tested at 3 or more points (25 m tolerance). A rejected road is blocked and the route planned again, up to 5 rounds. |
+| **Far destinations** | If no road is within 50 m, the route ends where Google's route last follows a public road. |
 
 ---
 
@@ -131,109 +163,113 @@ $$J(P_i, P_j) = \frac{\sum_{e \in E(P_i) \cap E(P_j)} \ell(e)}{\sum_{e \in E(P_i
 
 ---
 
-## 📱 Mobile Client & UI Engineering
+## 📱 The App
 
-The frontend is an Android navigation application built using **Next.js 15**, **Tailwind CSS**, and **Capacitor 8**, featuring:
-* **Interactive 3D Vector Maps**: Powered by Google Maps JavaScript API with customizable dark/light night-mode JSON styling.
-* **Google Maps-Style Free-Explore & Floating `[ ⌖ Re-center ]`**: Instant touch/pan unlocking without abrupt camera snapping; gliding re-center back onto the driver with 45° perspective at zoom 18.
-* **Two-State Driver Compass**: Toggle seamlessly between flat 2D North-Up (`north_up`) and 3D rider travel direction (`heading_up`).
-* **Linear Urban ETA Calculation**: Replaces erratic instantaneous speed divisions with a calibrated 26 km/h urban baseline that eliminates ETA fluctuations at traffic lights.
-* **Live Community Incident Reporting**: Rider reporting for road hazards, slowdowns, waterlogging/flooding, and construction.
+Built with **Next.js 15**, **Tailwind CSS** and **Capacitor 8** (Android).
+
+* **Search or press and hold** the map to choose a place; a plain tap selects nothing.
+* **Turn banner and voice guidance** (the phone's text-to-speech on Android).
+* **Speed, arrival time and distance left**, rerouting when you leave the route.
+* **2D map** with heading-up or north-up compass and a Re-center button.
+* **Trip completed card**, then back to the start screen.
+* **Incident reporting** for crashes, hazards, flooding and construction.
 
 ---
 
-## 🚀 Getting Started & Setup
+## 🚀 Getting Started
 
 ### Prerequisites
-* **Node.js**: v18.18+ or v20+
-* **Python**: 3.10+
-* **Android Studio & SDK**: API level 33+ (for Android builds)
-* **OpenStreetMap Bengaluru Graph**: `Data Assets/bengaluru_graph.pkl` (pre-compiled binary graph)
+* Node.js 20+ and Python 3.11+
+* Android Studio / SDK (for the APK)
+* Google Maps Platform keys with **Maps JavaScript, Places, Geocoding, Routes and Roads** APIs enabled
+* The road data file `Data Assets/bengaluru_roads_extended.graphml` (too large for GitHub)
 
----
+### Settings (`.env` in the project root; never commit it)
 
-### 1. Backend Server Setup
+| Name | Purpose |
+| :--- | :--- |
+| `GOOGLE_PLACES_API_KEY` | Place search |
+| `GOOGLE_MAPS_API_KEY` | Routes API |
+| `GOOGLE_ROADS_API_KEY` | Roads API (optional; falls back to the keys above) |
+| `MONGODB_URI` | Optional: journeys and incidents |
+| `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | Map in the app |
+| `NEXT_PUBLIC_GOOGLE_MAP_ID` | Optional: your styled vector Map ID |
+| `NEXT_PUBLIC_API_BASE` | Backend address the app calls (set **before** building) |
+| `ENABLE_ROAD_VERIFY` | `false` turns off the Google road check |
+| `ENABLE_GOOGLE_ARRIVAL` | `false` turns off the Google approach for far destinations |
+
+The road check and the approach lookup use **paid Google API calls**.
+
+### Backend
 
 ```bash
-# Clone repository
 git clone https://github.com/itsgeneric/BLRMap_Prototype.git
 cd BLRMap_Prototype
-
-# Create virtual environment
+git switch main-backend
 python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
-
-# Install dependencies
-pip install fastapi uvicorn osmnx networkx scipy numpy httpx "pymongo[srv]" python-dotenv
-
-# Configure environment variables (.env)
-cp .env.example .env
-
-# Run FastAPI server (sub-4s fast binary graph load)
-python api_server.py
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python api_server.py --no-reload  # port 8000, docs at /docs
 ```
-*The backend will be available at `http://localhost:8000` (Docs: `http://localhost:8000/docs`).*
 
----
+The first start builds `Data Assets/bengaluru_graph.smart.pkl` from the GraphML file. Later starts load that file. It is rebuilt automatically when the road rules change. Wait for `[Index] Road index ready` before testing routes.
 
-### 2. Frontend & Android Mobile Setup
+**Using an existing, older `.pkl`** (keeps the road rules it was built with; back it up first, and check it loads with `Fast binary load complete`):
 
 ```bash
-# Install frontend dependencies
+GRAPH_PKL_PATH="Data Assets/bengaluru_graph.pkl" GRAPH_FILE_PATH="do-not-rebuild" python api_server.py --no-reload
+```
+
+### Web app
+
+```bash
 npm install
-
-# Run development server
-npm run dev
+npm run dev                       # http://localhost:3000
 ```
-*Open `http://localhost:3000` to view the web client.*
 
-#### Compiling Android APK
+### Android APK
+
+Put `NEXT_PUBLIC_API_BASE=http://<backend address>:8000` in `.env.production.local`. On a phone, `127.0.0.1` means the phone itself.
+
 ```bash
-# Build static export
 npm run build
-
-# Sync assets to Capacitor Android project
 npx cap sync android
-
-# Build debug APK using Gradle
 cd android
-./gradlew assembleDebug    # On Windows: .\gradlew.bat assembleDebug
-cd ..
-
-# Output APK generated at:
-# android/app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug           # Windows: .\gradlew.bat assembleDebug
+# APK: android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### Tests
+
+```bash
+python -m unittest discover -s tests -t .      # backend
+node --test "tests/frontend/*.test.ts"          # app (Node 23.6+, tested on 26)
+node tests/ui/layout.e2e.mjs                    # browser layout and full ride; run `npm run build` first
+```
+
+The browser check needs Edge or Chrome and uses a stand-in backend (set `BACKEND_PORT` if port 8000 is busy, and build with the matching `NEXT_PUBLIC_API_BASE`). Some backend tests only run against a live server.
 
 ---
 
-## 📂 Project Repository Structure
+## 📂 Project Structure
 
 ```text
-BLRMap_Prototype/
-├── app/                        # Next.js 15 App Router pages & layouts
-│   ├── page.tsx                # Main navigation dashboard
-│   ├── layout.tsx              # Root HTML/metadata layout
-│   └── globals.css             # Tailwind CSS & UI animations
-├── components/                 # Reusable React components
-│   ├── Map/
-│   │   ├── GoogleMapContainer.tsx # Map viewport, polyline rendering, touch handling
-│   │   └── SearchBar.tsx       # Origin/Destination geocoding autocompletion
-│   └── Navigation/
-│       ├── NavigationFooter.tsx # Turn-by-turn guidance, ETA & Re-center button
-│       └── IncidentReportModal.tsx # Road hazard & flood reporting modal
-├── routing/                    # Core Python Graph Engine
-│   ├── graph_manager.py        # Sub-4s binary PKL deserialization & spatial indexing
-│   ├── astar.py                # Turn-aware state-expanded A* implementation
-│   ├── cost_model.py           # Road-class impedance weights & angular penalties
-│   └── alternative_generator.py # Perpendicular-offset chord waypoint generator
-├── Data Assets/                # Graph and boundary assets (OSM cache)
-├── android/                    # Capacitor 8 native Android project files
-├── api_server.py               # FastAPI endpoints (/two-wheeler-route, /incidents)
-├── capacitor.config.json       # Native Capacitor bridge configuration
-└── README.md                   # Comprehensive project documentation
+app/  components/  hooks/  lib/     # Next.js app
+android/                            # Capacitor Android project
+api_server.py                       # FastAPI endpoints
+core/config.py                      # road weights and settings
+routing/
+  graph_manager.py                  # load and filter the road graph
+  algorithms.py                     # A*, turn costs, turn instructions
+  snapping.py                       # pins on roads, route planning
+  smart.py                          # detour limit
+  access.py                         # start/end-only roads
+  arrival.py                        # destinations with no road beside them
+  landmarks.py                      # faster A* lower bounds
+  edge_blacklist.py                 # blocked roads
+services/external_api.py            # Google Places, Routes and Roads
+database/                           # MongoDB
+tests/                              # backend, app and browser tests
 ```
 
 ---
